@@ -9,6 +9,7 @@ enum Instruction {
 ///|
 priv struct Thread {
   pc : Int
+  captures : Array[Int]
 } derive(Show)
 
 ///|
@@ -20,8 +21,7 @@ fn thompson_vm(
   guard instructions is [Save(_), .., Save(_)]
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
-  let result = Array::make(captures * 2, 0)
-  clist.push({ pc: 0 })
+  clist.push({ pc: 0, captures: Array::make(captures * 2, 0) })
   for sp = 0; sp <= input.length(); sp = sp + 1 {
     let actual_char = if sp == input.length() {
       (-1).unsafe_to_char()
@@ -39,22 +39,24 @@ fn thompson_vm(
       }
     }
     for i = 0; i < clist.length(); i = i + 1 {
-      let { pc } = clist[i]
+      let { pc, captures } = clist[i]
       if pc >= instructions.length() {
         continue
       }
       match instructions[pc] {
         Save(i) => {
-          result[i] = sp
+          captures[i] = sp
           if pc + 1 < instructions.length() {
-            clist.push({ pc: pc + 1 })
+            clist.push({ pc: pc + 1, captures })
+          } else {
+            return captures
           }
         }
-        Char(c) => if c == actual_char { nlist.push({ pc: pc + 1 }) }
-        Jump(i) => clist.push({ pc: i })
+        Char(c) => if c == actual_char { nlist.push({ pc: pc + 1, captures }) }
+        Jump(i) => clist.push({ pc: i, captures })
         Split(i1, i2) => {
-          clist.push({ pc: i1 })
-          clist.push({ pc: i2 })
+          clist.push({ pc: i1, captures })
+          clist.push({ pc: i2, captures: captures.copy() })
         }
       }
     }
@@ -66,7 +68,7 @@ fn thompson_vm(
       continue sp + 2
     }
   }
-  result
+  return []
 }
 
 ///|
@@ -102,5 +104,5 @@ test "lazy capture" {
     Save(1),
   ]
   let captures = thompson_vm(instructions, "aaaa", 2)
-  inspect!(captures, content="[0, 4, 4, 4]")
+  inspect!(captures, content="[0, 4, 0, 0]")
 }
