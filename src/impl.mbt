@@ -84,3 +84,23 @@ test {
   inspect!(captures, content="[0, 3]")
   inspect!("aab".charcodes(start=0, end=3), content="aab")
 }
+
+///|
+test "lazy capture" {
+  // (a+?)aaaa
+  let instructions = [
+    Save(0),
+    Save(2),
+    Split(3, 5),
+    Char('a'),
+    Jump(1),
+    Save(3),
+    Char('a'),
+    Char('a'),
+    Char('a'),
+    Char('a'),
+    Save(1),
+  ]
+  let captures = thompson_vm(instructions, "aaaa", 2)
+  inspect!(captures, content="[0, 4, 4, 4]")
+}
