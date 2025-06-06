@@ -1,7 +1,7 @@
 ///|
 enum Instruction {
   Save(Int)
-  Char(Char)
+  Char(Array[Char])
   Jump(Int)
   Split(Int, Int)
 }
@@ -52,7 +52,16 @@ fn thompson_vm(
             return captures
           }
         }
-        Char(c) => if c == actual_char { nlist.push({ pc: pc + 1, captures }) }
+        Char(chars) =>
+          for i = 0; i < chars.length() / 2; i = i + 1 {
+            if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
+              continue
+            } else {
+              break
+            }
+          } else {
+            nlist.push({ pc: pc + 1, captures })
+          }
         Jump(i) => clist.push({ pc: i, captures })
         Split(i1, i2) => {
           clist.push({ pc: i1, captures })
@@ -76,9 +85,9 @@ test {
   // (a+b+)
   let instructions = [
     Save(0),
-    Char('a'),
+    Char(['a', 'a']),
     Split(1, 3),
-    Char('b'),
+    Char(['b', 'b']),
     Split(3, 5),
     Save(1),
   ]
@@ -94,13 +103,13 @@ test "lazy capture" {
     Save(0),
     Save(2),
     Split(3, 5),
-    Char('a'),
+    Char(['a', 'a']),
     Jump(1),
     Save(3),
-    Char('a'),
-    Char('a'),
-    Char('a'),
-    Char('a'),
+    Char(['a', 'a']),
+    Char(['a', 'a']),
+    Char(['a', 'a']),
+    Char(['a', 'a']),
     Save(1),
   ]
   let captures = thompson_vm(instructions, "aaaa", 2)
