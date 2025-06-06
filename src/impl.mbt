@@ -1,5 +1,6 @@
 ///|
 enum Instruction {
+  Matched
   Save(Int)
   Char(Array[Char])
   Jump(Int)
@@ -18,7 +19,7 @@ fn thompson_vm(
   input : @string.View,
   captures : Int
 ) -> Array[Int] {
-  guard instructions is [Save(_), .., Save(_)]
+  guard instructions is [Save(_), .., Save(_), Matched]
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
   clist.push({ pc: 0, captures: Array::make(captures * 2, 0) })
@@ -44,13 +45,10 @@ fn thompson_vm(
         continue
       }
       match instructions[pc] {
+        Matched => return captures
         Save(i) => {
           captures[i] = sp
-          if pc + 1 < instructions.length() {
-            clist.push({ pc: pc + 1, captures })
-          } else {
-            return captures
-          }
+          clist.push({ pc: pc + 1, captures })
         }
         Char(chars) =>
           for i = 0; i < chars.length() / 2; i = i + 1 {
@@ -90,6 +88,7 @@ test {
     Char(['b', 'b']),
     Split(3, 5),
     Save(1),
+    Matched,
   ]
   let captures = thompson_vm(instructions, "aab", 1)
   inspect!(captures, content="[0, 3]")
@@ -111,6 +110,7 @@ test "lazy capture" {
     Char(['a', 'a']),
     Char(['a', 'a']),
     Save(1),
+    Matched,
   ]
   let captures = thompson_vm(instructions, "aaaa", 2)
   inspect!(captures, content="[0, 4, 0, 0]")
@@ -143,6 +143,7 @@ test "priority" (t : @test.T) {
     Jump(17),
     Save(7),
     Save(1),
+    Matched,
   ]
   let captures = thompson_vm(instructions, "aabbcc", 4)
   inspect!(captures, content="[0, 5, 0, 3, 3, 4, 4, 5]")
