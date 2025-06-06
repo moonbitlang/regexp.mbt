@@ -115,3 +115,39 @@ test "lazy capture" {
   let captures = thompson_vm(instructions, "aaaa", 2)
   inspect!(captures, content="[0, 4, 0, 0]")
 }
+
+///|
+test "priority" (t : @test.T) {
+  // (a.*)(b.*)(c.*)
+  let instructions = [
+    Save(0),
+    Save(2),
+    Char(['a', 'a']),
+    Split(4, 6),
+    // any
+    Char(['\u{0}', '\u{10FFFF}']),
+    Jump(3),
+    Save(3),
+    Save(4),
+    Char(['b', 'b']),
+    Split(10, 12),
+    // any
+    Char(['\u{0}', '\u{10FFFF}']),
+    Jump(9),
+    Save(5),
+    Save(6),
+    Char(['c', 'c']),
+    Split(16, 18),
+    // any
+    Char(['\u{0}', '\u{10FFFF}']),
+    Jump(17),
+    Save(7),
+    Save(1),
+  ]
+  let captures = thompson_vm(instructions, "aabbcc", 4)
+  inspect!(captures, content="[0, 5, 0, 3, 3, 4, 4, 5]")
+  for i = 0; i < captures.length(); i = i + 2 {
+    t.writeln("aabbcc".charcodes(start=captures[i], end=captures[i + 1]))
+  }
+  t.snapshot(filename="priority.txt")
+}
