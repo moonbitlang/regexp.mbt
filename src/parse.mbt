@@ -4,18 +4,38 @@ priv struct Parser {
 }
 
 ///|
+pub enum Err {
+  InternalError
+  InvalidCharClass
+  InvalidEscape
+  InvalidNamedCapture
+  InvalidRepeatOp
+  InvalidRepeatSize
+  MissingBracket
+  MissingParenthesis
+  MissingRepeatArgument
+  TrailingBackslash
+  UnexpectedParenthesis
+}
+
+///|
+pub type! Error_ {
+  Error_(err~ : Err, data~ : @string.View)
+}
+
+///|
 fn Parser::new(input : @string.View) -> Parser {
   Parser::{ input, }
 }
 
 ///|
-pub fn parse(regex : @string.View) -> Regex! {
+pub fn parse(regex : @string.View) -> Regex!Error_ {
   let parser = Parser::new(regex)
   parser.parse_expression()
 }
 
 ///|
-fn Parser::parse_expression(self : Parser) -> Regex! {
+fn Parser::parse_expression(self : Parser) -> Regex!Error_ {
   let mut left = self.parse_sequence()
   while self.peek_char() == Some('|') {
     self.consume_char()
@@ -26,7 +46,7 @@ fn Parser::parse_expression(self : Parser) -> Regex! {
 }
 
 ///|
-fn Parser::parse_sequence(self : Parser) -> Regex! {
+fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
   let sequence = []
   while self.has_more() &&
         self.peek_char() != Some('|') &&
@@ -35,14 +55,15 @@ fn Parser::parse_sequence(self : Parser) -> Regex! {
     sequence.push(term)
   }
   match sequence.length() {
-    0 => fail!("Empty sequence")
+    // Seems like go consider empty sequence as a valid regex
+    0 => Empty
     1 => sequence[0]
     _ => Concat(sequence)
   }
 }
 
 ///|
-fn Parser::parse_term(self : Parser) -> Regex! {
+fn Parser::parse_term(self : Parser) -> Regex!Error_ {
   let mut base = self.parse_factor()
 
   // 处理量词
@@ -65,13 +86,13 @@ fn Parser::parse_term(self : Parser) -> Regex! {
 }
 
 ///|
-fn Parser::parse_factor(self : Parser) -> Regex! {
+fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
   match self.peek_char() {
     Some('(') => {
       self.consume_char() // 消费 '('
       let expr = self.parse_expression()
       if self.peek_char() != Some(')') {
-        fail!("Missing closing parenthesis")
+        raise Error_(err=MissingParenthesis, data=self.input)
       }
       self.consume_char() // 消费 ')'
       Capture(expr)
@@ -84,21 +105,21 @@ fn Parser::parse_factor(self : Parser) -> Regex! {
           self.consume_char()
           CharClass([c, c])
         }
-        None => fail!("Incomplete escape sequence")
+        None => raise Error_(err=TrailingBackslash, data=self.input)
       }
     }
     Some(c) if Parser::is_special_char(c) =>
-      fail("Unexpected special character: \{c}")
+      raise Error_(err=InvalidEscape, data=self.input)
     Some(c) => {
       self.consume_char()
       CharClass([c, c])
     }
-    None => fail!("Unexpected end of input")
+    None => raise Error_(err=InternalError, data=self.input)
   }
 }
 
 ///|
-fn Parser::parse_char_class(self : Parser) -> Regex! {
+fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
   self.consume_char() // 消费 '['
   let chars = []
   while self.has_more() && self.peek_char() != Some(']') {
@@ -110,18 +131,18 @@ fn Parser::parse_char_class(self : Parser) -> Regex! {
             self.consume_char()
             chars.push(c)
           }
-          None => fail!("Incomplete escape in character class")
+          None => raise Error_(err=TrailingBackslash, data=self.input)
         }
       }
       Some(c) => {
         self.consume_char()
         chars.push(c)
       }
-      None => fail!("Unterminated character class")
+      None => raise Error_(err=MissingBracket, data=self.input)
     }
   }
   if self.peek_char() != Some(']') {
-    fail!("Missing closing bracket")
+    raise Error_(err=MissingBracket, data=self.input)
   }
   self.consume_char() // 消费 ']'
   CharClass(chars)
