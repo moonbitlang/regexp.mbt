@@ -199,3 +199,25 @@ test "priority" (t : @test.T) {
   }
   t.snapshot(filename="priority.txt")
 }
+
+///|
+test "alternate capture" {
+  // a(b|c)*d
+  let instructions = [
+    Save(0),
+    Char(['a', 'a']),
+    Split(3, 10),
+    Save(2),
+    Split(5, 7),
+    Char(['b', 'b']),
+    Jump(8),
+    Char(['c', 'c']),
+    Save(3),
+    Jump(2),
+    Char(['d', 'd']),
+    Save(1),
+    Matched,
+  ]
+  let captures = thompson_vm(instructions, "abbd", 2)
+  inspect!(captures, content="[0, 4, 3, 3]")
+}
