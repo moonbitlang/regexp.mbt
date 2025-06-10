@@ -57,7 +57,7 @@ fn add_thread(
 }
 
 ///|
-fn thompson_vm(
+fn vm(
   instructions : Array[Instruction],
   input : @string.View,
   captures : Int
@@ -137,7 +137,7 @@ test {
     Save(1),
     Matched,
   ]
-  let captures = thompson_vm(instructions, "aab", 1)
+  let captures = vm(instructions, "aab", 1)
   inspect!(captures, content="[0, 3]")
   inspect!("aab".charcodes(start=0, end=3), content="aab")
 }
@@ -159,7 +159,7 @@ test "lazy capture" {
     Save(1),
     Matched,
   ]
-  let captures = thompson_vm(instructions, "aaaa", 2)
+  let captures = vm(instructions, "aaaa", 2)
   inspect!(captures, content="[0, 4, 0, 0]")
 }
 
@@ -192,7 +192,7 @@ test "priority" (t : @test.T) {
     Save(1),
     Matched,
   ]
-  let captures = thompson_vm(instructions, "aabbcc", 4)
+  let captures = vm(instructions, "aabbcc", 4)
   inspect!(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
     t.writeln("aabbcc".charcodes(start=captures[i], end=captures[i + 1]))
@@ -218,6 +218,6 @@ test "alternate capture" {
     Save(1),
     Matched,
   ]
-  let captures = thompson_vm(instructions, "abbd", 2)
+  let captures = vm(instructions, "abbd", 2)
   inspect!(captures, content="[0, 4, 2, 3]")
 }

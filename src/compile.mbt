@@ -15,6 +15,20 @@ enum Regex {
 } derive(Show)
 
 ///|
+struct Matcher {
+  instructions : Array[Instruction]
+  capture_count : Int
+}
+
+///|
+/// Returns the result of capture groups. e.g. [0, 4, 0, 4] for `(abc)` matching `abc`.
+/// 
+/// If it is empty, it means that the regex did not match.
+pub fn Matcher::execute(self : Matcher, input : @string.View) -> Array[Int] {
+  vm(self.instructions, input, self.capture_count)
+}
+
+///|
 /// @returns next capture
 fn Regex::compile_aux(
   regex : Self,
@@ -136,72 +150,73 @@ fn Regex::compile_aux(
 }
 
 ///|
-fn Regex::compile(self : Self) -> (Array[Instruction], Int) {
-  let target = []
-  target.push(Save(0))
-  let capture = self.compile_aux(1, target)
-  target.push(Save(1))
-  target.push(Matched)
-  (target, capture)
+/// Compiles a regex into a matcher.
+fn Regex::compile(self : Self) -> Matcher {
+  let instructions = []
+  instructions.push(Save(0))
+  let capture_count = self.compile_aux(1, instructions)
+  instructions.push(Save(1))
+  instructions.push(Matched)
+  { instructions, capture_count }
 }
 
 ///|
 test "literal" {
   let regex = Regex::Literal("abc".to_string())
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
 }
 
 ///|
 test "char_class" {
   let regex = Regex::ZeroOrMore(Regex::CharClass(['a', 'c']))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let regex = Regex::ZeroOrMore(Regex::CharClass(['a', 'a']))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 1]")
 }
 
 ///|
 test "capture" {
   let regex = Regex::Capture(Regex::Literal("abc".to_string()))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3, 0, 3]")
 }
 
 ///|
 test "zero_or_more" {
   let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abcabcab".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
-  let result = thompson_vm(instructions, "ab".view(), capture)
+  let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
 }
 
 ///|
 test "one_or_more" {
   let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abcabcab".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
   let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "ab".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[]")
 }
 
 ///|
 test "zero_or_one" {
   let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()))
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
-  let result = thompson_vm(instructions, "ab".view(), capture)
+  let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
 }
 
@@ -212,12 +227,12 @@ test "repeat" {
     max=Some(4),
     Regex::Literal("abc".to_string()),
   )
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abcabcabcabc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcabcabcabc".view(), capture_count)
   inspect(result, content="[0, 12]")
-  let result = thompson_vm(instructions, "abcabc".view(), capture)
+  let result = vm(instructions, "abcabc".view(), capture_count)
   inspect(result, content="[0, 6]")
-  let result = thompson_vm(instructions, "ab".view(), capture)
+  let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[]")
 }
 
@@ -227,10 +242,10 @@ test "concat" {
     Regex::Literal("abc".to_string()),
     Regex::Literal("def".to_string()),
   ])
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abcdef".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcdef".view(), capture_count)
   inspect(result, content="[0, 6]")
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[]")
 }
 
@@ -240,21 +255,21 @@ test "alternate" {
     Regex::Literal("abc".to_string()),
     Regex::Literal("def".to_string()),
   )
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
-  let result = thompson_vm(instructions, "def".view(), capture)
+  let result = vm(instructions, "def".view(), capture_count)
   inspect(result, content="[0, 3]")
-  let result = thompson_vm(instructions, "xyz".view(), capture)
+  let result = vm(instructions, "xyz".view(), capture_count)
   inspect(result, content="[]")
 }
 
 ///|
 test "empty" {
   let regex = Regex::Alternate(Regex::Literal("abc".to_string()), Regex::Empty)
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abc".view(), capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
-  let result = thompson_vm(instructions, "xyz".view(), capture)
+  let result = vm(instructions, "xyz".view(), capture_count)
   inspect(result, content="[0, 0]")
 }

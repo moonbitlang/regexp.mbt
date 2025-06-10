@@ -1,0 +1,38 @@
+package "peter-jerry-ye/regexp"
+
+import(
+  "moonbitlang/core/string"
+)
+
+// Values
+fn parse(@string.StringView) -> Regex!Error_
+
+// Types and methods
+pub enum Err {
+  InternalError
+  InvalidCharClass
+  InvalidEscape
+  InvalidNamedCapture
+  InvalidRepeatOp
+  InvalidRepeatSize
+  MissingBracket
+  MissingParenthesis
+  MissingRepeatArgument
+  TrailingBackslash
+  UnexpectedParenthesis
+}
+
+pub type! Error_ {
+  Error_(err~ : Err, data~ : @string.StringView)
+}
+
+type Matcher
+fn Matcher::execute(Self, @string.StringView) -> Array[Int]
+
+type Regex
+impl Show for Regex
+
+// Type aliases
+
+// Traits
+

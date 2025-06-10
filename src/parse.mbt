@@ -180,15 +180,15 @@ fn Parser::is_special_char(c : Char) -> Bool {
 ///|
 test {
   let regex = parse("a(b|c)*d")
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abbd", capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abbd", capture_count)
   inspect(result, content="[0, 4, 2, 3]")
 }
 
 ///|
 test {
   let regex = parse("abc|def|ghi")
-  let (instructions, capture) = regex.compile()
-  let result = thompson_vm(instructions, "abcdefghi", capture)
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcdefghi", capture_count)
   inspect(result, content="[0, 3]")
 }
