@@ -10,7 +10,7 @@ enum Regex {
   ZeroOrOne(Regex)
   /// Matches a specific number of repetitions.
   Repeat(min~ : UInt, max~ : UInt?, Regex)
-  Concat(Regex, Regex)
+  Concat(Array[Regex])
   Alternate(Regex, Regex)
 }
 
@@ -108,9 +108,11 @@ fn Regex::compile_aux(
         target[split_pos] = Split(split_pos + 1, target.length())
         next_capture
       }
-    Concat(left, right) => {
-      let next_capture = left.compile_aux(capture, target)
-      let next_capture = right.compile_aux(next_capture, target)
+    Concat(regexs) => {
+      let mut next_capture = capture
+      for regex in regexs {
+        next_capture = regex.compile_aux(next_capture, target)
+      }
       next_capture
     }
     Alternate(left, right) => {
@@ -221,10 +223,10 @@ test "repeat" {
 
 ///|
 test "concat" {
-  let regex = Regex::Concat(
+  let regex = Regex::Concat([
     Regex::Literal("abc".to_string()),
     Regex::Literal("def".to_string()),
-  )
+  ])
   let (instructions, capture) = regex.compile()
   let result = thompson_vm(instructions, "abcdef".view(), capture)
   inspect(result, content="[0, 6]")
