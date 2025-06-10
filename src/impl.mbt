@@ -14,16 +14,66 @@ priv struct Thread {
 } derive(Show)
 
 ///|
+impl Eq for Thread with op_equal(th1, th2) {
+  th1.pc == th2.pc
+}
+
+///|
+impl Hash for Thread with hash_combine(th, hasher) {
+  th.pc.hash_combine(hasher)
+}
+
+///|
+fn add_thread(
+  sp : Int,
+  instructions : Array[Instruction],
+  clist : @set.Set[Thread],
+  thread : Thread
+) -> Unit {
+  if clist.contains(thread) {
+    return
+  }
+  match instructions[thread.pc] {
+    Save(i) => {
+      thread.captures[i] = sp
+      if thread.pc + 1 < instructions.length() {
+        add_thread(sp, instructions, clist, {
+          pc: thread.pc + 1,
+          captures: thread.captures,
+        })
+      }
+    }
+    Jump(i) =>
+      add_thread(sp, instructions, clist, { pc: i, captures: thread.captures })
+    Split(i1, i2) => {
+      add_thread(sp, instructions, clist, { pc: i1, captures: thread.captures })
+      add_thread(sp, instructions, clist, {
+        pc: i2,
+        captures: thread.captures.copy(),
+      })
+    }
+    _ => clist.add(thread)
+  }
+}
+
+///|
 fn thompson_vm(
   instructions : Array[Instruction],
   input : @string.View,
   captures : Int
 ) -> Array[Int] {
   guard instructions is [Save(_), .., Save(_), Matched]
-  let mut clist = Array::new(capacity=instructions.length())
-  let mut nlist = Array::new(capacity=instructions.length())
-  clist.push({ pc: 0, captures: Array::make(captures * 2, 0) })
+  let mut clist = @set.Set::new(capacity=instructions.length())
+  let mut nlist = @set.Set::new(capacity=instructions.length())
+  let mut matched : Array[Int] = []
+  add_thread(0, instructions, clist, {
+    pc: 0,
+    captures: Array::make(captures * 2, 0),
+  })
   for sp = 0; sp <= input.length(); sp = sp + 1 {
+    if clist.is_empty() {
+      break
+    }
     let actual_char = if sp == input.length() {
       (-1).unsafe_to_char()
     } else {
@@ -39,32 +89,25 @@ fn thompson_vm(
         ch.unsafe_to_char()
       }
     }
-    for i = 0; i < clist.length(); i = i + 1 {
-      let { pc, captures } = clist[i]
-      if pc >= instructions.length() {
-        continue
+    for thread in clist {
+      let { pc, captures } = thread
+      if instructions[pc] is Matched {
+        matched = captures
+        // drop everything that has lower priority
+        break
       }
-      match instructions[pc] {
-        Matched => return captures
-        Save(i) => {
-          captures[i] = sp
-          clist.push({ pc: pc + 1, captures })
+      guard instructions[pc] is Char(chars) else {
+        // should have been handled in the add_thread
+        panic()
+      }
+      for i = 0; i < chars.length() / 2; i = i + 1 {
+        if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
+          continue
+        } else {
+          break
         }
-        Char(chars) =>
-          for i = 0; i < chars.length() / 2; i = i + 1 {
-            if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
-              continue
-            } else {
-              break
-            }
-          } else {
-            nlist.push({ pc: pc + 1, captures })
-          }
-        Jump(i) => clist.push({ pc: i, captures })
-        Split(i1, i2) => {
-          clist.push({ pc: i1, captures })
-          clist.push({ pc: i2, captures: captures.copy() })
-        }
+      } else {
+        add_thread(sp + 1, instructions, nlist, { pc: pc + 1, captures })
       }
     }
     let tmp = clist
@@ -75,7 +118,7 @@ fn thompson_vm(
       continue sp + 2
     }
   }
-  return []
+  return matched
 }
 
 ///|
@@ -140,13 +183,13 @@ test "priority" (t : @test.T) {
     Split(16, 18),
     // any
     Char(['\u{0}', '\u{10FFFF}']),
-    Jump(17),
+    Jump(15),
     Save(7),
     Save(1),
     Matched,
   ]
   let captures = thompson_vm(instructions, "aabbcc", 4)
-  inspect!(captures, content="[0, 5, 0, 3, 3, 4, 4, 5]")
+  inspect!(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
     t.writeln("aabbcc".charcodes(start=captures[i], end=captures[i + 1]))
   }
