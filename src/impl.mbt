@@ -11,48 +11,48 @@ enum Instruction {
 priv struct Thread {
   pc : Int
   captures : Array[Int]
-} derive(Show)
-
-///|
-impl Eq for Thread with op_equal(th1, th2) {
-  th1.pc == th2.pc
-}
-
-///|
-impl Hash for Thread with hash_combine(th, hasher) {
-  th.pc.hash_combine(hasher)
 }
 
 ///|
 fn add_thread(
   sp : Int,
+  gen : Int,
   instructions : Array[Instruction],
-  clist : @set.Set[Thread],
+  inst_gen : Array[Int],
+  clist : Array[Thread],
   thread : Thread
 ) -> Unit {
-  if clist.contains(thread) {
+  if inst_gen[thread.pc] == gen {
+    // already on the list
     return
   }
+  inst_gen[thread.pc] = gen
   match instructions[thread.pc] {
     Save(i) => {
       thread.captures[i] = sp
       if thread.pc + 1 < instructions.length() {
-        add_thread(sp, instructions, clist, {
+        add_thread(sp, gen, instructions, inst_gen, clist, {
           pc: thread.pc + 1,
           captures: thread.captures,
         })
       }
     }
     Jump(i) =>
-      add_thread(sp, instructions, clist, { pc: i, captures: thread.captures })
+      add_thread(sp, gen, instructions, inst_gen, clist, {
+        pc: i,
+        captures: thread.captures,
+      })
     Split(i1, i2) => {
-      add_thread(sp, instructions, clist, { pc: i1, captures: thread.captures })
-      add_thread(sp, instructions, clist, {
+      add_thread(sp, gen, instructions, inst_gen, clist, {
+        pc: i1,
+        captures: thread.captures,
+      })
+      add_thread(sp, gen, instructions, inst_gen, clist, {
         pc: i2,
         captures: thread.captures.copy(),
       })
     }
-    _ => clist.add(thread)
+    _ => clist.push(thread)
   }
 }
 
@@ -63,10 +63,11 @@ fn thompson_vm(
   captures : Int
 ) -> Array[Int] {
   guard instructions is [Save(_), .., Save(_), Matched]
-  let mut clist = @set.Set::new(capacity=instructions.length())
-  let mut nlist = @set.Set::new(capacity=instructions.length())
+  let inst_gen = Array::make(instructions.length(), 0)
+  let mut clist = Array::new(capacity=instructions.length())
+  let mut nlist = Array::new(capacity=instructions.length())
   let mut matched : Array[Int] = []
-  add_thread(0, instructions, clist, {
+  add_thread(0, 1, instructions, inst_gen, clist, {
     pc: 0,
     captures: Array::make(captures * 2, 0),
   })
@@ -107,7 +108,10 @@ fn thompson_vm(
           break
         }
       } else {
-        add_thread(sp + 1, instructions, nlist, { pc: pc + 1, captures })
+        add_thread(sp + 1, sp + 2, instructions, inst_gen, nlist, {
+          pc: pc + 1,
+          captures,
+        })
       }
     }
     let tmp = clist
