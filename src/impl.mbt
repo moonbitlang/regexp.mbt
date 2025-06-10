@@ -5,7 +5,7 @@ priv enum Instruction {
   Char(Array[Char])
   Jump(Int)
   Split(Int, Int)
-}
+} derive(Show)
 
 ///|
 priv struct Thread {
@@ -45,11 +45,11 @@ fn add_thread(
     Split(i1, i2) => {
       add_thread(sp, gen, instructions, inst_gen, clist, {
         pc: i1,
-        captures: thread.captures,
+        captures: thread.captures.copy(),
       })
       add_thread(sp, gen, instructions, inst_gen, clist, {
         pc: i2,
-        captures: thread.captures.copy(),
+        captures: thread.captures,
       })
     }
     _ => clist.push(thread)
@@ -219,5 +219,5 @@ test "alternate capture" {
     Matched,
   ]
   let captures = thompson_vm(instructions, "abbd", 2)
-  inspect!(captures, content="[0, 4, 3, 3]")
+  inspect!(captures, content="[0, 4, 2, 3]")
 }
