@@ -1,5 +1,6 @@
 ///|
 enum Regex {
+  Empty
   Literal(String)
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(Array[Char])
@@ -21,6 +22,7 @@ fn Regex::compile_aux(
   target : Array[Instruction]
 ) -> Int {
   match regex {
+    Empty => return capture
     Literal(s) => {
       for ch in s {
         target.push(Char([ch, ch]))
@@ -243,4 +245,14 @@ test "alternate" {
   inspect(result, content="[0, 3]")
   let result = thompson_vm(instructions, "xyz".view(), capture)
   inspect(result, content="[]")
+}
+
+///|
+test "empty" {
+  let regex = Regex::Alternate(Regex::Literal("abc".to_string()), Regex::Empty)
+  let (instructions, capture) = regex.compile()
+  let result = thompson_vm(instructions, "abc".view(), capture)
+  inspect(result, content="[0, 3]")
+  let result = thompson_vm(instructions, "xyz".view(), capture)
+  inspect(result, content="[0, 0]")
 }

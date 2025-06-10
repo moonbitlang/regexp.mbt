@@ -1,5 +1,5 @@
 ///|
-enum Instruction {
+priv enum Instruction {
   Matched
   Save(Int)
   Char(Array[Char])
@@ -62,7 +62,7 @@ fn thompson_vm(
   input : @string.View,
   captures : Int
 ) -> Array[Int] {
-  guard instructions is [Save(_), .., Save(_), Matched]
+  guard instructions is [Save(0), .., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), 0)
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
