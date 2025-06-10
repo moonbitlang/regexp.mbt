@@ -12,7 +12,7 @@ enum Regex {
   Repeat(min~ : UInt, max~ : UInt?, Regex)
   Concat(Array[Regex])
   Alternate(Regex, Regex)
-}
+} derive(Show)
 
 ///|
 /// @returns next capture
