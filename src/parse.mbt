@@ -117,8 +117,8 @@ pub fn parse(regex : @string.View) -> Regex!Error_ {
 /// 返回: 解析后的 Regex AST
 fn Parser::parse_expression(self : Parser) -> Regex!Error_ {
   let mut left = self.parse_sequence()
-  while self.peek_char() == Some('|') {
-    self.consume_char()
+  while self.input is ['|', .. rest] {
+    self.input = rest // 消费 '|'
     let right = self.parse_sequence()
     left = Alternate(left, right)
   }
@@ -146,9 +146,7 @@ fn Parser::parse_expression(self : Parser) -> Regex!Error_ {
 /// 返回: 解析后的 Regex AST
 fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
   let sequence = []
-  while self.has_more() &&
-        self.peek_char() != Some('|') &&
-        self.peek_char() != Some(')') {
+  while self.input is [ch, ..] && ch != '|' && ch != ')' {
     let term = self.parse_term()
     sequence.push(term)
   }
@@ -231,7 +229,7 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
     Some('(') => {
       self.consume_char() // 消费 '('
       let expr = self.parse_expression()
-      if self.peek_char() != Some(')') {
+      guard self.input is [')', ..] else {
         raise Error_(err=MissingParenthesis, data=self.input)
       }
       self.consume_char() // 消费 ')'
@@ -244,13 +242,11 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
     }
     Some('\\') => {
       self.consume_char() // 消费 '\'
-      match self.peek_char() {
-        Some(c) => {
-          self.consume_char()
-          CharClass([c, c])
-        }
-        None => raise Error_(err=TrailingBackslash, data=self.input)
+      guard self.peek_char() is Some(c) else {
+        raise Error_(err=TrailingBackslash, data=self.input)
       }
+      self.consume_char()
+      CharClass([c, c])
     }
     Some(c) if Parser::is_special_char(c) =>
       raise Error_(err=InvalidEscape, data=self.input)
@@ -288,53 +284,40 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
 fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
   self.consume_char() // 消费 '['
   let chars = []
-  while self.has_more() && self.peek_char() != Some(']') {
-    let start_char = match self.peek_char() {
-      Some('\\') => {
-        self.consume_char()
-        match self.peek_char() {
-          Some(c) => {
-            self.consume_char()
-            c
-          }
-          None => raise Error_(err=TrailingBackslash, data=self.input)
+  while self.input is [ch, .. rest] && ch != ']' {
+    let start_char = match ch {
+      '\\' => {
+        guard rest is [ch, .. rest] else {
+          raise Error_(err=TrailingBackslash, data=self.input)
         }
+        self.input = rest
+        ch
       }
-      Some(c) => {
-        self.consume_char()
-        c
+      _ => {
+        self.input = rest
+        ch
       }
-      None => raise Error_(err=MissingBracket, data=self.input)
     }
 
     // 检查是否是字符范围 (如 a-z)
-    if self.peek_char() == Some('-') {
+    if self.input is ['-', .. rest] {
       // 查看 '-' 后面的字符，确保不是 ']' 且有更多字符
       let input_copy = self.input
-      self.consume_char() // 消费 '-'
-      if self.peek_char() == Some(']') || not(self.has_more()) {
-        // '-' 后面是 ']' 或已到达输入末尾，说明 '-' 是字面量字符，不是范围操作符
-        self.input = input_copy // 恢复输入状态
-        chars.push(start_char)
-        chars.push(start_char)
-      } else {
+      self.input = rest // 消费 '-'
+      if self.input is [ch, .. rest] && ch != ']' {
         // 解析范围的结束字符
-        let end_char = match self.peek_char() {
-          Some('\\') => {
-            self.consume_char()
-            match self.peek_char() {
-              Some(c) => {
-                self.consume_char()
-                c
-              }
-              None => raise Error_(err=TrailingBackslash, data=self.input)
+        let end_char = match ch {
+          '\\' => {
+            guard rest is [ch, .. rest] else {
+              raise Error_(err=TrailingBackslash, data=self.input)
             }
+            self.input = rest
+            ch
           }
-          Some(c) => {
-            self.consume_char()
-            c
+          _ => {
+            self.input = rest
+            ch
           }
-          None => raise Error_(err=MissingBracket, data=self.input)
         }
 
         // 检查范围的结束字符是否有效
@@ -345,6 +328,11 @@ fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
         // 添加范围：起始字符和结束字符
         chars.push(start_char)
         chars.push(end_char)
+      } else {
+        // '-' 后面是 ']' 或已到达输入末尾，说明 '-' 是字面量字符，不是范围操作符
+        self.input = input_copy // 恢复输入状态
+        chars.push(start_char)
+        chars.push(start_char)
       }
     } else {
       // 普通字符，不是范围，表示为单字符范围
@@ -352,7 +340,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
       chars.push(start_char)
     }
   }
-  if self.peek_char() != Some(']') {
+  guard self.input is [']', ..] else {
     raise Error_(err=MissingBracket, data=self.input)
   }
   self.consume_char() // 消费 ']'
@@ -395,10 +383,7 @@ fn Parser::has_more(self : Parser) -> Bool {
 /// 
 /// 返回: 如果是特殊字符则返回 true
 fn Parser::is_special_char(c : Char) -> Bool {
-  match c {
-    '*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' | '.' => true
-    _ => false
-  }
+  c is ('*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' | '.')
 }
 
 ///| 测试示例：解析带有捕获组和量词的复杂正则表达式
