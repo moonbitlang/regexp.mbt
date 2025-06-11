@@ -99,12 +99,11 @@ fn Parser::new(input : @string.View) -> Parser {
 pub fn parse(regex : @string.View) -> Regex!Error_ {
   let parser = Parser::new(regex)
   let result = parser.parse_expression()
-  
+
   // 检查是否有剩余的输入，特别是未匹配的右括号
   if parser.input is [')', ..] {
     raise Error_(err=UnexpectedParenthesis, data=parser.input)
   }
-  
   result
 }
 
@@ -189,19 +188,37 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
   let mut base = self.parse_factor()
 
   // 处理量词
-  match self.peek_char() {
-    Some('*') => {
-      self.consume_char()
-      base = ZeroOrMore(base)
-    }
-    Some('+') => {
-      self.consume_char()
-      base = OneOrMore(base)
-    }
-    Some('?') => {
-      self.consume_char()
-      base = ZeroOrOne(base)
-    }
+  match self.input {
+    ['*', .. rest] =>
+      if rest is ['?', .. rest] {
+        // 处理懒惰量词 '*?'
+        self.input = rest // 消费 '*'
+        base = ZeroOrMore(base, lazy=true)
+      } else {
+        // 处理贪婪量词 '*'
+        self.input = rest // 消费 '*'
+        base = ZeroOrMore(base, lazy=false)
+      }
+    ['+', .. rest] =>
+      if rest is ['?', .. rest] {
+        // 处理懒惰量词 '+?'
+        self.input = rest // 消费 '+'
+        base = OneOrMore(base, lazy=true)
+      } else {
+        // 处理贪婪量词 '+'
+        self.input = rest // 消费 '+'
+        base = OneOrMore(base, lazy=false)
+      }
+    ['?', .. rest] =>
+      if rest is ['?', .. rest] {
+        // 处理懒惰量词 '??'
+        self.input = rest // 消费 '?'
+        base = ZeroOrOne(base, lazy=true)
+      } else {
+        // 处理贪婪量词 '?'
+        self.input = rest // 消费 '?'
+        base = ZeroOrOne(base, lazy=false)
+      }
     _ => ()
   }
   base
