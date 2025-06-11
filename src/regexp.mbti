@@ -21,15 +21,18 @@ pub enum Err {
   TrailingBackslash
   UnexpectedParenthesis
 }
+impl Show for Err
 
 pub type! Error_ {
   Error_(err~ : Err, data~ : @string.StringView)
 }
+impl Show for Error_
 
 type Matcher
 fn Matcher::execute(Self, @string.StringView) -> Array[Int]
 
 type Regex
+fn Regex::compile(Self) -> Matcher
 impl Show for Regex
 
 // Type aliases

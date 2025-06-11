@@ -151,7 +151,7 @@ fn Regex::compile_aux(
 
 ///|
 /// Compiles a regex into a matcher.
-fn Regex::compile(self : Self) -> Matcher {
+pub fn Regex::compile(self : Self) -> Matcher {
   let instructions = []
   instructions.push(Save(0))
   let capture_count = self.compile_aux(1, instructions)
