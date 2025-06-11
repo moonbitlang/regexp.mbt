@@ -11,6 +11,14 @@ test "simple regex test" {
 }
 
 ///|
+test "simple regex test" {
+  let regex = @regexp.parse("a(bc|de)f")
+  let matcher = regex.compile()
+  let result = matcher.execute("xxabcdef")
+  inspect(result, content="[]")
+}
+
+///|
 test "invalid regex test" {
   (try? @regexp.parse("a(b"))
   |> inspect(

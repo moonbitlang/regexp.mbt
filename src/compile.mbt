@@ -164,7 +164,9 @@ fn Regex::compile_aux(
 ///|
 /// Compiles a regex into a matcher.
 pub fn Regex::compile(self : Self) -> Matcher {
-  let instructions = []
+  // for leftmost matching
+  let instructions = [Split(3, 1), Char(['\u{0}', '\u{10FFFF}']), Jump(0)]
+  // start matching
   instructions.push(Save(0))
   let capture_count = self.compile_aux(1, instructions)
   instructions.push(Save(1))
