@@ -8,7 +8,7 @@
 /// expression  = sequence *( "|" sequence )           ; 选择：a|b|c
 /// sequence    = *term                                ; 序列：abc
 /// term        = factor [quantifier]                  ; 带量词的项：a*, b+, c?
-/// factor      = char / group / char-class / escape   ; 基本元素
+/// factor      = char / group / char-class / escape / dot   ; 基本元素
 /// 
 /// ; 量词
 /// quantifier  = "*" / "+" / "?"
@@ -23,10 +23,13 @@
 /// ; 转义序列
 /// escape      = "\" any-char                         ; 转义字符：\n, \*, \\
 /// 
+/// ; 任意字符
+/// dot         = "."                                  ; 匹配任意字符
+/// 
 /// ; 普通字符
 /// char        = normal-char
 /// normal-char = <any character except special chars>
-/// special-chars = "*" / "+" / "?" / "|" / "(" / ")" / "[" / "]" / "{" / "}" / "\"
+/// special-chars = "*" / "+" / "?" / "|" / "(" / ")" / "[" / "]" / "{" / "}" / "\" / "."
 /// ```
 /// 
 /// 解析优先级（从高到低）：
@@ -199,22 +202,24 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
 
 ///| 解析因子 (Factor)
 /// 
-/// 根据 ABNF 规则：`factor = char / group / char-class / escape`
+/// 根据 ABNF 规则：`factor = char / group / char-class / escape / dot`
 /// 
 /// 因子是正则表达式的最小单元，可以是：
 /// - 分组：`(expression)` - 用括号包围的子表达式
 /// - 字符类：`[abc]` - 匹配指定字符集合中的任意一个字符
+/// - 任意字符：`.` - 匹配任意一个字符
 /// - 转义字符：`\c` - 转义后的字符，如 `\*`、`\\`
 /// - 普通字符：除特殊字符外的任意字符
 /// 
 /// 特殊字符需要转义才能作为字面量使用：
-/// `*` `+` `?` `|` `(` `)` `[` `]` `{` `}` `\`
+/// `*` `+` `?` `|` `(` `)` `[` `]` `{` `}` `\` `.`
 /// 
 /// 示例：
 /// - `a`       -> 字符：匹配字符'a'
 /// - `(abc)`   -> 分组：捕获组，匹配序列'abc'
 /// - `[abc]`   -> 字符类：匹配'a'、'b'或'c'
-/// - `\*`      -> 转义字符：匹配字面量'*'
+/// - `\.`      -> 转义字符：匹配字面量'.'
+/// - `.`       -> 任意字符：匹配任何字符
 /// 
 /// 返回: 解析后的 Regex AST
 /// 
@@ -231,6 +236,10 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
       Capture(expr)
     }
     Some('[') => self.parse_char_class()
+    Some('.') => {
+      self.consume_char() // 消费 '.'
+      CharClass(['\u{0}', '\u{10FFFF}'])
+    }
     Some('\\') => {
       self.consume_char() // 消费 '\'
       match self.peek_char() {
@@ -337,7 +346,7 @@ fn Parser::has_more(self : Parser) -> Bool {
 /// 返回: 如果是特殊字符则返回 true
 fn Parser::is_special_char(c : Char) -> Bool {
   match c {
-    '*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' => true
+    '*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' | '.' => true
     _ => false
   }
 }
@@ -371,5 +380,25 @@ test {
   let regex = parse("abc|def|ghi")
   let { instructions, capture_count } = regex.compile()
   let result = vm(instructions, "abcdefghi", capture_count)
+  inspect(result, content="[0, 3]")
+}
+
+///| 测试示例：解析点字符（任意字符匹配）
+/// 
+/// 测试正则表达式 "a.c":
+/// - 字符 'a'
+/// - 任意字符 '.'
+/// - 字符 'c'
+/// 
+/// 预期匹配字符串 "abc", "axc", "a1c" 等:
+/// - 匹配范围: [0, 3]
+test {
+  let regex = parse("a.c")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3]")
+  let result = vm(instructions, "axc", capture_count)
+  inspect(result, content="[0, 3]")
+  let result = vm(instructions, "a1c", capture_count)
   inspect(result, content="[0, 3]")
 }
