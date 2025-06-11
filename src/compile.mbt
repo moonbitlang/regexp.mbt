@@ -9,7 +9,7 @@ enum Regex {
   OneOrMore(Regex, lazy~ : Bool)
   ZeroOrOne(Regex, lazy~ : Bool)
   /// Matches a specific number of repetitions.
-  Repeat(min~ : UInt, max~ : UInt?, Regex)
+  Repeat(Regex, lazy~ : Bool, min~ : UInt, max~ : UInt?)
   Concat(Array[Regex])
   Alternate(Regex, Regex)
 } derive(Show)
@@ -101,7 +101,7 @@ fn Regex::compile_aux(
       }
       next_capture
     }
-    Repeat(min~, max~, inner) =>
+    Repeat(lazy~, min~, max~, inner) =>
       if max is Some(max) {
         // [ ..., inner * min, [ split, inner ] * (max - min), ... ]
         for i in 0U..<min {
@@ -115,8 +115,14 @@ fn Regex::compile_aux(
           inner.compile_aux(capture, target) |> ignore
         }
         let jmp_pos = target.length()
-        for pos in split_pos {
-          target[pos] = Split(pos + 1, jmp_pos)
+        if lazy {
+          for pos in split_pos {
+            target[pos] = Split(jmp_pos, pos + 1)
+          }
+        } else {
+          for pos in split_pos {
+            target[pos] = Split(pos + 1, jmp_pos)
+          }
         }
         inner.compile_aux(capture, [])
       } else {
@@ -131,7 +137,11 @@ fn Regex::compile_aux(
         target.push(Split(-1, -1))
         let next_capture = inner.compile_aux(capture, target)
         target.push(Jump(split_pos))
-        target[split_pos] = Split(split_pos + 1, target.length())
+        if lazy {
+          target[split_pos] = Split(target.length(), split_pos + 1)
+        } else {
+          target[split_pos] = Split(split_pos + 1, target.length())
+        }
         next_capture
       }
     Concat(regexs) => {
@@ -256,10 +266,24 @@ test "repeat" {
     min=2,
     max=Some(4),
     Regex::Literal("abc".to_string()),
+    lazy=false,
   )
   let { instructions, capture_count } = regex.compile()
   let result = vm(instructions, "abcabcabcabc".view(), capture_count)
   inspect(result, content="[0, 12]")
+  let result = vm(instructions, "abcabc".view(), capture_count)
+  inspect(result, content="[0, 6]")
+  let result = vm(instructions, "ab".view(), capture_count)
+  inspect(result, content="[]")
+  let regex = Regex::Repeat(
+    min=2,
+    max=Some(4),
+    Regex::Literal("abc".to_string()),
+    lazy=true,
+  )
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "abcabcabcabc".view(), capture_count)
+  inspect(result, content="[0, 6]")
   let result = vm(instructions, "abcabc".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
