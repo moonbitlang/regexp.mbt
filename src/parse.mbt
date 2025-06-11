@@ -16,12 +16,12 @@ pub enum Err {
   MissingRepeatArgument
   TrailingBackslash
   UnexpectedParenthesis
-}
+} derive(Show)
 
 ///|
 pub type! Error_ {
   Error_(err~ : Err, data~ : @string.View)
-}
+} derive(Show)
 
 ///|
 fn Parser::new(input : @string.View) -> Parser {
