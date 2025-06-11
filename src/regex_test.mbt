@@ -24,16 +24,8 @@ test "invalid regex test" {
       #|Err(Error_(err=MissingParenthesis, data=""))
     ,
   )
-}
-
-///|
-test "to be fixed" {
   (try? @regexp.parse("a|b)"))
-  |> inspect(
-    content="Ok(Alternate(CharClass(['a', 'a']), CharClass(['b', 'b'])))",
-  )
+  |> inspect(content="Err(Error_(err=UnexpectedParenthesis, data=\")\"))")
   (try? @regexp.parse("a|b|c)"))
-  |> inspect(
-    content="Ok(Alternate(Alternate(CharClass(['a', 'a']), CharClass(['b', 'b'])), CharClass(['c', 'c'])))",
-  )
+  |> inspect(content="Err(Error_(err=UnexpectedParenthesis, data=\")\"))")
 }

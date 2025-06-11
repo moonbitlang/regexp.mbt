@@ -98,7 +98,14 @@ fn Parser::new(input : @string.View) -> Parser {
 /// 抛出: Error_ 当解析失败时
 pub fn parse(regex : @string.View) -> Regex!Error_ {
   let parser = Parser::new(regex)
-  parser.parse_expression()
+  let result = parser.parse_expression()
+  
+  // 检查是否有剩余的输入，特别是未匹配的右括号
+  if parser.input is [')', ..] {
+    raise Error_(err=UnexpectedParenthesis, data=parser.input)
+  }
+  
+  result
 }
 
 ///| 解析表达式 (Expression)
