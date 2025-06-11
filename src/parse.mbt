@@ -265,41 +265,83 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
 /// 根据 ABNF 规则：`char-class = "[" *char-class-item "]"`
 /// 
 /// 字符类是用方括号包围的字符集合，匹配其中任意一个字符。
-/// 支持转义字符，用于在字符类中包含特殊字符。
+/// 支持转义字符和字符范围语法。
 /// 
 /// 示例：
 /// - `[abc]`   -> 匹配字符 'a'、'b' 或 'c'
-/// - `[a-z]`   -> 字符范围（注：当前实现不支持范围语法）
+/// - `[a-z]`   -> 字符范围：匹配 'a' 到 'z' 之间的任意字符
+/// - `[a-zA-Z]` -> 多个范围：匹配 'a' 到 'z' 或 'A' 到 'Z' 之间的任意字符
 /// - `[\[\]]`  -> 转义的方括号字符
 /// - `[\\]`    -> 转义的反斜杠字符
 /// 
 /// 字符类项 (char-class-item) 可以是：
+/// - 字符范围：`a-z` - 从字符 'a' 到 字符 'z' 的范围
 /// - 转义字符：`\c` - 任何被反斜杠转义的字符
 /// - 普通字符：除 `]` 外的任何字符
 /// 
-/// 返回: CharClass(chars) - 包含字符列表的字符类 AST
+/// 返回: CharClass(chars) - 包含字符范围列表的字符类 AST
 /// 
 /// 抛出: Error_ 当字符类格式错误时
 fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
   self.consume_char() // 消费 '['
   let chars = []
   while self.has_more() && self.peek_char() != Some(']') {
-    match self.peek_char() {
+    let start_char = match self.peek_char() {
       Some('\\') => {
         self.consume_char()
         match self.peek_char() {
           Some(c) => {
             self.consume_char()
-            chars.push(c)
+            c
           }
           None => raise Error_(err=TrailingBackslash, data=self.input)
         }
       }
       Some(c) => {
         self.consume_char()
-        chars.push(c)
+        c
       }
       None => raise Error_(err=MissingBracket, data=self.input)
+    }
+
+    // 检查是否是字符范围 (如 a-z)
+    if self.peek_char() == Some('-') {
+      // 查看 '-' 后面的字符，确保不是 ']' 且有更多字符
+      let input_copy = self.input
+      self.consume_char() // 消费 '-'
+      if self.peek_char() == Some(']') || not(self.has_more()) {
+        // '-' 后面是 ']' 或已到达输入末尾，说明 '-' 是字面量字符，不是范围操作符
+        self.input = input_copy // 恢复输入状态
+        chars.push(start_char)
+        chars.push(start_char)
+      } else {
+        // 解析范围的结束字符
+        let end_char = match self.peek_char() {
+          Some('\\') => {
+            self.consume_char()
+            match self.peek_char() {
+              Some(c) => {
+                self.consume_char()
+                c
+              }
+              None => raise Error_(err=TrailingBackslash, data=self.input)
+            }
+          }
+          Some(c) => {
+            self.consume_char()
+            c
+          }
+          None => raise Error_(err=MissingBracket, data=self.input)
+        }
+
+        // 添加范围：起始字符和结束字符
+        chars.push(start_char)
+        chars.push(end_char)
+      }
+    } else {
+      // 普通字符，不是范围，表示为单字符范围
+      chars.push(start_char)
+      chars.push(start_char)
     }
   }
   if self.peek_char() != Some(']') {
@@ -401,4 +443,64 @@ test {
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "a1c", capture_count)
   inspect(result, content="[0, 3]")
+}
+
+///| 测试示例：解析字符类范围语法
+/// 
+/// 测试正则表达式 "[a-z]":
+/// - 字符范围：匹配 'a' 到 'z' 之间的任意字符
+/// 
+/// 预期匹配字符串 "hello" 中的第一个字符 'h':
+/// - 匹配范围: [0, 1]
+test {
+  let regex = parse("[a-z]")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "hello", capture_count)
+  inspect(result, content="[0, 1]")
+}
+
+///| 测试示例：解析多个字符类范围
+/// 
+/// 测试正则表达式 "[a-zA-Z]":
+/// - 两个字符范围：'a' 到 'z' 和 'A' 到 'Z'
+/// - 匹配任意英文字母
+/// 
+/// 预期匹配字符串 "Hello123" 中的第一个字符 'H':
+/// - 匹配范围: [0, 1]
+test {
+  let regex = parse("[a-zA-Z]")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "Hello123", capture_count)
+  inspect(result, content="[0, 1]")
+}
+
+///| 测试示例：解析混合字符类（范围和单个字符）
+/// 
+/// 测试正则表达式 "[a-z0-9_]":
+/// - 字符范围：'a' 到 'z'
+/// - 字符范围：'0' 到 '9'  
+/// - 单个字符：'_'
+/// 
+/// 预期匹配字符串 "_test123" 中的第一个字符 '_':
+/// - 匹配范围: [0, 1]
+test {
+  let regex = parse("[a-z0-9_]")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "_test123", capture_count)
+  inspect(result, content="[0, 1]")
+}
+
+///| 测试示例：解析字符类中的字面量连字符
+/// 
+/// 测试正则表达式 "[abc-]":
+/// - 单个字符：'a', 'b', 'c'
+/// - 字面量连字符：'-'（位于末尾，不构成范围）
+/// 
+/// 预期匹配字符串 "test-case" 中的连字符:
+/// - 匹配范围: [4, 5]
+test {
+  let regex = parse("[abc-]")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "test-case", capture_count)
+  inspect(result, content="[]")
 }

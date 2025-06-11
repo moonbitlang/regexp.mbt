@@ -103,15 +103,13 @@ fn vm(
       }
       for i = 0; i < chars.length() / 2; i = i + 1 {
         if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
-          continue
-        } else {
+          // within the range
+          add_thread(sp + 1, sp + 2, instructions, inst_gen, nlist, {
+            pc: pc + 1,
+            captures,
+          })
           break
         }
-      } else {
-        add_thread(sp + 1, sp + 2, instructions, inst_gen, nlist, {
-          pc: pc + 1,
-          captures,
-        })
       }
     }
     let tmp = clist
