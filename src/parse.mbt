@@ -18,7 +18,9 @@
 /// 
 /// ; 字符类
 /// char-class  = "[" *char-class-item "]"            ; 字符类：[abc], [a-z]
-/// char-class-item = escape / normal-char
+/// char-class-item = escape / char-range / normal-char
+/// char-range  = char-class-char "-" char-class-char  ; 字符范围：a-z, 0-9
+/// char-class-char = escape / normal-char             ; 字符类中的字符（任何字符或转义字符）
 /// 
 /// ; 转义序列
 /// escape      = "\" any-char                         ; 转义字符：\n, \*, \\
@@ -271,13 +273,14 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
 /// - `[abc]`   -> 匹配字符 'a'、'b' 或 'c'
 /// - `[a-z]`   -> 字符范围：匹配 'a' 到 'z' 之间的任意字符
 /// - `[a-zA-Z]` -> 多个范围：匹配 'a' 到 'z' 或 'A' 到 'Z' 之间的任意字符
+/// - `[a-\]]`  -> 字符范围：匹配 'a' 到 ']' 之间的任意字符
 /// - `[\[\]]`  -> 转义的方括号字符
 /// - `[\\]`    -> 转义的反斜杠字符
 /// 
 /// 字符类项 (char-class-item) 可以是：
 /// - 字符范围：`a-z` - 从字符 'a' 到 字符 'z' 的范围
-/// - 转义字符：`\c` - 任何被反斜杠转义的字符
-/// - 普通字符：除 `]` 外的任何字符
+/// - 转义字符：`\c` - 任何被反斜杠转义的字符（包括 `\]`）
+/// - 普通字符：任何非特殊字符
 /// 
 /// 返回: CharClass(chars) - 包含字符范围列表的字符类 AST
 /// 
@@ -332,6 +335,11 @@ fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
             c
           }
           None => raise Error_(err=MissingBracket, data=self.input)
+        }
+
+        // 检查范围的结束字符是否有效
+        if end_char < start_char {
+          raise Error_(err=InvalidCharClass, data=self.input)
         }
 
         // 添加范围：起始字符和结束字符
@@ -416,7 +424,7 @@ test {
 /// - 三个选择分支: "abc", "def", "ghi"
 /// - 匹配其中任意一个即可
 /// 
-/// 预期在字符串 "abcdefghi" 中匹配到第一个分支 "abc":
+/// 预期匹配字符串 "abcdefghi" 中的第一个分支 "abc":
 /// - 匹配范围: [0, 3]
 test {
   let regex = parse("abc|def|ghi")
@@ -496,11 +504,35 @@ test {
 /// - 单个字符：'a', 'b', 'c'
 /// - 字面量连字符：'-'（位于末尾，不构成范围）
 /// 
-/// 预期匹配字符串 "test-case" 中的连字符:
-/// - 匹配范围: [4, 5]
+/// 预期匹配字符串 "-" 中的连字符:
+/// - 匹配范围: [0, 1]
 test {
   let regex = parse("[abc-]")
   let { instructions, capture_count } = regex.compile()
-  let result = vm(instructions, "test-case", capture_count)
-  inspect(result, content="[]")
+  let result = vm(instructions, "-", capture_count)
+  inspect(result, content="[0, 1]")
+}
+
+///| 测试示例：解析带转义字符的字符类范围
+/// 
+/// 测试正则表达式 "[a-\]]":
+/// - 字符范围：从 'a' 到 ']' 的范围
+/// - 使用转义来包含 ']' 字符
+/// 
+/// 预期匹配字符串 "]" 中的 ']' 字符:
+/// - 匹配范围: [0, 1]
+test {
+  let regex = parse("[\\]-a]")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "]", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // invalid case:
+  let regex = try? parse("[a-\\]]")
+  inspect(
+    regex,
+    content=
+      #|Err(Error_(err=InvalidCharClass, data="]"))
+    ,
+  )
 }
