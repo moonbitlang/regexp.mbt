@@ -30,12 +30,10 @@ fn add_thread(
   match instructions[thread.pc] {
     Save(i) => {
       thread.captures[i] = sp
-      if thread.pc + 1 < instructions.length() {
-        add_thread(sp, gen, instructions, inst_gen, clist, {
-          pc: thread.pc + 1,
-          captures: thread.captures,
-        })
-      }
+      add_thread(sp, gen, instructions, inst_gen, clist, {
+        pc: thread.pc + 1,
+        captures: thread.captures,
+      })
     }
     Jump(i) =>
       add_thread(sp, gen, instructions, inst_gen, clist, {
