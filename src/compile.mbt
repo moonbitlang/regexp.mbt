@@ -52,8 +52,8 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
     }
     ZeroOrMore(inner, lazy~) => {
       // [ ..., split, inner, jmp, ... ]
-      //          ^ -- target.length() at the beginning
-      //                            ^ -- target.length() at the end
+      //          ^ -- instructions.length() at the beginning
+      //                            ^ -- instructions.length() at the end
       let split_pos = instructions.length()
       // placeholder for split
       instructions.push(Split(-1, -1))
@@ -67,8 +67,8 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
     }
     OneOrMore(inner, lazy~) => {
       // [ ..., inner, split, inner, jmp, ... ]
-      //                  ^ -- target.length() at the beginning
-      //                                   ^ -- target.length() at the end
+      //                  ^ -- instructions.length() at the beginning
+      //                                   ^ -- instructions.length() at the end
       inner.compile_aux(matcher)
       let split_pos = instructions.length()
       // placeholder for split
@@ -84,8 +84,8 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
     }
     ZeroOrOne(inner, lazy~) => {
       // [ ..., split, inner, ... ]
-      //          ^ -- target.length() at the beginning
-      //                        ^ -- target.length() at the end
+      //          ^ -- instructions.length() at the beginning
+      //                        ^ -- instructions.length() at the end
       let split_pos = instructions.length()
       // for taking up position
       instructions.push(Split(-1, -1))
@@ -123,8 +123,8 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
         }
       } else {
         // [ ..., inner * min, split, inner, jmp, ... ]
-        //                      ^ -- target.length() at the beginning
-        //                                         ^ -- target.length() at the end
+        //                      ^ -- instructions.length() at the beginning
+        //                                         ^ -- instructions.length() at the end
         for i in 0U..<min {
           matcher.capture = capture
           inner.compile_aux(matcher)
@@ -147,9 +147,9 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
       }
     Alternate(left, right) => {
       // [ ..., split, left, jmp, right, ... ]
-      //          ^ -- target.length() at the beginning
-      //                      ^ -- target.length() at the middle
-      //                                   ^ -- target.length() at the end
+      //          ^ -- instructions.length() at the beginning
+      //                      ^ -- instructions.length() at the middle
+      //                                   ^ -- instructions.length() at the end
       let split_pos = instructions.length()
       // for taking up position
       instructions.push(Split(-1, -1))

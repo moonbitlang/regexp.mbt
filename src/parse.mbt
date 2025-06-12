@@ -633,7 +633,7 @@ fn optimize_literals(sequence : Array[Regex]) -> Array[Regex] {
 /// 预期匹配字符串 "abbd":
 /// - 完整匹配范围: [0, 4]
 /// - 第一个捕获组最后匹配: [2, 3] (字符 'b')
-test {
+test "parse complex regex with capture group and quantifier" {
   let regex = parse("a(b|c)*d")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abbd", capture_count)
@@ -648,7 +648,7 @@ test {
 /// 
 /// 预期匹配字符串 "abcdefghi" 中的第一个分支 "abc":
 /// - 匹配范围: [0, 3]
-test {
+test "parse multi-branch alternation expression" {
   let regex = parse("abc|def|ghi")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcdefghi", capture_count)
@@ -664,7 +664,7 @@ test {
 /// 
 /// 预期匹配字符串 "abc", "axc", "a1c" 等:
 /// - 匹配范围: [0, 3]
-test {
+test "parse dot character (any character match)" {
   let regex = parse("a.c")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
@@ -682,7 +682,7 @@ test {
 /// 
 /// 预期匹配字符串 "hello" 中的第一个字符 'h':
 /// - 匹配范围: [0, 1]
-test {
+test "parse character class range syntax" {
   let regex = parse("[a-z]")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "hello", capture_count)
@@ -697,7 +697,7 @@ test {
 /// 
 /// 预期匹配字符串 "Hello123" 中的第一个字符 'H':
 /// - 匹配范围: [0, 1]
-test {
+test "parse multiple character class ranges" {
   let regex = parse("[a-zA-Z]")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "Hello123", capture_count)
@@ -713,7 +713,7 @@ test {
 /// 
 /// 预期匹配字符串 "_test123" 中的第一个字符 '_':
 /// - 匹配范围: [0, 1]
-test {
+test "parse mixed character class (ranges and individual characters)" {
   let regex = parse("[a-z0-9_]")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "_test123", capture_count)
@@ -728,7 +728,7 @@ test {
 /// 
 /// 预期匹配字符串 "-" 中的连字符:
 /// - 匹配范围: [0, 1]
-test {
+test "parse literal hyphen in character class" {
   let regex = parse("[abc-]")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "-", capture_count)
@@ -737,19 +737,19 @@ test {
 
 ///| 测试示例：解析带转义字符的字符类范围
 /// 
-/// 测试正则表达式 "[a-\]]":
-/// - 字符范围：从 'a' 到 ']' 的范围
-/// - 使用转义来包含 ']' 字符
+/// 测试正则表达式 "[\]-a]":
+/// - 使用转义字符 '\]' 来包含右方括号
+/// - 字符范围：从 ']' 到 'a'
 /// 
 /// 预期匹配字符串 "]" 中的 ']' 字符:
 /// - 匹配范围: [0, 1]
-test {
+test "parse character class range with escaped characters" {
   let regex = parse("[\\]-a]")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "]", capture_count)
   inspect(result, content="[0, 1]")
 
-  // invalid case:
+  // 测试无效情况：结束字符小于起始字符
   let regex = try? parse("[a-\\]]")
   inspect(
     regex,
@@ -766,7 +766,7 @@ test {
 /// 
 /// 预期匹配字符串 "aaa":
 /// - 匹配范围: [0, 3]
-test {
+test "parse exact repeat quantifier {n}" {
   let regex = parse("a{3}")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "aaa", capture_count)
@@ -788,7 +788,7 @@ test {
 /// 
 /// 预期匹配字符串 "bb", "bbb", "bbbb":
 /// - 匹配范围: [0, 字符串长度]
-test {
+test "parse minimum repeat quantifier {n,}" {
   let regex = parse("b{2,}")
   let { instructions, capture: capture_count, .. } = regex.compile()
 
@@ -812,7 +812,7 @@ test {
 /// 
 /// 预期匹配字符串 "cc", "ccc", "cccc":
 /// - 匹配范围: [0, 实际匹配长度]
-test {
+test "parse range repeat quantifier {n,m}" {
   let regex = parse("c{2,4}")
   let { instructions, capture: capture_count, .. } = regex.compile()
 
@@ -843,7 +843,7 @@ test {
 /// - 字符 'd' 重复至少 2 次，懒惰模式
 /// 
 /// 懒惰模式会匹配尽可能少的字符
-test {
+test "parse lazy minimum repeat quantifier {n,}?" {
   let regex = parse("d{2,}?")
   let { instructions, capture: capture_count, .. } = regex.compile()
 
@@ -858,7 +858,7 @@ test {
 /// - 字符 'a' 恰好 2 次
 /// - 字符 'b' 1 到 3 次
 /// - 字符 'c' 至少 2 次
-test {
+test "parse complex repeat quantifier expression" {
   let regex = parse("a{2}b{1,3}c{2,}")
   let { instructions, capture: capture_count, .. } = regex.compile()
 
@@ -866,7 +866,7 @@ test {
   let result = vm(instructions, "aabccc", capture_count)
   inspect(result, content="[0, 6]")
 
-  // 匹配 "aabbbbcc"
+  // 不匹配 "aabbbbcc"（b超过3个）
   let result = vm(instructions, "aabbbbcc", capture_count)
   inspect(result, content="[]")
 }
@@ -875,7 +875,7 @@ test {
 /// 
 /// 测试正则表达式 "(ab){2}":
 /// - 分组 (ab) 恰好重复 2 次
-test {
+test "parse repeat quantifier with groups" {
   let regex = parse("(ab){2}")
   let { instructions, capture: capture_count, .. } = regex.compile()
 
@@ -887,7 +887,7 @@ test {
 ///| 测试示例：测试重复量词的错误情况
 /// 
 /// 测试各种无效的重复量词语法
-test {
+test "parse repeat quantifier error cases" {
   // 测试 {m,n} 其中 m > n 的情况
   let regex = try? parse("a{5,2}")
   inspect(
@@ -917,7 +917,7 @@ test {
 /// 
 /// 预期匹配字符串 "abc":
 /// - 匹配范围: [0, 3, 0, 3] (整体匹配和命名组匹配)
-test {
+test "parse named capture group" {
   let regex = parse("(?<name>abc)")
   let { instructions, capture: capture_count, map } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
@@ -935,7 +935,7 @@ test {
 /// 
 /// 预期匹配字符串 "aaabbb":
 /// - 匹配范围: [0, 6, 0, 3, 3, 6]
-test {
+test "parse complex named capture group expression" {
   let regex = parse("(?<first>a+)(?<second>b+)")
   let { instructions, capture: capture_count, map } = regex.compile()
   let result = vm(instructions, "aaabbb", capture_count)
@@ -954,7 +954,7 @@ test {
 /// 
 /// 预期匹配字符串 "abcd":
 /// - 匹配范围: [0, 4, 0, 4, 1, 3]
-test {
+test "parse nested named capture groups" {
   let regex = parse("(?<outer>a(?<inner>bc)d)")
   let { instructions, capture: capture_count, map } = regex.compile()
   let result = vm(instructions, "abcd", capture_count)
@@ -974,7 +974,7 @@ test {
 /// 
 /// 预期匹配字符串 "abc":
 /// - 匹配范围: [0, 3, 0, 1, 1, 2, 2, 3]
-test {
+test "parse mixed named and regular capture groups" {
   let regex = parse("(a)(?<named>b)(c)")
   let { instructions, capture: capture_count, map } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
@@ -987,7 +987,7 @@ test {
 ///| 测试示例：命名捕获组的错误情况
 /// 
 /// 测试各种无效的命名捕获组语法
-test {
+test "parse named capture group error cases" {
   // 测试空组名
   let regex = try? parse("(?<>abc)")
   inspect(regex, content="Err(Error_(err=InvalidNamedCapture, data=\">abc)\"))")
@@ -1018,7 +1018,7 @@ test {
 ///| 测试示例：有效的组名格式
 /// 
 /// 测试各种有效的组名格式
-test {
+test "parse valid group name formats" {
   // 以字母开头
   let regex = parse("(?<group>abc)")
   inspect(
