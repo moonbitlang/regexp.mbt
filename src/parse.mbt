@@ -162,14 +162,11 @@ fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
     let term = self.parse_term()
     sequence.push(term)
   }
-
-  // 优化连续的字面量字符为 Literal
-  let optimized = optimize_literals(sequence)
-  match optimized.length() {
+  match sequence {
     // 空序列被认为是合法的正则表达式（与 Go 的行为一致）
-    0 => Empty
-    1 => optimized[0]
-    _ => Concat(optimized)
+    [] => Empty
+    [regex] => regex
+    _ => Concat(sequence)
   }
 }
 
@@ -611,46 +608,6 @@ fn Parser::parse_group_name(self : Parser) -> String!Error_ {
   name
 }
 
-///| 优化连续的字面量字符
-/// 
-/// 将连续的单字符 CharClass 合并为 Literal，以提高匹配性能。
-/// 例如：[CharClass(['a','a']), CharClass(['b','b']), CharClass(['c','c'])] 
-/// 优化为：[Literal("abc")]
-/// 
-/// 参数:
-/// - `sequence`: 原始的 Regex 序列
-/// 
-/// 返回: 优化后的 Regex 序列
-fn optimize_literals(sequence : Array[Regex]) -> Array[Regex] {
-  if sequence.length() == 0 {
-    return sequence
-  }
-  let optimized = []
-  let mut literal_chars = ""
-  for i = 0; i < sequence.length(); i = i + 1 {
-    match sequence[i] {
-      CharClass([ch, ch2]) if ch == ch2 =>
-        // 单字符的字符类，加入字面量字符串
-        literal_chars += ch.to_string()
-      _ => {
-        // 不是单字符，如果有累积的字面量字符，先处理它们
-        if literal_chars != "" {
-          optimized.push(Literal(literal_chars))
-          literal_chars = ""
-        }
-        // 添加当前非字面量项
-        optimized.push(sequence[i])
-      }
-    }
-  }
-
-  // 处理末尾剩余的字面量字符
-  if literal_chars != "" {
-    optimized.push(Literal(literal_chars))
-  }
-  optimized
-}
-
 ///| 测试示例：解析带有捕获组和量词的复杂正则表达式
 /// 
 /// 测试正则表达式 "a(b|c)*d":
@@ -1052,7 +1009,8 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Literal("abc"), name=Some("group"))
+      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("group"))
+
     ,
   )
 
@@ -1061,7 +1019,8 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Literal("abc"), name=Some("_group"))
+      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("_group"))
+
     ,
   )
 
@@ -1070,7 +1029,8 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Literal("abc"), name=Some("group1"))
+      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("group1"))
+
     ,
   )
 
@@ -1079,7 +1039,8 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Literal("abc"), name=Some("my_group_1"))
+      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("my_group_1"))
+
     ,
   )
 }
