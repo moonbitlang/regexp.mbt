@@ -11,7 +11,8 @@
 /// factor      = char / group / char-class / escape / dot   ; 基本元素
 /// 
 /// ; 量词
-/// quantifier  = "*" / "+" / "?"
+/// quantifier  = "*" / "+" / "?" / repeat
+/// repeat      = "{" number "}" / "{" number "," "}" / "{" number "," number "}"
 /// 
 /// ; 分组
 /// group       = "(" expression ")"                   ; 捕获组：(abc)
@@ -175,13 +176,19 @@ fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
 /// - `*`: 零次或多次重复 (ZeroOrMore)
 /// - `+`: 一次或多次重复 (OneOrMore)  
 /// - `?`: 零次或一次重复 (ZeroOrOne)
+/// - `{n}`: 恰好n次重复
+/// - `{n,}`: 至少n次重复
+/// - `{n,m}`: n到m次重复
 /// 
 /// 示例：
-/// - `a`   -> 基本因子：字符a
-/// - `a*`  -> 量词项：字符a重复0次或多次
-/// - `a+`  -> 量词项：字符a重复1次或多次
-/// - `a?`  -> 量词项：字符a重复0次或1次
-/// - `(ab)*` -> 量词项：分组(ab)重复0次或多次
+/// - `a`      -> 基本因子：字符a
+/// - `a*`     -> 量词项：字符a重复0次或多次
+/// - `a+`     -> 量词项：字符a重复1次或多次
+/// - `a?`     -> 量词项：字符a重复0次或1次
+/// - `a{3}`   -> 量词项：字符a重复恰好3次
+/// - `a{2,}`  -> 量词项：字符a重复至少2次
+/// - `a{2,5}` -> 量词项：字符a重复2到5次
+/// - `(ab)*`  -> 量词项：分组(ab)重复0次或多次
 /// 
 /// 返回: 解析后的 Regex AST
 fn Parser::parse_term(self : Parser) -> Regex!Error_ {
@@ -192,7 +199,7 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
     ['*', .. rest] =>
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '*?'
-        self.input = rest // 消费 '*'
+        self.input = rest // 消费 '*?'
         base = ZeroOrMore(base, lazy=true)
       } else {
         // 处理贪婪量词 '*'
@@ -202,7 +209,7 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
     ['+', .. rest] =>
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '+?'
-        self.input = rest // 消费 '+'
+        self.input = rest // 消费 '+?'
         base = OneOrMore(base, lazy=true)
       } else {
         // 处理贪婪量词 '+'
@@ -212,13 +219,25 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
     ['?', .. rest] =>
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '??'
-        self.input = rest // 消费 '?'
+        self.input = rest // 消费 '??'
         base = ZeroOrOne(base, lazy=true)
       } else {
         // 处理贪婪量词 '?'
         self.input = rest // 消费 '?'
         base = ZeroOrOne(base, lazy=false)
       }
+    ['{', ..] => {
+      // 处理重复量词 {n}, {n,}, {n,m}
+      let repeat_result = self.parse_repeat()
+      let lazy = match self.input {
+        ['?', .. rest] => {
+          self.input = rest // 消费 '?'
+          true
+        }
+        _ => false
+      }
+      base = Repeat(base, lazy=lazy, min=repeat_result.0, max=repeat_result.1)
+    }
     _ => ()
   }
   base
@@ -410,6 +429,96 @@ fn Parser::is_special_char(c : Char) -> Bool {
   c is ('*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' | '.')
 }
 
+///| 解析重复量词 (Repeat Quantifier)
+/// 
+/// 根据 ABNF 规则：`repeat = "{" number "}" / "{" number "," "}" / "{" number "," number "}"`
+/// 
+/// 重复量词指定了前面的元素应该重复的次数：
+/// - `{n}`: 恰好重复 n 次
+/// - `{n,}`: 至少重复 n 次
+/// - `{n,m}`: 重复 n 到 m 次（包含边界）
+/// 
+/// 示例：
+/// - `a{3}` -> 字符 'a' 恰好重复 3 次
+/// - `b{2,}` -> 字符 'b' 至少重复 2 次
+/// - `c{1,5}` -> 字符 'c' 重复 1 到 5 次
+/// 
+/// 返回: (min, max) 元组，其中：
+/// - min: 最小重复次数
+/// - max: 最大重复次数（None 表示无限制）
+/// 
+/// 抛出: Error_ 当重复量词格式错误时
+fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
+  self.consume_char() // 消费 '{'
+  
+  // 解析第一个数字（最小重复次数）
+  let min = self.parse_number()
+  
+  match self.input {
+    ['}', .. rest] => {
+      // {n} 格式：恰好重复 n 次
+      self.input = rest
+      (min, Some(min))
+    }
+    [',', .. rest] => {
+      self.input = rest // 消费 ','
+      match self.input {
+        ['}', .. rest] => {
+          // {n,} 格式：至少重复 n 次
+          self.input = rest
+          (min, None)
+        }
+        _ => {
+          // {n,m} 格式：重复 n 到 m 次
+          let max = self.parse_number()
+          guard self.input is ['}', .. rest] else {
+            raise Error_(err=InvalidRepeatOp, data=self.input)
+          }
+          self.input = rest // 消费 '}'
+          
+          // 验证范围的有效性
+          if max < min {
+            raise Error_(err=InvalidRepeatSize, data=self.input)
+          }
+          
+          (min, Some(max))
+        }
+      }
+    }
+    _ => raise Error_(err=InvalidRepeatOp, data=self.input)
+  }
+}
+
+///| 解析数字
+/// 
+/// 从当前输入位置解析一个十进制数字序列。
+/// 数字必须至少包含一位数字字符。
+/// 
+/// 示例：
+/// - `123` -> 123
+/// - `0` -> 0
+/// - `42` -> 42
+/// 
+/// 返回: 解析得到的整数值
+/// 
+/// 抛出: Error_ 当没有找到有效数字时
+fn Parser::parse_number(self : Parser) -> UInt!Error_ {
+  let mut result = 0U
+  let mut has_digits = false
+  
+  while self.input is [ch, .. rest] && ch >= '0' && ch <= '9' {
+    has_digits = true
+    result = result * 10U + (ch.to_int() - '0'.to_int()).reinterpret_as_uint()
+    self.input = rest
+  }
+  
+  if not(has_digits) {
+    raise Error_(err=MissingRepeatArgument, data=self.input)
+  }
+  
+  result
+}
+
 ///| 测试示例：解析带有捕获组和量词的复杂正则表达式
 /// 
 /// 测试正则表达式 "a(b|c)*d":
@@ -544,4 +653,152 @@ test {
       #|Err(Error_(err=InvalidCharClass, data="]"))
     ,
   )
+}
+
+///| 测试示例：解析重复量词 {n}
+/// 
+/// 测试正则表达式 "a{3}":
+/// - 字符 'a' 恰好重复 3 次
+/// 
+/// 预期匹配字符串 "aaa":
+/// - 匹配范围: [0, 3]
+test {
+  let regex = parse("a{3}")
+  let { instructions, capture_count } = regex.compile()
+  let result = vm(instructions, "aaa", capture_count)
+  inspect(result, content="[0, 3]")
+  
+  // 不匹配少于3个a的情况
+  let result = vm(instructions, "aa", capture_count)
+  inspect(result, content="[]")
+  
+  // 匹配多于3个a的情况（只匹配前3个）
+  let result = vm(instructions, "aaaa", capture_count)
+  inspect(result, content="[0, 3]")
+}
+
+///| 测试示例：解析重复量词 {n,}
+/// 
+/// 测试正则表达式 "b{2,}":
+/// - 字符 'b' 重复至少 2 次
+/// 
+/// 预期匹配字符串 "bb", "bbb", "bbbb":
+/// - 匹配范围: [0, 字符串长度]
+test {
+  let regex = parse("b{2,}")
+  let { instructions, capture_count } = regex.compile()
+  
+  // 匹配恰好2个b
+  let result = vm(instructions, "bb", capture_count)
+  inspect(result, content="[0, 2]")
+  
+  // 匹配3个b
+  let result = vm(instructions, "bbb", capture_count)
+  inspect(result, content="[0, 3]")
+  
+  // 不匹配少于2个b的情况
+  let result = vm(instructions, "b", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析重复量词 {n,m}
+/// 
+/// 测试正则表达式 "c{2,4}":
+/// - 字符 'c' 重复 2 到 4 次
+/// 
+/// 预期匹配字符串 "cc", "ccc", "cccc":
+/// - 匹配范围: [0, 实际匹配长度]
+test {
+  let regex = parse("c{2,4}")
+  let { instructions, capture_count } = regex.compile()
+  
+  // 匹配2个c
+  let result = vm(instructions, "cc", capture_count)
+  inspect(result, content="[0, 2]")
+  
+  // 匹配3个c
+  let result = vm(instructions, "ccc", capture_count)
+  inspect(result, content="[0, 3]")
+  
+  // 匹配4个c
+  let result = vm(instructions, "cccc", capture_count)
+  inspect(result, content="[0, 4]")
+  
+  // 匹配超过4个c的情况（只匹配前4个）
+  let result = vm(instructions, "ccccc", capture_count)
+  inspect(result, content="[0, 4]")
+  
+  // 不匹配少于2个c的情况
+  let result = vm(instructions, "c", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析懒惰重复量词 {n,}?
+/// 
+/// 测试正则表达式 "d{2,}?":
+/// - 字符 'd' 重复至少 2 次，懒惰模式
+/// 
+/// 懒惰模式会匹配尽可能少的字符
+test {
+  let regex = parse("d{2,}?")
+  let { instructions, capture_count } = regex.compile()
+  
+  // 懒惰模式匹配最少的字符数
+  let result = vm(instructions, "ddd", capture_count)
+  inspect(result, content="[0, 2]")
+}
+
+///| 测试示例：解析复杂的重复量词表达式
+/// 
+/// 测试正则表达式 "a{2}b{1,3}c{2,}":
+/// - 字符 'a' 恰好 2 次
+/// - 字符 'b' 1 到 3 次
+/// - 字符 'c' 至少 2 次
+test {
+  let regex = parse("a{2}b{1,3}c{2,}")
+  let { instructions, capture_count } = regex.compile()
+  
+  // 匹配 "aabccc"
+  let result = vm(instructions, "aabccc", capture_count)
+  inspect(result, content="[0, 6]")
+  
+  // 匹配 "aabbbbcc"
+  let result = vm(instructions, "aabbbbcc", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析带分组的重复量词
+/// 
+/// 测试正则表达式 "(ab){2}":
+/// - 分组 (ab) 恰好重复 2 次
+test {
+  let regex = parse("(ab){2}")
+  let { instructions, capture_count } = regex.compile()
+  
+  // 匹配 "abab"
+  let result = vm(instructions, "abab", capture_count)
+  inspect(result, content="[0, 4, 2, 4]")
+}
+
+///| 测试示例：测试重复量词的错误情况
+/// 
+/// 测试各种无效的重复量词语法
+test {
+  // 测试 {m,n} 其中 m > n 的情况
+  let regex = try? parse("a{5,2}")
+  inspect(regex, content=
+    #|Err(Error_(err=InvalidRepeatSize, data=""))
+  )
+  
+  // 测试缺少数字的情况
+  let regex = try? parse("a{}")
+  inspect(regex, content="Err(Error_(err=MissingRepeatArgument, data=\"}\"))")
+  
+  // 测试缺少右括号的情况
+  let regex = try? parse("a{2")
+  inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\"\"))")
+  
+  // 测试无效格式的情况
+  let regex = try? parse("a{2,3,4}")
+  inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")
 }
