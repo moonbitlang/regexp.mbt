@@ -159,7 +159,7 @@ fn vm(
     instructions,
     1,
     inst_gen,
-    { pc: 0, captures: Array::make(captures * 2, 0) },
+    { pc: 0, captures: Array::make(captures * 2, -1) },
     clist,
   )
   for sp = 0; sp <= input.length(); sp = sp + 1 {
