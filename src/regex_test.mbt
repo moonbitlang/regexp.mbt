@@ -29,20 +29,30 @@ test "invalid regex test" {
   error
   |> inspect(
     content=
-      #|Err(Error_(err=MissingParenthesis, data=""))
+      #|Error_(err=MissingParenthesis, data="")
     ,
   )
   guard (try? @regexp.compile("a(b|c")) is Err(error)
   error
   |> inspect(
     content=
-      #|Err(Error_(err=MissingParenthesis, data=""))
+      #|Error_(err=MissingParenthesis, data="")
     ,
   )
   guard (try? @regexp.compile("a|b)")) is Err(error)
-  error |> inspect(content="Err(Error_(err=UnexpectedParenthesis, data=\")\"))")
+  error
+  |> inspect(
+    content=
+      #|Error_(err=UnexpectedParenthesis, data=")")
+    ,
+  )
   guard (try? @regexp.compile("a|b|c)")) is Err(error)
-  error |> inspect(content="Err(Error_(err=UnexpectedParenthesis, data=\")\"))")
+  error
+  |> inspect(
+    content=
+      #|Error_(err=UnexpectedParenthesis, data=")")
+    ,
+  )
 }
 
 ///|
@@ -52,7 +62,7 @@ test "to be fixed" {
   error
   |> inspect(
     content=
-      #|Err(Error_(err=InvalidRepeatOp, data=""))
+      #|Error_(err=InvalidRepeatOp, data="")
     ,
   )
   // This should be allowed in some flavors where the `}` is considered a literal character
@@ -60,7 +70,7 @@ test "to be fixed" {
   error
   |> inspect(
     content=
-      #|Err(Error_(err=InvalidEscape, data="}"))
+      #|Error_(err=InvalidEscape, data="}")
     ,
   )
   // This should raise InvalidRepeatOp to align with golang
@@ -68,7 +78,7 @@ test "to be fixed" {
   error
   |> inspect(
     content=
-      #|Err(Error_(err=InvalidEscape, data="+"))
+      #|Error_(err=InvalidEscape, data="+")
     ,
   )
 }
