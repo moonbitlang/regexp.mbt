@@ -46,7 +46,9 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
         let complement = compute_char_class_complement(chars)
         instructions.push(Char(complement))
       } else {
-        instructions.push(Char(chars))
+        // simplify and sort the character ranges for binary search
+        let simplified = simplify_char_ranges(chars)
+        instructions.push(Char(simplified))
       }
     Assertion(pred) => instructions.push(Assertion(pred))
     Capture(inner, name~) => {
@@ -188,113 +190,6 @@ pub fn Regex::compile(self : Self) -> Matcher {
   instructions.push(Save(1))
   instructions.push(Matched)
   matcher
-}
-
-///|
-/// Simplifies a character class by merging overlapping ranges and removing duplicates.
-/// Input: Array of characters representing ranges [start1, end1, start2, end2, ...]
-/// Output: Simplified array with non-overlapping ranges in sorted order
-fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
-  if chars.length() == 0 {
-    return []
-  }
-
-  // Convert chars to array of ranges (start, end) pairs
-  let ranges = []
-  for i = 0; i < chars.length(); i = i + 2 {
-    let start = chars[i]
-    let end = chars[i + 1]
-    ranges.push((start, end))
-  }
-  if ranges.length() == 0 {
-    return []
-  }
-
-  // Sort ranges by start character using a simple bubble sort
-  for i = 0; i < ranges.length() - 1; i = i + 1 {
-    for j = 0; j < ranges.length() - 1 - i; j = j + 1 {
-      let (start_j, _) = ranges[j]
-      let (start_j1, _) = ranges[j + 1]
-      if start_j > start_j1 {
-        let temp = ranges[j]
-        ranges[j] = ranges[j + 1]
-        ranges[j + 1] = temp
-      }
-    }
-  }
-  let simplified = []
-  let mut current_start = '\u{0}'
-  let mut current_end = '\u{0}'
-  if ranges.length() > 0 {
-    current_start = ranges[0].0
-    current_end = ranges[0].1
-    for i = 1; i < ranges.length(); i = i + 1 {
-      let (next_start, next_end) = ranges[i]
-
-      // Check if ranges overlap or are adjacent
-      if next_start <= (current_end.to_int() + 1).unsafe_to_char() {
-        // Merge ranges
-        current_end = if current_end > next_end {
-          current_end
-        } else {
-          next_end
-        }
-      } else {
-        // Add current range to result and start new range
-        simplified.push(current_start)
-        simplified.push(current_end)
-        current_start = next_start
-        current_end = next_end
-      }
-    }
-
-    // Add the last range
-    simplified.push(current_start)
-    simplified.push(current_end)
-  }
-  simplified
-}
-
-///|
-/// Computes the complement of a character class.
-/// Input: Array of characters representing ranges [start1, end1, start2, end2, ...]
-/// Output: Array representing the complement ranges
-fn compute_char_class_complement(chars : Array[Char]) -> Array[Char] {
-  // First simplify the input ranges
-  let simplified = simplify_char_ranges(chars)
-  if simplified.length() == 0 {
-    // Empty character class, complement is everything
-    return ['\u{0}', '\u{10FFFF}']
-  }
-  let complement = []
-  let min_char = '\u{0}'
-  let max_char = '\u{10FFFF}'
-
-  // Add range before first range if it doesn't start at minimum
-  if simplified[0] > min_char {
-    complement.push(min_char)
-    complement.push((simplified[0].to_int() - 1).unsafe_to_char())
-  }
-
-  // Add gaps between ranges
-  for i = 0; i < simplified.length() / 2 - 1; i = i + 1 {
-    let current_end = simplified[i * 2 + 1]
-    let next_start = simplified[(i + 1) * 2]
-    let gap_start = (current_end.to_int() + 1).unsafe_to_char()
-    let gap_end = (next_start.to_int() - 1).unsafe_to_char()
-    if gap_start <= gap_end {
-      complement.push(gap_start)
-      complement.push(gap_end)
-    }
-  }
-
-  // Add range after last range if it doesn't end at maximum
-  let last_end = simplified[simplified.length() - 1]
-  if last_end < max_char {
-    complement.push((last_end.to_int() + 1).unsafe_to_char())
-    complement.push(max_char)
-  }
-  complement
 }
 
 ///|

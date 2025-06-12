@@ -190,20 +190,16 @@ fn vm(
       }
       // should have been handled in the add_thread
       guard instructions[pc] is Char(chars)
-      for i = 0; i < chars.length() / 2; i = i + 1 {
-        if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
-          // within the range
-          add_thread(
-            sp + 1,
-            input,
-            instructions,
-            sp + 2,
-            inst_gen,
-            { pc: pc + 1, captures },
-            nlist,
-          )
-          break
-        }
+      if char_in_ranges(actual_char, chars) {
+        add_thread(
+          sp + 1,
+          input,
+          instructions,
+          sp + 2,
+          inst_gen,
+          { pc: pc + 1, captures },
+          nlist,
+        )
       }
     }
     let tmp = clist
