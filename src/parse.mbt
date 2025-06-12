@@ -8,7 +8,7 @@
 /// expression  = sequence *( "|" sequence )           ; 选择：a|b|c
 /// sequence    = *term                                ; 序列：abc
 /// term        = factor [quantifier]                  ; 带量词的项：a*, b+, c?
-/// factor      = char / group / char-class / escape / dot   ; 基本元素
+/// factor      = char / group / char-class / escape / dot / assertion   ; 基本元素
 /// 
 /// ; 量词
 /// quantifier  = "*" / "+" / "?" / repeat
@@ -27,17 +27,20 @@
 /// ; 转义序列
 /// escape      = "\" any-char                         ; 转义字符：\n, \*, \\
 /// 
+/// ; 断言
+/// assertion   = "^" / "$"                            ; 断言：^（行首），$（行尾）
+/// 
 /// ; 任意字符
 /// dot         = "."                                  ; 匹配任意字符
 /// 
 /// ; 普通字符
 /// char        = normal-char
 /// normal-char = <any character except special chars>
-/// special-chars = "*" / "+" / "?" / "|" / "(" / ")" / "[" / "]" / "{" / "}" / "\" / "."
+/// special-chars = "*" / "+" / "?" / "|" / "(" / ")" / "[" / "]" / "{" / "}" / "\" / "." / "^" / "$"
 /// ```
 /// 
 /// 解析优先级（从高到低）：
-/// 1. 因子 (factor): 字符、分组、字符类、转义
+/// 1. 因子 (factor): 字符、分组、字符类、转义、断言
 /// 2. 量词 (quantifier): *, +, ?  
 /// 3. 连接 (sequence): 隐式连接
 /// 4. 选择 (alternation): |
@@ -48,6 +51,7 @@
 /// - `a*`      -> 量词：字符a重复0次或多次
 /// - `(a|b)*`  -> 分组加量词：(字符a或字符b)重复0次或多次
 /// - `[abc]`   -> 字符类：字符a、b或c中的任意一个
+/// - `^abc$`   -> 断言：行首、字符abc、行尾
 
 ///|
 priv struct Parser {
@@ -249,17 +253,18 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
 
 ///| 解析因子 (Factor)
 /// 
-/// 根据 ABNF 规则：`factor = char / group / char-class / escape / dot`
+/// 根据 ABNF 规则：`factor = char / group / char-class / escape / dot / assertion`
 /// 
 /// 因子是正则表达式的最小单元，可以是：
 /// - 分组：`(expression)` - 用括号包围的子表达式
 /// - 字符类：`[abc]` - 匹配指定字符集合中的任意一个字符
 /// - 任意字符：`.` - 匹配任意一个字符
+/// - 断言：`^` - 行首断言，`$` - 行尾断言
 /// - 转义字符：`\c` - 转义后的字符，如 `\*`、`\\`
 /// - 普通字符：除特殊字符外的任意字符
 /// 
 /// 特殊字符需要转义才能作为字面量使用：
-/// `*` `+` `?` `|` `(` `)` `[` `]` `{` `}` `\` `.`
+/// `*` `+` `?` `|` `(` `)` `[` `]` `{` `}` `\` `.` `^` `$`
 /// 
 /// 示例：
 /// - `a`       -> 字符：匹配字符'a'
@@ -267,6 +272,8 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
 /// - `[abc]`   -> 字符类：匹配'a'、'b'或'c'
 /// - `\.`      -> 转义字符：匹配字面量'.'
 /// - `.`       -> 任意字符：匹配任何字符
+/// - `^`       -> 断言：行首断言
+/// - `$`       -> 断言：行尾断言
 /// 
 /// 返回: 解析后的 Regex AST
 /// 
@@ -304,6 +311,14 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
     Some('.') => {
       self.consume_char() // 消费 '.'
       CharClass(['\u{0}', '\u{10FFFF}'])
+    }
+    Some('^') => {
+      self.consume_char() // 消费 '^'
+      Assertion(BeginLine)
+    }
+    Some('$') => {
+      self.consume_char() // 消费 '$'
+      Assertion(EndLine)
     }
     Some('\\') => {
       self.consume_char() // 消费 '\'
@@ -448,7 +463,20 @@ fn Parser::has_more(self : Parser) -> Bool {
 /// 
 /// 返回: 如果是特殊字符则返回 true
 fn Parser::is_special_char(c : Char) -> Bool {
-  c is ('*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '}' | '.')
+  c
+  is ('*'
+  | '+'
+  | '?'
+  | '|'
+  | '('
+  | ')'
+  | '['
+  | ']'
+  | '{'
+  | '}'
+  | '.'
+  | '^'
+  | '$')
 }
 
 ///| 解析重复量词 (Repeat Quantifier)
@@ -1054,4 +1082,232 @@ test "parse valid group name formats" {
       #|Capture(Literal("abc"), name=Some("my_group_1"))
     ,
   )
+}
+
+///| 测试示例：解析行首断言 ^
+/// 
+/// 测试正则表达式 "^abc":
+/// - 行首断言：^
+/// - 字符序列：abc
+/// 
+/// 预期匹配以 "abc" 开头的行：
+/// - 匹配 "abc" 本身: [0, 3]
+/// - 匹配 "abc\ndef": [0, 3] (第一行)
+/// - 匹配 "def\nabc": [4, 7] (第二行)
+/// - 不匹配 "xabc": [] (不在行首)
+test "parse line begin assertion ^" {
+  let regex = parse("^abc")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配行首的情况
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试多行字符串中第一行匹配的情况
+  let result = vm(instructions, "abc\ndef", capture_count)
+  inspect(result, content="[0, 3]")
+  // 测试多行字符串中第二行匹配的情况
+  let result = vm(instructions, "def\nabc", capture_count)
+  inspect(result, content="[4, 7]")
+
+  // 测试不在行首的情况（应该不匹配）
+  let result = vm(instructions, "xabc", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析行尾断言 $
+/// 
+/// 测试正则表达式 "abc$":
+/// - 字符序列：abc
+/// - 行尾断言：$
+/// 
+/// 预期匹配以 "abc" 结尾的行：
+/// - 匹配 "abc" 本身: [0, 3]
+/// - 匹配 "abc\ndef": [0, 3] (第一行)
+/// - 匹配 "def\nabc": [4, 7] (第二行)
+/// - 不匹配 "abcx": [] (不在行尾)
+test "parse line end assertion $" {
+  let regex = parse("abc$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配行尾的情况
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试多行字符串中第一行匹配的情况
+  let result = vm(instructions, "abc\ndef", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试多行字符串中第二行匹配的情况
+  let result = vm(instructions, "def\nabc", capture_count)
+  inspect(result, content="[4, 7]")
+
+  // 测试不在行尾的情况（应该不匹配）
+  let result = vm(instructions, "abcx", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析行首和行尾断言组合 ^...$
+/// 
+/// 测试正则表达式 "^abc$":
+/// - 行首断言：^
+/// - 字符序列：abc
+/// - 行尾断言：$
+/// 
+/// 预期匹配整行都是 "abc" 的情况：
+/// - 匹配 "abc": [0, 3]
+/// - 不匹配 "abcd": [] (行尾有额外字符)
+/// - 不匹配 "xabc": [] (行首有额外字符)
+test "parse line begin and end assertion ^...$" {
+  let regex = parse("^abc$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配整行的情况
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试行尾有额外字符的情况（应该不匹配）
+  let result = vm(instructions, "abcd", capture_count)
+  inspect(result, content="[]")
+
+  // 测试行首有额外字符的情况（应该不匹配）
+  let result = vm(instructions, "xabc", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析多行模式下的断言
+/// 
+/// 测试正则表达式 "^line" 在多行文本中的匹配：
+/// - 应该匹配每行开头的 "line"
+/// 
+/// 测试字符串 "line1\nline2\nnot line":
+/// - 应该匹配第一行的 "line": [0, 4]
+test "parse multiline assertions" {
+  let regex = parse("^line")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试多行文本中第一行匹配
+  let result = vm(instructions, "line1\nline2\nnot line", capture_count)
+  inspect(result, content="[0, 4]")
+
+  // 测试行尾断言在多行文本中的匹配
+  let regex = parse("line$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "not line\nline2\nthis line", capture_count)
+  inspect(result, content="[4, 8]") // 匹配第一行的 "line"
+}
+
+///| 测试示例：断言与量词的组合
+/// 
+/// 测试正则表达式 "^a+$":
+/// - 行首断言：^
+/// - 字符 'a' 重复一次或多次
+/// - 行尾断言：$
+/// 
+/// 预期匹配整行都是 'a' 字符的情况
+test "parse assertion with quantifiers" {
+  let regex = parse("^a+$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配整行都是 'a' 的情况
+  let result = vm(instructions, "aaa", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试单个 'a' 的情况
+  let result = vm(instructions, "a", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // 测试包含其他字符的情况（应该不匹配）
+  let result = vm(instructions, "aab", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：断言与捕获组的组合
+/// 
+/// 测试正则表达式 "^(abc)$":
+/// - 行首断言：^
+/// - 捕获组：(abc)
+/// - 行尾断言：$
+/// 
+/// 预期捕获整行的内容
+test "parse assertion with capture groups" {
+  let regex = parse("^(abc)$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配并捕获整行
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3, 0, 3]")
+
+  // 测试不匹配的情况
+  let result = vm(instructions, "abcd", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：转义断言字符
+/// 
+/// 测试正则表达式 "\\^abc\\$":
+/// - 转义的 '^' 字符
+/// - 字符序列：abc
+/// - 转义的 '$' 字符
+/// 
+/// 预期匹配字面量字符串 "^abc$"
+test "parse escaped assertion characters" {
+  let regex = parse("\\^abc\\$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配字面量 "^abc$"
+  let result = vm(instructions, "^abc$", capture_count)
+  inspect(result, content="[0, 5]")
+
+  // 测试不匹配没有字面量符号的情况
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：断言字符在字符类中
+/// 
+/// 测试正则表达式 "[^$]":
+/// - 字符类：匹配除了 '$' 之外的任意字符
+/// 
+/// 在字符类中，^ 在首位表示否定，$ 被当作普通字符处理
+test "parse assertion characters in character class" {
+  let regex = parse("[^$]")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配普通字符
+  let result = vm(instructions, "a", capture_count)
+  inspect(result, content="[]")
+
+  // 测试匹配 '^' 字符（因为它不是 '$'）
+  let result = vm(instructions, "^", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // 测试不匹配 '$' 字符
+  let result = vm(instructions, "$", capture_count)
+  inspect(result, content="[0, 1]")
+}
+
+///| 测试示例：复杂的断言表达式
+/// 
+/// 测试正则表达式 "^(hello|world)$":
+/// - 行首断言：^
+/// - 选择组：(hello|world)
+/// - 行尾断言：$
+/// 
+/// 预期匹配整行是 "hello" 或 "world" 的情况
+test "parse complex assertion expression" {
+  let regex = parse("^(hello|world)$")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配 "hello"
+  let result = vm(instructions, "hello", capture_count)
+  inspect(result, content="[0, 5, 0, 5]")
+
+  // 测试匹配 "world"
+  let result = vm(instructions, "world", capture_count)
+  inspect(result, content="[0, 5, 0, 5]")
+
+  // 测试不匹配其他内容
+  let result = vm(instructions, "hello world", capture_count)
+  inspect(result, content="[]")
 }

@@ -4,6 +4,7 @@ enum Regex {
   Literal(String)
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(Array[Char])
+  Assertion(Predicate)
   Capture(Regex, name~ : String?)
   ZeroOrMore(Regex, lazy~ : Bool)
   OneOrMore(Regex, lazy~ : Bool)
@@ -40,6 +41,7 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
         instructions.push(Char([ch, ch]))
       }
     CharClass(chars) => instructions.push(Char(chars))
+    Assertion(pred) => instructions.push(Assertion(pred))
     Capture(inner, name~) => {
       if name is Some(name) {
         guard matcher.map.get(name) is None
