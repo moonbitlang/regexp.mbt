@@ -236,7 +236,7 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
         }
         _ => false
       }
-      base = Repeat(base, lazy=lazy, min=repeat_result.0, max=repeat_result.1)
+      base = Repeat(base, lazy~, min=repeat_result.0, max=repeat_result.1)
     }
     _ => ()
   }
@@ -276,7 +276,8 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
         raise Error_(err=MissingParenthesis, data=self.input)
       }
       self.consume_char() // 消费 ')'
-      Capture(expr)
+      // TODO: named capture and other flags
+      Capture(expr, name=None)
     }
     Some('[') => self.parse_char_class()
     Some('.') => {
@@ -450,10 +451,9 @@ fn Parser::is_special_char(c : Char) -> Bool {
 /// 抛出: Error_ 当重复量词格式错误时
 fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
   self.consume_char() // 消费 '{'
-  
+
   // 解析第一个数字（最小重复次数）
   let min = self.parse_number()
-  
   match self.input {
     ['}', .. rest] => {
       // {n} 格式：恰好重复 n 次
@@ -475,12 +475,11 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
             raise Error_(err=InvalidRepeatOp, data=self.input)
           }
           self.input = rest // 消费 '}'
-          
+
           // 验证范围的有效性
           if max < min {
             raise Error_(err=InvalidRepeatSize, data=self.input)
           }
-          
           (min, Some(max))
         }
       }
@@ -505,17 +504,14 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
 fn Parser::parse_number(self : Parser) -> UInt!Error_ {
   let mut result = 0U
   let mut has_digits = false
-  
   while self.input is [ch, .. rest] && ch >= '0' && ch <= '9' {
     has_digits = true
     result = result * 10U + (ch.to_int() - '0'.to_int()).reinterpret_as_uint()
     self.input = rest
   }
-  
   if not(has_digits) {
     raise Error_(err=MissingRepeatArgument, data=self.input)
   }
-  
   result
 }
 
@@ -531,7 +527,7 @@ fn Parser::parse_number(self : Parser) -> UInt!Error_ {
 /// - 第一个捕获组最后匹配: [2, 3] (字符 'b')
 test {
   let regex = parse("a(b|c)*d")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abbd", capture_count)
   inspect(result, content="[0, 4, 2, 3]")
 }
@@ -546,7 +542,7 @@ test {
 /// - 匹配范围: [0, 3]
 test {
   let regex = parse("abc|def|ghi")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcdefghi", capture_count)
   inspect(result, content="[0, 3]")
 }
@@ -562,7 +558,7 @@ test {
 /// - 匹配范围: [0, 3]
 test {
   let regex = parse("a.c")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "axc", capture_count)
@@ -580,7 +576,7 @@ test {
 /// - 匹配范围: [0, 1]
 test {
   let regex = parse("[a-z]")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "hello", capture_count)
   inspect(result, content="[0, 1]")
 }
@@ -595,7 +591,7 @@ test {
 /// - 匹配范围: [0, 1]
 test {
   let regex = parse("[a-zA-Z]")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "Hello123", capture_count)
   inspect(result, content="[0, 1]")
 }
@@ -611,7 +607,7 @@ test {
 /// - 匹配范围: [0, 1]
 test {
   let regex = parse("[a-z0-9_]")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "_test123", capture_count)
   inspect(result, content="[0, 1]")
 }
@@ -626,7 +622,7 @@ test {
 /// - 匹配范围: [0, 1]
 test {
   let regex = parse("[abc-]")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "-", capture_count)
   inspect(result, content="[0, 1]")
 }
@@ -641,7 +637,7 @@ test {
 /// - 匹配范围: [0, 1]
 test {
   let regex = parse("[\\]-a]")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "]", capture_count)
   inspect(result, content="[0, 1]")
 
@@ -664,14 +660,14 @@ test {
 /// - 匹配范围: [0, 3]
 test {
   let regex = parse("a{3}")
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "aaa", capture_count)
   inspect(result, content="[0, 3]")
-  
+
   // 不匹配少于3个a的情况
   let result = vm(instructions, "aa", capture_count)
   inspect(result, content="[]")
-  
+
   // 匹配多于3个a的情况（只匹配前3个）
   let result = vm(instructions, "aaaa", capture_count)
   inspect(result, content="[0, 3]")
@@ -686,16 +682,16 @@ test {
 /// - 匹配范围: [0, 字符串长度]
 test {
   let regex = parse("b{2,}")
-  let { instructions, capture_count } = regex.compile()
-  
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
   // 匹配恰好2个b
   let result = vm(instructions, "bb", capture_count)
   inspect(result, content="[0, 2]")
-  
+
   // 匹配3个b
   let result = vm(instructions, "bbb", capture_count)
   inspect(result, content="[0, 3]")
-  
+
   // 不匹配少于2个b的情况
   let result = vm(instructions, "b", capture_count)
   inspect(result, content="[]")
@@ -710,24 +706,24 @@ test {
 /// - 匹配范围: [0, 实际匹配长度]
 test {
   let regex = parse("c{2,4}")
-  let { instructions, capture_count } = regex.compile()
-  
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
   // 匹配2个c
   let result = vm(instructions, "cc", capture_count)
   inspect(result, content="[0, 2]")
-  
+
   // 匹配3个c
   let result = vm(instructions, "ccc", capture_count)
   inspect(result, content="[0, 3]")
-  
+
   // 匹配4个c
   let result = vm(instructions, "cccc", capture_count)
   inspect(result, content="[0, 4]")
-  
+
   // 匹配超过4个c的情况（只匹配前4个）
   let result = vm(instructions, "ccccc", capture_count)
   inspect(result, content="[0, 4]")
-  
+
   // 不匹配少于2个c的情况
   let result = vm(instructions, "c", capture_count)
   inspect(result, content="[]")
@@ -741,8 +737,8 @@ test {
 /// 懒惰模式会匹配尽可能少的字符
 test {
   let regex = parse("d{2,}?")
-  let { instructions, capture_count } = regex.compile()
-  
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
   // 懒惰模式匹配最少的字符数
   let result = vm(instructions, "ddd", capture_count)
   inspect(result, content="[0, 2]")
@@ -756,12 +752,12 @@ test {
 /// - 字符 'c' 至少 2 次
 test {
   let regex = parse("a{2}b{1,3}c{2,}")
-  let { instructions, capture_count } = regex.compile()
-  
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
   // 匹配 "aabccc"
   let result = vm(instructions, "aabccc", capture_count)
   inspect(result, content="[0, 6]")
-  
+
   // 匹配 "aabbbbcc"
   let result = vm(instructions, "aabbbbcc", capture_count)
   inspect(result, content="[]")
@@ -773,8 +769,8 @@ test {
 /// - 分组 (ab) 恰好重复 2 次
 test {
   let regex = parse("(ab){2}")
-  let { instructions, capture_count } = regex.compile()
-  
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
   // 匹配 "abab"
   let result = vm(instructions, "abab", capture_count)
   inspect(result, content="[0, 4, 2, 4]")
@@ -786,18 +782,21 @@ test {
 test {
   // 测试 {m,n} 其中 m > n 的情况
   let regex = try? parse("a{5,2}")
-  inspect(regex, content=
-    #|Err(Error_(err=InvalidRepeatSize, data=""))
+  inspect(
+    regex,
+    content=
+      #|Err(Error_(err=InvalidRepeatSize, data=""))
+    ,
   )
-  
+
   // 测试缺少数字的情况
   let regex = try? parse("a{}")
   inspect(regex, content="Err(Error_(err=MissingRepeatArgument, data=\"}\"))")
-  
+
   // 测试缺少右括号的情况
   let regex = try? parse("a{2")
   inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\"\"))")
-  
+
   // 测试无效格式的情况
   let regex = try? parse("a{2,3,4}")
   inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")

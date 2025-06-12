@@ -4,7 +4,7 @@ enum Regex {
   Literal(String)
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(Array[Char])
-  Capture(Regex)
+  Capture(Regex, name~ : String?)
   ZeroOrMore(Regex, lazy~ : Bool)
   OneOrMore(Regex, lazy~ : Bool)
   ZeroOrOne(Regex, lazy~ : Bool)
@@ -17,7 +17,8 @@ enum Regex {
 ///|
 struct Matcher {
   instructions : Array[Instruction]
-  capture_count : Int
+  map : Map[String, Int]
+  mut capture : Int
 }
 
 ///|
@@ -25,148 +26,143 @@ struct Matcher {
 /// 
 /// If it is empty, it means that the regex did not match.
 pub fn Matcher::execute(self : Matcher, input : @string.View) -> Array[Int] {
-  vm(self.instructions, input, self.capture_count)
+  vm(self.instructions, input, self.capture)
 }
 
 ///|
 /// @returns next capture
-fn Regex::compile_aux(
-  regex : Self,
-  capture : Int,
-  target : Array[Instruction]
-) -> Int {
+fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
+  let { instructions, capture, .. } = matcher
   match regex {
-    Empty => return capture
-    Literal(s) => {
+    Empty => ()
+    Literal(s) =>
       for ch in s {
-        target.push(Char([ch, ch]))
+        instructions.push(Char([ch, ch]))
       }
-      return capture
-    }
-    CharClass(chars) => {
-      target.push(Char(chars))
-      return capture
-    }
-    Capture(inner) => {
-      target.push(Save(capture * 2))
-      let next_capture = inner.compile_aux(capture + 1, target)
-      target.push(Save(capture * 2 + 1))
-      next_capture
+    CharClass(chars) => instructions.push(Char(chars))
+    Capture(inner, name~) => {
+      if name is Some(name) {
+        guard matcher.map.get(name) is None
+        matcher.map[name] = capture
+      }
+      instructions.push(Save(capture * 2))
+      matcher.capture += 1
+      inner.compile_aux(matcher)
+      instructions.push(Save(capture * 2 + 1))
     }
     ZeroOrMore(inner, lazy~) => {
       // [ ..., split, inner, jmp, ... ]
       //          ^ -- target.length() at the beginning
       //                            ^ -- target.length() at the end
-      let split_pos = target.length()
+      let split_pos = instructions.length()
       // placeholder for split
-      target.push(Split(-1, -1))
-      let next_capture = inner.compile_aux(capture, target)
-      target.push(Jump(split_pos))
+      instructions.push(Split(-1, -1))
+      inner.compile_aux(matcher)
+      instructions.push(Jump(split_pos))
       if lazy {
-        target[split_pos] = Split(target.length(), split_pos + 1)
+        instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
-        target[split_pos] = Split(split_pos + 1, target.length())
+        instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
-      next_capture
     }
     OneOrMore(inner, lazy~) => {
       // [ ..., inner, split, inner, jmp, ... ]
       //                  ^ -- target.length() at the beginning
       //                                   ^ -- target.length() at the end
-      let _ = inner.compile_aux(capture, target)
-      let split_pos = target.length()
+      inner.compile_aux(matcher)
+      let split_pos = instructions.length()
       // placeholder for split
-      target.push(Split(-1, -1))
-      let next_capture = inner.compile_aux(capture, target)
-      target.push(Jump(split_pos))
+      instructions.push(Split(-1, -1))
+      matcher.capture = capture
+      inner.compile_aux(matcher)
+      instructions.push(Jump(split_pos))
       if lazy {
-        target[split_pos] = Split(target.length(), split_pos + 1)
+        instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
-        target[split_pos] = Split(split_pos + 1, target.length())
+        instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
-      next_capture
     }
     ZeroOrOne(inner, lazy~) => {
       // [ ..., split, inner, ... ]
       //          ^ -- target.length() at the beginning
       //                        ^ -- target.length() at the end
-      let split_pos = target.length()
+      let split_pos = instructions.length()
       // for taking up position
-      target.push(Split(-1, -1))
-      let next_capture = inner.compile_aux(capture, target)
+      instructions.push(Split(-1, -1))
+      inner.compile_aux(matcher)
       if lazy {
-        target[split_pos] = Split(target.length(), split_pos + 1)
+        instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
-        target[split_pos] = Split(split_pos + 1, target.length())
+        instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
-      next_capture
     }
     Repeat(lazy~, min~, max~, inner) =>
       if max is Some(max) {
         // [ ..., inner * min, [ split, inner ] * (max - min), ... ]
         for i in 0U..<min {
-          inner.compile_aux(capture, target) |> ignore
+          matcher.capture = capture
+          inner.compile_aux(matcher)
         }
         let split_pos = []
         for i in 0U..<(max - min) {
           // placeholder for split
-          split_pos.push(target.length())
-          target.push(Split(-1, -1))
-          inner.compile_aux(capture, target) |> ignore
+          split_pos.push(instructions.length())
+          instructions.push(Split(-1, -1))
+          matcher.capture = capture
+          inner.compile_aux(matcher) |> ignore
         }
-        let jmp_pos = target.length()
+        let jmp_pos = instructions.length()
         if lazy {
           for pos in split_pos {
-            target[pos] = Split(jmp_pos, pos + 1)
+            instructions[pos] = Split(jmp_pos, pos + 1)
           }
         } else {
           for pos in split_pos {
-            target[pos] = Split(pos + 1, jmp_pos)
+            instructions[pos] = Split(pos + 1, jmp_pos)
           }
         }
-        inner.compile_aux(capture, [])
       } else {
         // [ ..., inner * min, split, inner, jmp, ... ]
         //                      ^ -- target.length() at the beginning
         //                                         ^ -- target.length() at the end
         for i in 0U..<min {
-          inner.compile_aux(capture, target) |> ignore
+          matcher.capture = capture
+          inner.compile_aux(matcher)
         }
-        let split_pos = target.length()
+        let split_pos = instructions.length()
         // placeholder for split
-        target.push(Split(-1, -1))
-        let next_capture = inner.compile_aux(capture, target)
-        target.push(Jump(split_pos))
+        instructions.push(Split(-1, -1))
+        matcher.capture = capture
+        inner.compile_aux(matcher)
+        instructions.push(Jump(split_pos))
         if lazy {
-          target[split_pos] = Split(target.length(), split_pos + 1)
+          instructions[split_pos] = Split(instructions.length(), split_pos + 1)
         } else {
-          target[split_pos] = Split(split_pos + 1, target.length())
+          instructions[split_pos] = Split(split_pos + 1, instructions.length())
         }
-        next_capture
       }
-    Concat(regexs) => {
-      let mut next_capture = capture
+    Concat(regexs) =>
       for regex in regexs {
-        next_capture = regex.compile_aux(next_capture, target)
+        regex.compile_aux(matcher)
       }
-      next_capture
-    }
     Alternate(left, right) => {
       // [ ..., split, left, jmp, right, ... ]
       //          ^ -- target.length() at the beginning
       //                      ^ -- target.length() at the middle
       //                                   ^ -- target.length() at the end
-      let split_pos = target.length()
+      let split_pos = instructions.length()
       // for taking up position
-      target.push(Split(-1, -1))
-      let next_capture = left.compile_aux(capture, target)
-      let jmp_pos = target.length()
+      instructions.push(Split(-1, -1))
+      left.compile_aux(matcher)
+      let { capture: next_capture, .. } = matcher
+      let jmp_pos = instructions.length()
       // placeholder for jump
-      target.push(Jump(-1))
-      let next_capture2 = right.compile_aux(capture, target)
-      target[split_pos] = Split(split_pos + 1, jmp_pos + 1)
-      target[jmp_pos] = Jump(target.length())
-      @math.maximum(next_capture, next_capture2)
+      instructions.push(Jump(-1))
+      matcher.capture = capture
+      right.compile_aux(matcher)
+      instructions[split_pos] = Split(split_pos + 1, jmp_pos + 1)
+      instructions[jmp_pos] = Jump(instructions.length())
+      matcher.capture = @math.maximum(next_capture, matcher.capture)
     }
   }
 }
@@ -178,16 +174,17 @@ pub fn Regex::compile(self : Self) -> Matcher {
   let instructions = [Split(3, 1), Char(['\u{0}', '\u{10FFFF}']), Jump(0)]
   // start matching
   instructions.push(Save(0))
-  let capture_count = self.compile_aux(1, instructions)
+  let matcher = { instructions, map: {}, capture: 1 }
+  self.compile_aux(matcher)
   instructions.push(Save(1))
   instructions.push(Matched)
-  { instructions, capture_count }
+  matcher
 }
 
 ///|
 test "literal" {
   let regex = Regex::Literal("abc".to_string())
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
 }
@@ -195,33 +192,47 @@ test "literal" {
 ///|
 test "char_class" {
   let regex = Regex::ZeroOrMore(Regex::CharClass(['a', 'c']), lazy=false)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let regex = Regex::ZeroOrMore(Regex::CharClass(['a', 'a']), lazy=false)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 1]")
 }
 
 ///|
 test "capture" {
-  let regex = Regex::Capture(Regex::Literal("abc".to_string()))
-  let { instructions, capture_count } = regex.compile()
+  let regex = Regex::Capture(Regex::Literal("abc".to_string()), name=None)
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3, 0, 3]")
+  let regex = Regex::Capture(
+    Regex::Literal("abc".to_string()),
+    name=Some("group1"),
+  )
+  let { instructions, capture: capture_count, map } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
+  inspect(result, content="[0, 3, 0, 3]")
+  inspect(
+    "abc".view(
+      start_offset=result[map.get("group1").unwrap() * 2],
+      end_offset=result[map.get("group1").unwrap() * 2 + 1],
+    ),
+    content="abc",
+  )
 }
 
 ///|
 test "zero_or_more" {
   let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), lazy=false)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
   let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), lazy=true)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 0]")
   let result = vm(instructions, "ab".view(), capture_count)
@@ -231,13 +242,13 @@ test "zero_or_more" {
 ///|
 test "one_or_more" {
   let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), lazy=false)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[]")
   let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), lazy=true)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "ab".view(), capture_count)
@@ -247,13 +258,13 @@ test "one_or_more" {
 ///|
 test "zero_or_one" {
   let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), lazy=false)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
   let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), lazy=true)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 0]")
   let result = vm(instructions, "ab".view(), capture_count)
@@ -268,7 +279,7 @@ test "repeat" {
     Regex::Literal("abc".to_string()),
     lazy=false,
   )
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcabcabc".view(), capture_count)
   inspect(result, content="[0, 12]")
   let result = vm(instructions, "abcabc".view(), capture_count)
@@ -281,7 +292,7 @@ test "repeat" {
     Regex::Literal("abc".to_string()),
     lazy=true,
   )
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcabcabc".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "abcabc".view(), capture_count)
@@ -296,7 +307,7 @@ test "concat" {
     Regex::Literal("abc".to_string()),
     Regex::Literal("def".to_string()),
   ])
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcdef".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "abc".view(), capture_count)
@@ -309,7 +320,7 @@ test "alternate" {
     Regex::Literal("abc".to_string()),
     Regex::Literal("def".to_string()),
   )
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "def".view(), capture_count)
@@ -321,7 +332,7 @@ test "alternate" {
 ///|
 test "empty" {
   let regex = Regex::Alternate(Regex::Literal("abc".to_string()), Regex::Empty)
-  let { instructions, capture_count } = regex.compile()
+  let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "xyz".view(), capture_count)
