@@ -55,4 +55,21 @@ test "to be fixed" {
       #|Err(Error_(err=InvalidRepeatOp, data=""))
     ,
   )
+  // This should be allowed in some flavors where the `}` is considered a literal character
+  (try? @regexp.parse("a|b|c}"))
+  |> inspect(
+    content=
+      #|Err(Error_(err=InvalidEscape, data="}"))
+    ,
+  )
+  // This should raise InvalidRepeatOp to align with golang
+  (try? @regexp.parse("a++"))
+  |> inspect(
+    content=
+      #|Err(Error_(err=InvalidEscape, data="+"))
+    ,
+  )
+  // This should be a char class with `]` and `[`
+  @regexp.parse("[][]")
+  |> inspect(content="Concat([CharClass([]), CharClass([])])")
 }
