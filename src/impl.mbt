@@ -20,12 +20,23 @@ priv enum Predicate {
 } derive(Show)
 
 ///|
+/// A thread represents a point in the execution of the VM.
+/// It contains the program counter (pc) and an array of captures.
 priv struct Thread {
   pc : Int
   captures : Array[Int]
 }
 
 ///|
+/// Add a thread to the list of threads to be processed.
+/// 
+/// @param sp the current position in the input string  
+/// @param content the input string  
+/// @param instructions the list of instructions to execute  
+/// @param gen the generation number for the instruction  
+/// @param inst_gen an array to track the generation of each instruction  
+/// @param thread the current thread to add  
+/// @param clist the list of threads to be processed in the next iteration  
 fn add_thread(
   sp : Int,
   content : @string.View,
@@ -126,6 +137,12 @@ fn add_thread(
 }
 
 ///|
+/// The core VM function that executes the instructions against the input string.
+/// 
+/// @param instructions the list of instructions to execute
+/// @param input the input string to match against
+/// @param captures the number of capture groups
+/// @return an array of integers representing the start and end indices of the matches, or an empty array if no match is found
 fn vm(
   instructions : Array[Instruction],
   input : @string.View,
@@ -171,10 +188,8 @@ fn vm(
         // drop everything that has lower priority
         break
       }
-      guard instructions[pc] is Char(chars) else {
-        // should have been handled in the add_thread
-        panic()
-      }
+      // should have been handled in the add_thread
+      guard instructions[pc] is Char(chars)
       for i = 0; i < chars.length() / 2; i = i + 1 {
         if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
           // within the range
