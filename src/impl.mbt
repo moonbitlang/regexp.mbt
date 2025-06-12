@@ -5,6 +5,18 @@ priv enum Instruction {
   Char(Array[Char])
   Jump(Int)
   Split(Int, Int)
+  /// Zero-width assertions
+  Assertion(Predicate)
+} derive(Show)
+
+///|
+priv enum Predicate {
+  BeginText
+  EndText
+  BeginLine
+  EndLine
+  WordBoundary
+  NoWordBoundary
 } derive(Show)
 
 ///|
@@ -16,11 +28,12 @@ priv struct Thread {
 ///|
 fn add_thread(
   sp : Int,
-  gen : Int,
+  content : @string.View,
   instructions : Array[Instruction],
+  gen : Int,
   inst_gen : Array[Int],
-  clist : Array[Thread],
-  thread : Thread
+  thread : Thread,
+  clist : Array[Thread]
 ) -> Unit {
   if inst_gen[thread.pc] == gen {
     // already on the list
@@ -30,26 +43,84 @@ fn add_thread(
   match instructions[thread.pc] {
     Save(i) => {
       thread.captures[i] = sp
-      add_thread(sp, gen, instructions, inst_gen, clist, {
-        pc: thread.pc + 1,
-        captures: thread.captures,
-      })
+      add_thread(
+        sp,
+        content,
+        instructions,
+        gen,
+        inst_gen,
+        { pc: thread.pc + 1, captures: thread.captures },
+        clist,
+      )
     }
     Jump(i) =>
-      add_thread(sp, gen, instructions, inst_gen, clist, {
-        pc: i,
-        captures: thread.captures,
-      })
+      add_thread(
+        sp,
+        content,
+        instructions,
+        gen,
+        inst_gen,
+        { pc: i, captures: thread.captures },
+        clist,
+      )
     Split(i1, i2) => {
-      add_thread(sp, gen, instructions, inst_gen, clist, {
-        pc: i1,
-        captures: thread.captures.copy(),
-      })
-      add_thread(sp, gen, instructions, inst_gen, clist, {
-        pc: i2,
-        captures: thread.captures,
-      })
+      add_thread(
+        sp,
+        content,
+        instructions,
+        gen,
+        inst_gen,
+        { pc: i1, captures: thread.captures.copy() },
+        clist,
+      )
+      add_thread(
+        sp,
+        content,
+        instructions,
+        gen,
+        inst_gen,
+        { pc: i2, captures: thread.captures },
+        clist,
+      )
     }
+    Assertion(pred) =>
+      if (pred is BeginText && sp == 0) ||
+        (pred is EndText && sp == content.length()) ||
+        (
+          pred is BeginLine &&
+          (sp == 0 || content.charcode_at(sp - 1) == '\n'.to_int())
+        ) ||
+        (
+          pred is EndLine &&
+          (sp == content.length() || content.charcode_at(sp) == '\n'.to_int())
+        ) ||
+        (
+          pred is WordBoundary &&
+          (
+            sp == 0 ||
+            sp == content.length() ||
+            is_word_char(content.char_at(sp - 1)) !=
+            is_word_char(content.char_at(sp))
+          )
+        ) ||
+        (
+          pred is NoWordBoundary &&
+          sp > 0 &&
+          sp < content.length() &&
+          is_word_char(content.char_at(sp - 1)) ==
+          is_word_char(content.char_at(sp))
+        ) {
+        // the assertion is true, continue
+        add_thread(
+          sp,
+          content,
+          instructions,
+          gen,
+          inst_gen,
+          { pc: thread.pc + 1, captures: thread.captures },
+          clist,
+        )
+      }
     _ => clist.push(thread)
   }
 }
@@ -65,10 +136,15 @@ fn vm(
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
   let mut matched : Array[Int] = []
-  add_thread(0, 1, instructions, inst_gen, clist, {
-    pc: 0,
-    captures: Array::make(captures * 2, 0),
-  })
+  add_thread(
+    0,
+    input,
+    instructions,
+    1,
+    inst_gen,
+    { pc: 0, captures: Array::make(captures * 2, 0) },
+    clist,
+  )
   for sp = 0; sp <= input.length(); sp = sp + 1 {
     if clist.is_empty() {
       break
@@ -102,10 +178,15 @@ fn vm(
       for i = 0; i < chars.length() / 2; i = i + 1 {
         if chars[i * 2] <= actual_char && chars[i * 2 + 1] >= actual_char {
           // within the range
-          add_thread(sp + 1, sp + 2, instructions, inst_gen, nlist, {
-            pc: pc + 1,
-            captures,
-          })
+          add_thread(
+            sp + 1,
+            input,
+            instructions,
+            sp + 2,
+            inst_gen,
+            { pc: pc + 1, captures },
+            nlist,
+          )
           break
         }
       }
@@ -216,4 +297,21 @@ test "alternate capture" {
   ]
   let captures = vm(instructions, "abbd", 2)
   inspect!(captures, content="[0, 4, 2, 3]")
+}
+
+///|
+test "assertions" {
+  // ^a$
+  let instructions = [
+    Save(0),
+    Assertion(BeginText),
+    Char(['a', 'a']),
+    Assertion(EndText),
+    Save(1),
+    Matched,
+  ]
+  let capture = vm(instructions, "a", 1)
+  inspect!(capture, content="[0, 1]")
+  let capture = vm(instructions, "ab", 1)
+  inspect!(capture, content="[]")
 }
