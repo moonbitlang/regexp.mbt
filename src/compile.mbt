@@ -23,14 +23,6 @@ struct Engine {
 }
 
 ///|
-/// Returns the result of capture groups. e.g. [0, 4, 0, 4] for `(abc)` matching `abc`.
-/// 
-/// If it is empty, it means that the regex did not match.
-pub fn Engine::execute(self : Engine, input : @string.View) -> Array[Int] {
-  vm(self.instructions, input, self.capture)
-}
-
-///|
 /// @returns next capture
 fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
   let { instructions, capture, .. } = matcher

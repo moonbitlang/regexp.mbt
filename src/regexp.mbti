@@ -5,11 +5,13 @@ import(
 )
 
 // Values
-fn compile(@string.StringView) -> Engine!Error_
+fn compile(@string.StringView) -> Engine raise Error_
 
 // Types and methods
 type Engine
-fn Engine::execute(Self, @string.StringView) -> Array[Int]
+fn Engine::execute(Self, @string.StringView) -> MatchResult
+fn Engine::group_by_name(Self, String) -> Int?
+fn Engine::group_count(Self) -> Int
 
 pub enum Err {
   InternalError
@@ -26,13 +28,18 @@ pub enum Err {
 }
 impl Show for Err
 
-pub type! Error_ {
+pub suberror Error_ {
   Error_(err~ : Err, data~ : @string.StringView)
 }
 impl Show for Error_
 
+type MatchResult
+fn MatchResult::group(Self, Int) -> @string.StringView?
+fn MatchResult::group_by_name(Self, String) -> @string.StringView? raise
+fn MatchResult::matched(Self) -> Bool
+fn MatchResult::results(Self) -> Iter[@string.StringView]
+
 // Type aliases
-pub typealias T = Engine
 
 // Traits
 

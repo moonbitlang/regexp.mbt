@@ -1,26 +1,46 @@
 ///|
 test "simple regex test" {
   let regex = @regexp.compile("abc")
-  let result = regex.execute("abc")
-  inspect(result, content="[0, 3]")
-  let result = regex.execute("ab")
+  let result = regex.execute("abc").results().collect()
+  inspect(
+    result,
+    content=
+      #|["abc"]
+    ,
+  )
+  let result = regex.execute("ab").results().collect()
   inspect(result, content="[]")
-  let result = regex.execute("abcd")
-  inspect(result, content="[0, 3]")
+  let result = regex.execute("abcd").results().collect()
+  inspect(
+    result,
+    content=
+      #|["abc"]
+    ,
+  )
 }
 
 ///|
 test "simple regex test matching leftmost" {
   let regex = @regexp.compile("a(bc|de)f")
-  let result = regex.execute("xxabcf")
-  inspect(result, content="[2, 6, 3, 5]")
+  let result = regex.execute("xxabcf").results().collect()
+  inspect(
+    result,
+    content=
+      #|["abcf", "bc"]
+    ,
+  )
 }
 
 ///|
 test "simple regex test with repeat" {
   let regex = @regexp.compile("a(bc|de){2,}f")
-  let result = regex.execute("xxabcdebcf")
-  inspect(result, content="[2, 10, 7, 9]")
+  let result = regex.execute("xxabcdebcf").results().collect()
+  inspect(
+    result,
+    content=
+      #|["abcdebcf", "bc"]
+    ,
+  )
 }
 
 ///|
