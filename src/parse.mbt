@@ -16,6 +16,7 @@
 /// 
 /// ; 分组
 /// group       = "(" expression ")"                   ; 捕获组：(abc)
+///             / "(?<" group-name ">" expression ")"  ; 命名捕获组：(?<name>abc)
 /// 
 /// ; 字符类
 /// char-class  = "[" *char-class-item "]"            ; 字符类：[abc], [a-z]
@@ -157,11 +158,14 @@ fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
     let term = self.parse_term()
     sequence.push(term)
   }
-  match sequence.length() {
+
+  // 优化连续的字面量字符为 Literal
+  let optimized = optimize_literals(sequence)
+  match optimized.length() {
     // 空序列被认为是合法的正则表达式（与 Go 的行为一致）
     0 => Empty
-    1 => sequence[0]
-    _ => Concat(sequence)
+    1 => optimized[0]
+    _ => Concat(optimized)
   }
 }
 
@@ -271,13 +275,30 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
   match self.peek_char() {
     Some('(') => {
       self.consume_char() // 消费 '('
-      let expr = self.parse_expression()
-      guard self.input is [')', ..] else {
-        raise Error_(err=MissingParenthesis, data=self.input)
+
+      // 检查是否是命名捕获组 (?<name>...)
+      if self.input is ['?', '<', .. rest] {
+        self.input = rest // 消费 '?<'
+        let name = self.parse_group_name()
+        guard self.input is ['>', ..] else {
+          raise Error_(err=InvalidNamedCapture, data=self.input)
+        }
+        self.consume_char() // 消费 '>'
+        let expr = self.parse_expression()
+        guard self.input is [')', ..] else {
+          raise Error_(err=MissingParenthesis, data=self.input)
+        }
+        self.consume_char() // 消费 ')'
+        Capture(expr, name=Some(name))
+      } else {
+        // 普通捕获组
+        let expr = self.parse_expression()
+        guard self.input is [')', ..] else {
+          raise Error_(err=MissingParenthesis, data=self.input)
+        }
+        self.consume_char() // 消费 ')'
+        Capture(expr, name=None)
       }
-      self.consume_char() // 消费 ')'
-      // TODO: named capture and other flags
-      Capture(expr, name=None)
     }
     Some('[') => self.parse_char_class()
     Some('.') => {
@@ -513,6 +534,93 @@ fn Parser::parse_number(self : Parser) -> UInt!Error_ {
     raise Error_(err=MissingRepeatArgument, data=self.input)
   }
   result
+}
+
+///| 解析命名捕获组的组名
+/// 
+/// 组名必须是有效的标识符，只能包含字母、数字和下划线，且必须以字母或下划线开头。
+/// 
+/// 示例：
+/// - `name`     -> 有效的组名
+/// - `group1`   -> 有效的组名
+/// - `_test`    -> 有效的组名
+/// - `1invalid` -> 无效的组名（以数字开头）
+/// 
+/// 返回: 解析得到的组名字符串
+/// 
+/// 抛出: Error_ 当组名格式错误时
+fn Parser::parse_group_name(self : Parser) -> String!Error_ {
+  let mut name = ""
+  let mut first = true
+  while self.input is [ch, .. rest] && ch != '>' {
+    if first {
+      // 第一个字符必须是字母或下划线
+      if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' {
+        name += ch.to_string()
+        self.input = rest
+        first = false
+      } else {
+        raise Error_(err=InvalidNamedCapture, data=self.input)
+      }
+    } else if (
+      // 后续字符可以是字母、数字或下划线
+        ch >= 'a' && ch <= 'z'
+      ) ||
+      (ch >= 'A' && ch <= 'Z') ||
+      (ch >= '0' && ch <= '9') ||
+      ch == '_' {
+      name += ch.to_string()
+      self.input = rest
+    } else {
+      raise Error_(err=InvalidNamedCapture, data=self.input)
+    }
+  }
+
+  // 检查组名是否为空
+  if name == "" {
+    raise Error_(err=InvalidNamedCapture, data=self.input)
+  }
+  name
+}
+
+///| 优化连续的字面量字符
+/// 
+/// 将连续的单字符 CharClass 合并为 Literal，以提高匹配性能。
+/// 例如：[CharClass(['a','a']), CharClass(['b','b']), CharClass(['c','c'])] 
+/// 优化为：[Literal("abc")]
+/// 
+/// 参数:
+/// - `sequence`: 原始的 Regex 序列
+/// 
+/// 返回: 优化后的 Regex 序列
+fn optimize_literals(sequence : Array[Regex]) -> Array[Regex] {
+  if sequence.length() == 0 {
+    return sequence
+  }
+  let optimized = []
+  let mut literal_chars = ""
+  for i = 0; i < sequence.length(); i = i + 1 {
+    match sequence[i] {
+      CharClass([ch, ch2]) if ch == ch2 =>
+        // 单字符的字符类，加入字面量字符串
+        literal_chars += ch.to_string()
+      _ => {
+        // 不是单字符，如果有累积的字面量字符，先处理它们
+        if literal_chars != "" {
+          optimized.push(Literal(literal_chars))
+          literal_chars = ""
+        }
+        // 添加当前非字面量项
+        optimized.push(sequence[i])
+      }
+    }
+  }
+
+  // 处理末尾剩余的字面量字符
+  if literal_chars != "" {
+    optimized.push(Literal(literal_chars))
+  }
+  optimized
 }
 
 ///| 测试示例：解析带有捕获组和量词的复杂正则表达式
@@ -800,4 +908,150 @@ test {
   // 测试无效格式的情况
   let regex = try? parse("a{2,3,4}")
   inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")
+}
+
+///| 测试示例：解析命名捕获组
+/// 
+/// 测试正则表达式 "(?<name>abc)":
+/// - 命名捕获组：名称为 "name"，匹配 "abc"
+/// 
+/// 预期匹配字符串 "abc":
+/// - 匹配范围: [0, 3, 0, 3] (整体匹配和命名组匹配)
+test {
+  let regex = parse("(?<name>abc)")
+  let { instructions, capture: capture_count, map } = regex.compile()
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3, 0, 3]")
+
+  // 验证命名组映射
+  inspect(map.get("name"), content="Some(1)")
+}
+
+///| 测试示例：解析复杂的命名捕获组表达式
+/// 
+/// 测试正则表达式 "(?<first>a+)(?<second>b+)":
+/// - 第一个命名捕获组：名称为 "first"，匹配一个或多个 'a'
+/// - 第二个命名捕获组：名称为 "second"，匹配一个或多个 'b'
+/// 
+/// 预期匹配字符串 "aaabbb":
+/// - 匹配范围: [0, 6, 0, 3, 3, 6]
+test {
+  let regex = parse("(?<first>a+)(?<second>b+)")
+  let { instructions, capture: capture_count, map } = regex.compile()
+  let result = vm(instructions, "aaabbb", capture_count)
+  inspect(result, content="[0, 6, 0, 3, 3, 6]")
+
+  // 验证命名组映射
+  inspect(map.get("first"), content="Some(1)")
+  inspect(map.get("second"), content="Some(2)")
+}
+
+///| 测试示例：解析嵌套的命名捕获组
+/// 
+/// 测试正则表达式 "(?<outer>a(?<inner>bc)d)":
+/// - 外层命名捕获组：名称为 "outer"
+/// - 内层命名捕获组：名称为 "inner"
+/// 
+/// 预期匹配字符串 "abcd":
+/// - 匹配范围: [0, 4, 0, 4, 1, 3]
+test {
+  let regex = parse("(?<outer>a(?<inner>bc)d)")
+  let { instructions, capture: capture_count, map } = regex.compile()
+  let result = vm(instructions, "abcd", capture_count)
+  inspect(result, content="[0, 4, 0, 4, 1, 3]")
+
+  // 验证命名组映射
+  inspect(map.get("outer"), content="Some(1)")
+  inspect(map.get("inner"), content="Some(2)")
+}
+
+///| 测试示例：混合使用命名捕获组和普通捕获组
+/// 
+/// 测试正则表达式 "(a)(?<named>b)(c)":
+/// - 第一个普通捕获组：匹配 "a"
+/// - 命名捕获组：名称为 "named"，匹配 "b"
+/// - 第二个普通捕获组：匹配 "c"
+/// 
+/// 预期匹配字符串 "abc":
+/// - 匹配范围: [0, 3, 0, 1, 1, 2, 2, 3]
+test {
+  let regex = parse("(a)(?<named>b)(c)")
+  let { instructions, capture: capture_count, map } = regex.compile()
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3, 0, 1, 1, 2, 2, 3]")
+
+  // 验证命名组映射（第二个捕获组，索引为2）
+  inspect(map.get("named"), content="Some(2)")
+}
+
+///| 测试示例：命名捕获组的错误情况
+/// 
+/// 测试各种无效的命名捕获组语法
+test {
+  // 测试空组名
+  let regex = try? parse("(?<>abc)")
+  inspect(regex, content="Err(Error_(err=InvalidNamedCapture, data=\">abc)\"))")
+
+  // 测试以数字开头的组名
+  let regex = try? parse("(?<1invalid>abc)")
+  inspect(
+    regex,
+    content="Err(Error_(err=InvalidNamedCapture, data=\"1invalid>abc)\"))",
+  )
+
+  // 测试包含非法字符的组名
+  let regex = try? parse("(?<na-me>abc)")
+  inspect(
+    regex,
+    content="Err(Error_(err=InvalidNamedCapture, data=\"-me>abc)\"))",
+  )
+
+  // 测试缺少右尖括号
+  let regex = try? parse("(?<name abc)")
+  inspect(regex, content="Err(Error_(err=InvalidNamedCapture, data=\" abc)\"))")
+
+  // 测试缺少右括号
+  let regex = try? parse("(?<name>abc")
+  inspect(regex, content="Err(Error_(err=MissingParenthesis, data=\"\"))")
+}
+
+///| 测试示例：有效的组名格式
+/// 
+/// 测试各种有效的组名格式
+test {
+  // 以字母开头
+  let regex = parse("(?<group>abc)")
+  inspect(
+    (regex : Regex),
+    content=
+      #|Capture(Literal("abc"), name=Some("group"))
+    ,
+  )
+
+  // 以下划线开头
+  let regex = parse("(?<_group>abc)")
+  inspect(
+    (regex : Regex),
+    content=
+      #|Capture(Literal("abc"), name=Some("_group"))
+    ,
+  )
+
+  // 包含数字
+  let regex = parse("(?<group1>abc)")
+  inspect(
+    (regex : Regex),
+    content=
+      #|Capture(Literal("abc"), name=Some("group1"))
+    ,
+  )
+
+  // 包含多个下划线
+  let regex = parse("(?<my_group_1>abc)")
+  inspect(
+    (regex : Regex),
+    content=
+      #|Capture(Literal("abc"), name=Some("my_group_1"))
+    ,
+  )
 }
