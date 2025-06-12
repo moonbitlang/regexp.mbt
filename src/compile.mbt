@@ -6,11 +6,11 @@ priv enum Regex {
   CharClass(Array[Char], neg~ : Bool)
   Assertion(Predicate)
   Capture(Regex, name~ : String?)
-  ZeroOrMore(Regex, lazy~ : Bool)
-  OneOrMore(Regex, lazy~ : Bool)
-  ZeroOrOne(Regex, lazy~ : Bool)
+  ZeroOrMore(Regex, greedy~ : Bool)
+  OneOrMore(Regex, greedy~ : Bool)
+  ZeroOrOne(Regex, greedy~ : Bool)
   /// Matches a specific number of repetitions.
-  Repeat(Regex, lazy~ : Bool, min~ : UInt, max~ : UInt?)
+  Repeat(Regex, greedy~ : Bool, min~ : UInt, max~ : UInt?)
   Concat(Array[Regex])
   Alternate(Regex, Regex)
 } derive(Show)
@@ -61,7 +61,7 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       inner.compile_aux(matcher)
       instructions.push(Save(capture * 2 + 1))
     }
-    ZeroOrMore(inner, lazy~) => {
+    ZeroOrMore(inner, greedy~) => {
       // [ ..., split, inner, jmp, ... ]
       //          ^ -- instructions.length() at the beginning
       //                            ^ -- instructions.length() at the end
@@ -70,13 +70,13 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       instructions.push(Split(-1, -1))
       inner.compile_aux(matcher)
       instructions.push(Jump(split_pos))
-      if lazy {
+      if not(greedy) {
         instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
         instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
     }
-    OneOrMore(inner, lazy~) => {
+    OneOrMore(inner, greedy~) => {
       // [ ..., inner, split, inner, jmp, ... ]
       //                  ^ -- instructions.length() at the beginning
       //                                   ^ -- instructions.length() at the end
@@ -87,13 +87,13 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       matcher.capture = capture
       inner.compile_aux(matcher)
       instructions.push(Jump(split_pos))
-      if lazy {
+      if not(greedy) {
         instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
         instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
     }
-    ZeroOrOne(inner, lazy~) => {
+    ZeroOrOne(inner, greedy~) => {
       // [ ..., split, inner, ... ]
       //          ^ -- instructions.length() at the beginning
       //                        ^ -- instructions.length() at the end
@@ -101,13 +101,13 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       // for taking up position
       instructions.push(Split(-1, -1))
       inner.compile_aux(matcher)
-      if lazy {
+      if not(greedy) {
         instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
         instructions[split_pos] = Split(split_pos + 1, instructions.length())
       }
     }
-    Repeat(lazy~, min~, max~, inner) =>
+    Repeat(greedy~, min~, max~, inner) =>
       if max is Some(max) {
         // [ ..., inner * min, [ split, inner ] * (max - min), ... ]
         for i in 0U..<min {
@@ -123,7 +123,7 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
           inner.compile_aux(matcher) |> ignore
         }
         let jmp_pos = instructions.length()
-        if lazy {
+        if not(greedy) {
           for pos in split_pos {
             instructions[pos] = Split(jmp_pos, pos + 1)
           }
@@ -146,7 +146,7 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
         matcher.capture = capture
         inner.compile_aux(matcher)
         instructions.push(Jump(split_pos))
-        if lazy {
+        if not(greedy) {
           instructions[split_pos] = Split(instructions.length(), split_pos + 1)
         } else {
           instructions[split_pos] = Split(split_pos + 1, instructions.length())
@@ -205,7 +205,7 @@ test "char_class" {
   // ([ac])
   let regex = Regex::ZeroOrMore(
     Regex::CharClass(['a', 'c'], neg=false),
-    lazy=false,
+    greedy=true,
   )
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
@@ -213,7 +213,7 @@ test "char_class" {
   // ([a])
   let regex = Regex::ZeroOrMore(
     Regex::CharClass(['a', 'a'], neg=false),
-    lazy=false,
+    greedy=true,
   )
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
@@ -221,7 +221,7 @@ test "char_class" {
   // ([^ac])
   let regex = Regex::ZeroOrMore(
     Regex::CharClass(['a', 'c'], neg=true),
-    lazy=false,
+    greedy=true,
   )
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
@@ -252,13 +252,13 @@ test "capture" {
 
 ///|
 test "zero_or_more" {
-  let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), lazy=false)
+  let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), greedy=true)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
-  let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), lazy=true)
+  let regex = Regex::ZeroOrMore(Regex::Literal("abc".to_string()), greedy=false)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 0]")
@@ -268,13 +268,13 @@ test "zero_or_more" {
 
 ///|
 test "one_or_more" {
-  let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), lazy=false)
+  let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), greedy=true)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[]")
-  let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), lazy=true)
+  let regex = Regex::OneOrMore(Regex::Literal("abc".to_string()), greedy=false)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcab".view(), capture_count)
   inspect(result, content="[0, 3]")
@@ -284,13 +284,13 @@ test "one_or_more" {
 
 ///|
 test "zero_or_one" {
-  let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), lazy=false)
+  let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), greedy=true)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[0, 0]")
-  let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), lazy=true)
+  let regex = Regex::ZeroOrOne(Regex::Literal("abc".to_string()), greedy=false)
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abc".view(), capture_count)
   inspect(result, content="[0, 0]")
@@ -304,7 +304,7 @@ test "repeat" {
     min=2,
     max=Some(4),
     Regex::Literal("abc".to_string()),
-    lazy=false,
+    greedy=true,
   )
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcabcabc".view(), capture_count)
@@ -317,7 +317,7 @@ test "repeat" {
     min=2,
     max=Some(4),
     Regex::Literal("abc".to_string()),
-    lazy=true,
+    greedy=false,
   )
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "abcabcabcabc".view(), capture_count)

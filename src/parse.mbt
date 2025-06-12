@@ -78,7 +78,7 @@ pub enum Err {
 ///| 解析错误异常类型
 /// 
 /// 包含错误信息和相关的字符串视图上下文
-pub type! Error_ {
+pub suberror Error_ {
   Error_(err~ : Err, data~ : @string.View)
 } derive(Show)
 
@@ -102,7 +102,7 @@ fn Parser::new(input : @string.View) -> Parser {
 /// 返回: 解析后的 Regex AST
 /// 
 /// 抛出: Error_ 当解析失败时
-fn parse(regex : @string.View) -> Regex!Error_ {
+fn parse(regex : @string.View) -> Regex raise Error_ {
   let parser = Parser::new(regex)
   let result = parser.parse_expression()
 
@@ -127,7 +127,7 @@ fn parse(regex : @string.View) -> Regex!Error_ {
 /// - `a|b|c`   -> 多个序列的选择：匹配a、b或c
 /// 
 /// 返回: 解析后的 Regex AST
-fn Parser::parse_expression(self : Parser) -> Regex!Error_ {
+fn Parser::parse_expression(self : Parser) -> Regex raise Error_ {
   let mut left = self.parse_sequence()
   while self.input is ['|', .. rest] {
     self.input = rest // 消费 '|'
@@ -156,7 +156,7 @@ fn Parser::parse_expression(self : Parser) -> Regex!Error_ {
 /// - 输入结束
 /// 
 /// 返回: 解析后的 Regex AST
-fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
+fn Parser::parse_sequence(self : Parser) -> Regex raise Error_ {
   let sequence = []
   while self.input is [ch, ..] && ch != '|' && ch != ')' {
     let term = self.parse_term()
@@ -196,7 +196,7 @@ fn Parser::parse_sequence(self : Parser) -> Regex!Error_ {
 /// - `(ab)*`  -> 量词项：分组(ab)重复0次或多次
 /// 
 /// 返回: 解析后的 Regex AST
-fn Parser::parse_term(self : Parser) -> Regex!Error_ {
+fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
   let mut base = self.parse_factor()
 
   // 处理量词
@@ -205,43 +205,43 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '*?'
         self.input = rest // 消费 '*?'
-        base = ZeroOrMore(base, lazy=true)
+        base = ZeroOrMore(base, greedy=false)
       } else {
         // 处理贪婪量词 '*'
         self.input = rest // 消费 '*'
-        base = ZeroOrMore(base, lazy=false)
+        base = ZeroOrMore(base, greedy=true)
       }
     ['+', .. rest] =>
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '+?'
         self.input = rest // 消费 '+?'
-        base = OneOrMore(base, lazy=true)
+        base = OneOrMore(base, greedy=false)
       } else {
         // 处理贪婪量词 '+'
         self.input = rest // 消费 '+'
-        base = OneOrMore(base, lazy=false)
+        base = OneOrMore(base, greedy=true)
       }
     ['?', .. rest] =>
       if rest is ['?', .. rest] {
         // 处理懒惰量词 '??'
         self.input = rest // 消费 '??'
-        base = ZeroOrOne(base, lazy=true)
+        base = ZeroOrOne(base, greedy=false)
       } else {
         // 处理贪婪量词 '?'
         self.input = rest // 消费 '?'
-        base = ZeroOrOne(base, lazy=false)
+        base = ZeroOrOne(base, greedy=true)
       }
     ['{', ..] => {
       // 处理重复量词 {n}, {n,}, {n,m}
       let repeat_result = self.parse_repeat()
-      let lazy = match self.input {
+      let greedy = match self.input {
         ['?', .. rest] => {
           self.input = rest // 消费 '?'
-          true
+          false
         }
-        _ => false
+        _ => true
       }
-      base = Repeat(base, lazy~, min=repeat_result.0, max=repeat_result.1)
+      base = Repeat(base, greedy~, min=repeat_result.0, max=repeat_result.1)
     }
     _ => ()
   }
@@ -275,7 +275,7 @@ fn Parser::parse_term(self : Parser) -> Regex!Error_ {
 /// 返回: 解析后的 Regex AST
 /// 
 /// 抛出: Error_ 当遇到无效语法时
-fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
+fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
   match self.peek_char() {
     Some('(') => {
       self.consume_char() // 消费 '('
@@ -365,7 +365,7 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
 /// 返回: CharClass(chars) - 包含字符范围列表的字符类 AST
 /// 
 /// 抛出: Error_ 当字符类格式错误时
-fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
+fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
   self.consume_char() // 消费 '['
   let neg = if self.input is ['^', .. rest] {
     self.input = rest // 消费 '^'
@@ -508,7 +508,7 @@ fn Parser::is_special_char(c : Char) -> Bool {
 /// - max: 最大重复次数（None 表示无限制）
 /// 
 /// 抛出: Error_ 当重复量词格式错误时
-fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
+fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise Error_ {
   self.consume_char() // 消费 '{'
 
   // 解析第一个数字（最小重复次数）
@@ -560,7 +560,7 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?)!Error_ {
 /// 返回: 解析得到的整数值
 /// 
 /// 抛出: Error_ 当没有找到有效数字时
-fn Parser::parse_number(self : Parser) -> UInt!Error_ {
+fn Parser::parse_number(self : Parser) -> UInt raise Error_ {
   let mut result = 0U
   let mut has_digits = false
   while self.input is [ch, .. rest] && ch >= '0' && ch <= '9' {
@@ -587,7 +587,7 @@ fn Parser::parse_number(self : Parser) -> UInt!Error_ {
 /// 返回: 解析得到的组名字符串
 /// 
 /// 抛出: Error_ 当组名格式错误时
-fn Parser::parse_group_name(self : Parser) -> String!Error_ {
+fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
   let mut name = ""
   let mut first = true
   while self.input is [ch, .. rest] && ch != '>' {

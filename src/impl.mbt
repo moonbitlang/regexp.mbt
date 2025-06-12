@@ -226,8 +226,8 @@ test {
     Matched,
   ]
   let captures = vm(instructions, "aab", 1)
-  inspect!(captures, content="[0, 3]")
-  inspect!("aab".charcodes(start=0, end=3), content="aab")
+  inspect(captures, content="[0, 3]")
+  inspect("aab".charcodes(start=0, end=3), content="aab")
 }
 
 ///|
@@ -248,7 +248,7 @@ test "lazy capture" {
     Matched,
   ]
   let captures = vm(instructions, "aaaa", 2)
-  inspect!(captures, content="[0, 4, 0, 0]")
+  inspect(captures, content="[0, 4, 0, 0]")
 }
 
 ///|
@@ -281,7 +281,7 @@ test "priority" (t : @test.T) {
     Matched,
   ]
   let captures = vm(instructions, "aabbcc", 4)
-  inspect!(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
+  inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
     t.writeln("aabbcc".charcodes(start=captures[i], end=captures[i + 1]))
   }
@@ -307,7 +307,7 @@ test "alternate capture" {
     Matched,
   ]
   let captures = vm(instructions, "abbd", 2)
-  inspect!(captures, content="[0, 4, 2, 3]")
+  inspect(captures, content="[0, 4, 2, 3]")
 }
 
 ///|
@@ -322,7 +322,7 @@ test "assertions" {
     Matched,
   ]
   let capture = vm(instructions, "a", 1)
-  inspect!(capture, content="[0, 1]")
+  inspect(capture, content="[0, 1]")
   let capture = vm(instructions, "ab", 1)
-  inspect!(capture, content="[]")
+  inspect(capture, content="[]")
 }
