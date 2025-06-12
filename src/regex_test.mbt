@@ -44,6 +44,34 @@ test "simple regex test with repeat" {
 }
 
 ///|
+test "character classes" {
+  // Email validation (simplified)
+  let email = @regexp.compile(
+    #|[\w-]+@[\w-]+\.\w+
+    ,
+  )
+  let email_result = email.execute("user@example.com").results().collect()
+  assert_eq(email_result, ["user@example.com"])
+  // Extract numbers
+  let numbers = @regexp.compile(
+    #|\d+\.\d{2}
+    ,
+  )
+  let result = numbers.execute("Price: $42.99").results().collect()
+  assert_eq(result, ["42.99"])
+
+  // Named captures for parsing
+  let parser = @regexp.compile(
+    #|(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})
+    ,
+  )
+  let date_result = parser.execute("2024-03-15")
+  assert_eq(date_result.group_by_name("year"), Some("2024"))
+  assert_eq(date_result.group_by_name("month"), Some("03"))
+  assert_eq(date_result.group_by_name("day"), Some("15"))
+}
+
+///|
 test "invalid regex test" {
   guard (try? @regexp.compile("a(b")) is Err(error)
   error

@@ -326,11 +326,17 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
     }
     Some('\\') => {
       self.consume_char() // 消费 '\'
-      guard self.peek_char() is Some(c) else {
+      guard self.input is [c, .. rest] else {
         raise Error_(err=TrailingBackslash, data=self.input)
       }
-      self.consume_char()
-      CharClass([c, c], neg=false)
+      self.input = rest
+      match c {
+        'd' => CharClass(['0', '9'], neg=false) // 数字字符类
+        'D' => CharClass(['0', '9'], neg=true) // 非数字字符类
+        'w' => CharClass(['a', 'z', 'A', 'Z', '0', '9', '_', '_'], neg=false) // 单词字符类
+        'W' => CharClass(['a', 'z', 'A', 'Z', '0', '9', '_', '_'], neg=true) // 非单词字符类
+        _ => CharClass([c, c], neg=false)
+      }
     }
     Some(c) if Parser::is_special_char(c) =>
       raise Error_(err=InvalidEscape, data=self.input)
@@ -381,7 +387,27 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
           raise Error_(err=TrailingBackslash, data=self.input)
         }
         self.input = rest
-        ch
+        match ch {
+          'd' => {
+            ['0', '9'].each(chars.push(_)) // 数字字符类
+            continue
+          }
+          'D' => {
+            ['\u{0}', '/', ':', '\u{10FFFF}'].each(chars.push(_)) // 非数字字符类
+            continue
+          }
+          'w' => {
+            ['a', 'z', 'A', 'Z', '0', '9', '_', '_'].each(chars.push(_)) // 单词字符类
+            continue
+          }
+          'W' => {
+            ['\u{0}', '/', ':', '@', '[', '^', '`', '`', '{', '\u{10FFFF}'].each(
+              chars.push(_),
+            ) // 非单词字符类
+            continue
+          }
+          _ => ch
+        }
       }
       _ => {
         self.input = rest
