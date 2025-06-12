@@ -279,29 +279,36 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
   match self.peek_char() {
     Some('(') => {
       self.consume_char() // 消费 '('
-
-      // 检查是否是命名捕获组 (?<name>...)
-      if self.input is ['?', '<', .. rest] {
-        self.input = rest // 消费 '?<'
-        let name = self.parse_group_name()
-        guard self.input is ['>', ..] else {
-          raise Error_(err=InvalidNamedCapture, data=self.input)
-        }
-        self.consume_char() // 消费 '>'
+      // 检查是否是捕获组
+      if self.input is ['?', ':', .. rest] {
+        self.input = rest // 消费 '?:'
+        // 非捕获组 (?:...)
         let expr = self.parse_expression()
         guard self.input is [')', ..] else {
           raise Error_(err=MissingParenthesis, data=self.input)
         }
         self.consume_char() // 消费 ')'
-        Capture(expr, name=Some(name))
+        expr
       } else {
+        // 检查是否是命名捕获组 (?<name>...)
+        let name = if self.input is ['?', '<', .. rest] {
+          self.input = rest // 消费 '?<'
+          let name = self.parse_group_name()
+          guard self.input is ['>', ..] else {
+            raise Error_(err=InvalidNamedCapture, data=self.input)
+          }
+          self.consume_char() // 消费 '>'
+          Some(name)
+        } else {
+          None
+        }
         // 普通捕获组
         let expr = self.parse_expression()
         guard self.input is [')', ..] else {
           raise Error_(err=MissingParenthesis, data=self.input)
         }
         self.consume_char() // 消费 ')'
-        Capture(expr, name=None)
+        Capture(expr, name~)
       }
     }
     Some('[') => self.parse_char_class()
@@ -899,6 +906,17 @@ test "parse repeat quantifier error cases" {
   // 测试无效格式的情况
   let regex = try? parse("a{2,3,4}")
   inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")
+}
+
+///| 测试示例：解析非捕获组
+/// 
+/// 测试正则表达式 "(?:abc)":
+/// - 非捕获组：匹配 "abc"，但不捕获
+test "parse non-capturing group" {
+  let regex = parse("(?:abc)")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "abc", capture_count)
+  inspect(result, content="[0, 3]")
 }
 
 ///| 测试示例：解析命名捕获组
