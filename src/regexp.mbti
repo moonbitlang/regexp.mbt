@@ -12,6 +12,7 @@ type Engine
 fn Engine::execute(Self, @string.StringView) -> MatchResult
 fn Engine::group_by_name(Self, String) -> Int?
 fn Engine::group_count(Self) -> Int
+fn Engine::group_names(Self) -> Iter[String]
 
 pub enum Err {
   InternalError
