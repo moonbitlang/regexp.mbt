@@ -1016,7 +1016,6 @@ test "parse valid group name formats" {
     (regex : Regex),
     content=
       #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group"))
-
     ,
   )
 
@@ -1026,7 +1025,6 @@ test "parse valid group name formats" {
     (regex : Regex),
     content=
       #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("_group"))
-
     ,
   )
 
@@ -1036,7 +1034,6 @@ test "parse valid group name formats" {
     (regex : Regex),
     content=
       #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group1"))
-
     ,
   )
 
@@ -1046,7 +1043,6 @@ test "parse valid group name formats" {
     (regex : Regex),
     content=
       #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("my_group_1"))
-
     ,
   )
 }

@@ -71,5 +71,7 @@ test "to be fixed" {
   )
   // This should be a char class with `]` and `[`
   @regexp.parse("[][]")
-  |> inspect(content="Concat([CharClass([], neg=false), CharClass([], neg=false)])")
+  |> inspect(
+    content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
+  )
 }
