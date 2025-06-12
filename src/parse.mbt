@@ -307,7 +307,7 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
     Some('[') => self.parse_char_class()
     Some('.') => {
       self.consume_char() // 消费 '.'
-      CharClass(['\u{0}', '\u{10FFFF}'])
+      CharClass(['\u{0}', '\u{10FFFF}'], neg=false)
     }
     Some('^') => {
       self.consume_char() // 消费 '^'
@@ -323,13 +323,13 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
         raise Error_(err=TrailingBackslash, data=self.input)
       }
       self.consume_char()
-      CharClass([c, c])
+      CharClass([c, c], neg=false)
     }
     Some(c) if Parser::is_special_char(c) =>
       raise Error_(err=InvalidEscape, data=self.input)
     Some(c) => {
       self.consume_char()
-      CharClass([c, c])
+      CharClass([c, c], neg=false)
     }
     None => raise Error_(err=InternalError, data=self.input)
   }
@@ -360,6 +360,12 @@ fn Parser::parse_factor(self : Parser) -> Regex!Error_ {
 /// 抛出: Error_ 当字符类格式错误时
 fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
   self.consume_char() // 消费 '['
+  let neg = if self.input is ['^', .. rest] {
+    self.input = rest // 消费 '^'
+    true
+  } else {
+    false
+  }
   let chars = []
   while self.input is [ch, .. rest] && ch != ']' {
     let start_char = match ch {
@@ -421,7 +427,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex!Error_ {
     raise Error_(err=MissingBracket, data=self.input)
   }
   self.consume_char() // 消费 ']'
-  CharClass(chars)
+  CharClass(chars, neg~)
 }
 
 ///| 查看当前字符但不消费
@@ -1009,7 +1015,7 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("group"))
+      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group"))
 
     ,
   )
@@ -1019,7 +1025,7 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("_group"))
+      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("_group"))
 
     ,
   )
@@ -1029,7 +1035,7 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("group1"))
+      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group1"))
 
     ,
   )
@@ -1039,7 +1045,7 @@ test "parse valid group name formats" {
   inspect(
     (regex : Regex),
     content=
-      #|Capture(Concat([CharClass(['a', 'a']), CharClass(['b', 'b']), CharClass(['c', 'c'])]), name=Some("my_group_1"))
+      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("my_group_1"))
 
     ,
   )
@@ -1237,7 +1243,7 @@ test "parse assertion characters in character class" {
 
   // 测试匹配普通字符
   let result = vm(instructions, "a", capture_count)
-  inspect(result, content="[]")
+  inspect(result, content="[0, 1]")
 
   // 测试匹配 '^' 字符（因为它不是 '$'）
   let result = vm(instructions, "^", capture_count)
@@ -1245,7 +1251,7 @@ test "parse assertion characters in character class" {
 
   // 测试不匹配 '$' 字符
   let result = vm(instructions, "$", capture_count)
-  inspect(result, content="[0, 1]")
+  inspect(result, content="[]")
 }
 
 ///| 测试示例：复杂的断言表达式
