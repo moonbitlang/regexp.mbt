@@ -102,7 +102,7 @@ fn Parser::new(input : @string.View) -> Parser {
 /// 返回: 解析后的 Regex AST
 /// 
 /// 抛出: Error_ 当解析失败时
-pub fn parse(regex : @string.View) -> Regex!Error_ {
+fn parse(regex : @string.View) -> Regex!Error_ {
   let parser = Parser::new(regex)
   let result = parser.parse_expression()
 
@@ -1291,4 +1291,13 @@ test "parse complex assertion expression" {
   // 测试不匹配其他内容
   let result = vm(instructions, "hello world", capture_count)
   inspect(result, content="[]")
+}
+
+///|
+test "to be fixed" {
+  // This should be a char class with `]` and `[`
+  parse("[][]")
+  |> inspect(
+    content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
+  )
 }

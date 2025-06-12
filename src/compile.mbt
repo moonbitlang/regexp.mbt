@@ -1,5 +1,5 @@
 ///|
-enum Regex {
+priv enum Regex {
   Empty
   Literal(String)
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
@@ -16,7 +16,7 @@ enum Regex {
 } derive(Show)
 
 ///|
-struct Matcher {
+struct Engine {
   instructions : Array[Instruction]
   map : Map[String, Int]
   mut capture : Int
@@ -26,13 +26,13 @@ struct Matcher {
 /// Returns the result of capture groups. e.g. [0, 4, 0, 4] for `(abc)` matching `abc`.
 /// 
 /// If it is empty, it means that the regex did not match.
-pub fn Matcher::execute(self : Matcher, input : @string.View) -> Array[Int] {
+pub fn Engine::execute(self : Engine, input : @string.View) -> Array[Int] {
   vm(self.instructions, input, self.capture)
 }
 
 ///|
 /// @returns next capture
-fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
+fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
   let { instructions, capture, .. } = matcher
   match regex {
     Empty => ()
@@ -180,7 +180,7 @@ fn Regex::compile_aux(regex : Self, matcher : Matcher) -> Unit {
 
 ///|
 /// Compiles a regex into a matcher.
-pub fn Regex::compile(self : Self) -> Matcher {
+fn Regex::compile(self : Self) -> Engine {
   // for leftmost matching
   let instructions = [Split(3, 1), Char(['\u{0}', '\u{10FFFF}']), Jump(0)]
   // start matching

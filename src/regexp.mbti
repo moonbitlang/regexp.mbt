@@ -5,9 +5,12 @@ import(
 )
 
 // Values
-fn parse(@string.StringView) -> Regex!Error_
+fn compile(@string.StringView) -> Engine!Error_
 
 // Types and methods
+type Engine
+fn Engine::execute(Self, @string.StringView) -> Array[Int]
+
 pub enum Err {
   InternalError
   InvalidCharClass
@@ -28,14 +31,8 @@ pub type! Error_ {
 }
 impl Show for Error_
 
-type Matcher
-fn Matcher::execute(Self, @string.StringView) -> Array[Int]
-
-type Regex
-fn Regex::compile(Self) -> Matcher
-impl Show for Regex
-
 // Type aliases
+pub typealias T = Engine
 
 // Traits
 
