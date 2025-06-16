@@ -1,5 +1,9 @@
 # 🔍 regexp.mbt
 
+> ⚠️ **WARNING: WORK IN PROGRESS**  
+> This library is still under active development and may undergo breaking changes.  
+> Use with caution as functionality might be incomplete or unstable.
+
 **Lightning-fast regex for MoonBit** — inspired by
 [Russ Cox's brilliant regex series](https://swtch.com/~rsc/regexp/regexp1.html).
 
