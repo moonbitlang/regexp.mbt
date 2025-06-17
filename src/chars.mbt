@@ -13,12 +13,41 @@
 // limitations under the License.
 
 ///|
+let ranges_is_digit : Array[Char] = ['0', '9']
+
+///|
+let ranges_is_not_digit : Array[Char] = ['\u{0}', '/', ':', '\u{10FFFF}']
+
+///|
+let ranges_is_word : Array[Char] = ['0', '9', 'A', 'Z', '_', '_', 'a', 'z']
+
+///|
+let ranges_is_not_word : Array[Char] = [
+  '\u{0}', '/', ':', '@', '[', '^', '`', '`', '{', '\u{10FFFF}',
+]
+
+///|
+test "ordered range" {
+  for
+    range in [
+      ranges_is_digit, ranges_is_not_digit, ranges_is_word, ranges_is_not_word,
+    ] {
+    assert_eq(simplify_char_ranges(range), range)
+  }
+}
+
+///|
 fn is_word_char(c : Char) -> Bool {
   // Check if the character is a word character (alphanumeric or underscore)
-  return (c >= 'a' && c <= 'z') ||
-    (c >= 'A' && c <= 'Z') ||
-    (c >= '0' && c <= '9') ||
-    c == '_'
+  return c is ('a'..='z' | 'A'..='Z' | '0'..='9' | '_')
+}
+
+///|
+test "is word char" {
+  for i in 0..<256 {
+    let ch = i.unsafe_to_char()
+    assert_eq(is_word_char(ch), char_in_ranges(ch, ranges_is_word))
+  }
 }
 
 ///|
@@ -142,4 +171,12 @@ fn compute_char_class_complement(chars : Array[Char]) -> Array[Char] {
     complement.push(max_char)
   }
   complement
+}
+
+///|
+test "compute complement of charclass" {
+  assert_eq(ranges_is_digit, compute_char_class_complement(ranges_is_not_digit))
+  assert_eq(ranges_is_not_digit, compute_char_class_complement(ranges_is_digit))
+  assert_eq(ranges_is_word, compute_char_class_complement(ranges_is_not_word))
+  assert_eq(ranges_is_not_word, compute_char_class_complement(ranges_is_word))
 }

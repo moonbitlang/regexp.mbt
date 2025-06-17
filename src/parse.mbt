@@ -215,37 +215,37 @@ fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
 
   // 处理量词
   match self.input {
-    ['*', .. rest] =>
-      if rest is ['?', .. rest] {
-        // 处理懒惰量词 '*?'
-        self.input = rest // 消费 '*?'
-        base = ZeroOrMore(base, greedy=false)
-      } else {
-        // 处理贪婪量词 '*'
-        self.input = rest // 消费 '*'
-        base = ZeroOrMore(base, greedy=true)
-      }
-    ['+', .. rest] =>
-      if rest is ['?', .. rest] {
-        // 处理懒惰量词 '+?'
-        self.input = rest // 消费 '+?'
-        base = OneOrMore(base, greedy=false)
-      } else {
-        // 处理贪婪量词 '+'
-        self.input = rest // 消费 '+'
-        base = OneOrMore(base, greedy=true)
-      }
-    ['?', .. rest] =>
-      if rest is ['?', .. rest] {
-        // 处理懒惰量词 '??'
-        self.input = rest // 消费 '??'
-        base = ZeroOrOne(base, greedy=false)
-      } else {
-        // 处理贪婪量词 '?'
-        self.input = rest // 消费 '?'
-        base = ZeroOrOne(base, greedy=true)
-      }
-    ['{', ..rest] => {
+    [.. "*?", .. rest] => {
+      // 处理懒惰量词 '*?'
+      self.input = rest // 消费 '*?'
+      base = ZeroOrMore(base, greedy=false)
+    }
+    [.. "*", .. rest] => {
+      // 处理贪婪量词 '*'
+      self.input = rest // 消费 '*'
+      base = ZeroOrMore(base, greedy=true)
+    }
+    [.. "+?", .. rest] => {
+      // 处理懒惰量词 '+?'
+      self.input = rest // 消费 '+?'
+      base = OneOrMore(base, greedy=false)
+    }
+    [.. "+", .. rest] => {
+      // 处理贪婪量词 '+'
+      self.input = rest // 消费 '+'
+      base = OneOrMore(base, greedy=true)
+    }
+    [.. "??", .. rest] => {
+      // 处理懒惰量词 '??'
+      self.input = rest // 消费 '??'
+      base = ZeroOrOne(base, greedy=false)
+    }
+    [.. "?", .. rest] => {
+      // 处理贪婪量词 '?'
+      self.input = rest // 消费 '?'
+      base = ZeroOrOne(base, greedy=true)
+    }
+    ['{', .. rest] => {
       self.input = rest
       // 处理重复量词 {n}, {n,}, {n,m}
       let repeat_result = self.parse_repeat()
@@ -292,39 +292,37 @@ fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
 /// 抛出: Error_ 当遇到无效语法时
 fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
   match self.input {
+    [.. "(?:", .. rest] => {
+      self.input = rest // 消费 '(?:'
+      // 非捕获组 (?:...)
+      let expr = self.parse_expression()
+      guard self.input is [')', .. rest] else {
+        raise Error_(err=MissingParenthesis, data=self.input)
+      }
+      self.input = rest // 消费 ')'
+      expr
+    }
     ['(', .. rest] => {
       self.input = rest // 消费 '('
-      // 检查是否是捕获组
-      if self.input is ['?', ':', .. rest] {
-        self.input = rest // 消费 '?:'
-        // 非捕获组 (?:...)
-        let expr = self.parse_expression()
-        guard self.input is [')', .. rest] else {
-          raise Error_(err=MissingParenthesis, data=self.input)
+      // 检查是否是命名捕获组 (?<name>...)
+      let name = if self.input is [.. "?<", .. rest] {
+        self.input = rest // 消费 '?<'
+        let name = self.parse_group_name()
+        guard self.input is ['>', .. rest] else {
+          raise Error_(err=InvalidNamedCapture, data=self.input)
         }
-        self.input = rest // 消费 ')'
-        expr
+        self.input = rest // 消费 '>'
+        Some(name)
       } else {
-        // 检查是否是命名捕获组 (?<name>...)
-        let name = if self.input is ['?', '<', .. rest] {
-          self.input = rest // 消费 '?<'
-          let name = self.parse_group_name()
-          guard self.input is ['>', .. rest] else {
-            raise Error_(err=InvalidNamedCapture, data=self.input)
-          }
-          self.input = rest // 消费 '>'
-          Some(name)
-        } else {
-          None
-        }
-        // 普通捕获组
-        let expr = self.parse_expression()
-        guard self.input is [')', .. rest] else {
-          raise Error_(err=MissingParenthesis, data=self.input)
-        }
-        self.input = rest // 消费 ')'
-        Capture(expr, name~)
+        None
       }
+      // 普通捕获组
+      let expr = self.parse_expression()
+      guard self.input is [')', .. rest] else {
+        raise Error_(err=MissingParenthesis, data=self.input)
+      }
+      self.input = rest // 消费 ')'
+      Capture(expr, name~)
     }
     ['[', .. rest] => {
       self.input = rest
@@ -343,16 +341,15 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
       Assertion(EndLine)
     }
     ['\\', .. rest] => {
-      self.input = rest // 消费 '\'
-      guard self.input is [c, .. rest] else {
+      guard rest is [c, .. rest] else {
         raise Error_(err=TrailingBackslash, data=self.input)
       }
-      self.input = rest
+      self.input = rest // 消费 '\.'
       match c {
-        'd' => CharClass(['0', '9'], neg=false) // 数字字符类
-        'D' => CharClass(['0', '9'], neg=true) // 非数字字符类
-        'w' => CharClass(['a', 'z', 'A', 'Z', '0', '9', '_', '_'], neg=false) // 单词字符类
-        'W' => CharClass(['a', 'z', 'A', 'Z', '0', '9', '_', '_'], neg=true) // 非单词字符类
+        'd' => CharClass(ranges_is_digit, neg=false) // 数字字符类
+        'D' => CharClass(ranges_is_digit, neg=true) // 非数字字符类
+        'w' => CharClass(ranges_is_word, neg=false) // 单词字符类
+        'W' => CharClass(ranges_is_word, neg=true) // 非单词字符类
         _ => CharClass([c, c], neg=false)
       }
     }
@@ -408,21 +405,19 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
         self.input = rest
         match ch {
           'd' => {
-            ['0', '9'].each(chars.push(_)) // 数字字符类
+            ranges_is_digit.each(chars.push(_)) // 数字字符类
             continue
           }
           'D' => {
-            ['\u{0}', '/', ':', '\u{10FFFF}'].each(chars.push(_)) // 非数字字符类
+            ranges_is_not_digit.each(chars.push(_)) // 非数字字符类
             continue
           }
           'w' => {
-            ['a', 'z', 'A', 'Z', '0', '9', '_', '_'].each(chars.push(_)) // 单词字符类
+            ranges_is_word.each(chars.push(_)) // 单词字符类
             continue
           }
           'W' => {
-            ['\u{0}', '/', ':', '@', '[', '^', '`', '`', '{', '\u{10FFFF}'].each(
-              chars.push(_),
-            ) // 非单词字符类
+            ranges_is_not_word.each(chars.push(_)) // 非单词字符类
             continue
           }
           _ => ch
@@ -612,20 +607,15 @@ fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
   while self.input is [ch, .. rest] && ch != '>' {
     if first {
       // 第一个字符必须是字母或下划线
-      if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' {
+      if ch is ('a'..='z' | 'A'..='Z' | '_') {
         name += ch.to_string()
         self.input = rest
         first = false
       } else {
         raise Error_(err=InvalidNamedCapture, data=self.input)
       }
-    } else if (
+    } else if ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | '_') {
       // 后续字符可以是字母、数字或下划线
-        ch >= 'a' && ch <= 'z'
-      ) ||
-      (ch >= 'A' && ch <= 'Z') ||
-      (ch >= '0' && ch <= '9') ||
-      ch == '_' {
       name += ch.to_string()
       self.input = rest
     } else {
