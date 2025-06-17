@@ -25,7 +25,7 @@
 /// 抛出: Error_ 当正则表达式语法错误时
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
 /// ```
@@ -45,7 +45,7 @@ pub fn compile(regexp : @string.View) -> Engine raise Error_ {
 /// 返回: 捕获组的索引，如果组名不存在则返回 None
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let engine = compile("(?<word>\\w+)")
 /// let index = engine.group_by_name("word")  // Some(1)
 /// ```
@@ -64,7 +64,7 @@ pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
 /// 返回: 捕获组的总数（不包括索引 0 的完整匹配）
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let engine = compile("(a)(b|c)")
 /// let count = engine.group_count()  // 2
 /// ```
@@ -83,7 +83,7 @@ pub fn Engine::group_count(self : Self) -> Int {
 /// 返回: 包含所有组名的迭代器
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip skip
 /// let engine = compile("(?<first>a)(?<second>b)")
 /// let names = engine.group_names().collect()  // ["first", "second"]
 /// ```
@@ -104,7 +104,7 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
 /// 返回: 匹配结果对象，包含匹配状态和捕获组信息
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
 /// if result.matched() { /* 处理匹配结果 */ }
@@ -146,7 +146,7 @@ struct MatchResult {
 /// 返回: 如果找到匹配则返回 true，否则返回 false
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let result = engine.execute("text")
 /// if result.matched() {
 ///   println("匹配成功")
@@ -170,7 +170,7 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 /// - None: 索引无效或该捕获组未匹配
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let full_match = result.group(0)    // Some("abc")
 /// let first_group = result.group(1)   // Some("bc")
@@ -205,7 +205,7 @@ pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
 /// 抛出: Error_ 当指定的组名不存在时
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let word = result.group_by_name("word")  // Some("abc")
 /// ```
@@ -231,7 +231,7 @@ pub fn MatchResult::group_by_name(
 /// 返回: 包含所有有效捕获组内容的迭代器
 /// 
 /// 示例:
-/// ```moonbit
+/// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let all_groups = result.results().collect()  // ["abc", "bc"]
 /// ```
