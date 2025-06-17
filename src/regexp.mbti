@@ -5,7 +5,7 @@ import(
 )
 
 // Values
-fn compile(@string.StringView) -> Engine raise Error_
+fn compile(@string.StringView, flags~ : @string.StringView = ..) -> Engine raise Error_
 
 // Types and methods
 type Engine

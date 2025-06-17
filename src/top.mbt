@@ -29,8 +29,16 @@
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
 /// ```
-pub fn compile(regexp : @string.View) -> Engine raise Error_ {
-  regexp |> parse |> Regex::compile
+pub fn compile(
+  regexp : @string.View,
+  flags~ : @string.View = ""
+) -> Engine raise Error_ {
+  regexp
+  |> parse(flags={
+    multiline: flags.contains("m"),
+    singleline: flags.contains("s"),
+  })
+  |> Regex::compile
 }
 
 ///| 通过组名获取捕获组的索引
@@ -240,7 +248,7 @@ pub fn MatchResult::results(self : Self) -> Iter[@string.View] {
     for i = 0; i < self.captures.length() / 2; i = i + 1 {
       let start = self.captures[i * 2]
       let end = self.captures[i * 2 + 1]
-      if start >= 0 && end > start && end <= self.input.length() {
+      if 0 <= start && start <= end && end <= self.input.length() {
         guard yield_(self.input.view(start_offset=start, end_offset=end))
           is IterContinue else {
           return IterEnd

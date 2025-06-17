@@ -27,6 +27,14 @@ let ranges_is_not_word : Array[Char] = [
 ]
 
 ///|
+let ranges_any : Array[Char] = ['\u{0}', '\u{10FFFF}']
+
+///|
+let ranges_any_not_new_line : Array[Char] = [
+  '\u{0}', '\u{9}', '\u{11}', '\u{10FFFF}',
+]
+
+///|
 test "ordered range" {
   for
     range in [

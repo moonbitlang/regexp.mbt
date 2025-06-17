@@ -70,7 +70,14 @@
 ///|
 priv struct Parser {
   mut input : @string.View
+  flags : Flags
 }
+
+///|
+priv struct Flags {
+  multiline : Bool
+  singleline : Bool
+} derive(Default)
 
 ///| 正则表达式解析错误类型
 /// 
@@ -102,8 +109,8 @@ pub suberror Error_ {
 /// - `input`: 要解析的正则表达式字符串视图
 /// 
 /// 返回: 新的解析器实例
-fn Parser::new(input : @string.View) -> Parser {
-  Parser::{ input, }
+fn Parser::new(input : @string.View, flags : Flags) -> Parser {
+  Parser::{ input, flags }
 }
 
 ///| 解析正则表达式的入口函数
@@ -116,8 +123,11 @@ fn Parser::new(input : @string.View) -> Parser {
 /// 返回: 解析后的 Regex AST
 /// 
 /// 抛出: Error_ 当解析失败时
-fn parse(regex : @string.View) -> Regex raise Error_ {
-  let parser = Parser::new(regex)
+fn parse(
+  regex : @string.View,
+  flags~ : Flags = Flags::default()
+) -> Regex raise Error_ {
+  let parser = Parser::new(regex, flags)
   let result = parser.parse_expression()
 
   // 检查是否有剩余的输入，特别是未匹配的右括号
@@ -330,15 +340,33 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
     }
     ['.', .. rest] => {
       self.input = rest // 消费 '.'
-      CharClass(['\u{0}', '\u{10FFFF}'], neg=false)
+      if self.flags.singleline {
+        // 单行模式下，'.' 匹配包括换行符在内的任意字符
+        CharClass(ranges_any, neg=false)
+      } else {
+        // 默认模式下，'.' 匹配除换行符外的任意字符
+        CharClass(ranges_any_not_new_line, neg=false)
+      }
     }
     ['^', .. rest] => {
       self.input = rest // 消费 '^'
-      Assertion(BeginLine)
+      if self.flags.multiline {
+        // 多行模式下，'^' 匹配行首
+        Assertion(BeginLine)
+      } else {
+        // 默认模式下，'^' 匹配文本开头
+        Assertion(BeginText)
+      }
     }
     ['$', .. rest] => {
       self.input = rest // 消费 '$'
-      Assertion(EndLine)
+      if self.flags.multiline {
+        // 多行模式下，'$' 匹配行尾
+        Assertion(EndLine)
+      } else {
+        // 默认模式下，'$' 匹配文本结尾
+        Assertion(EndText)
+      }
     }
     ['\\', .. rest] => {
       guard rest is [c, .. rest] else {
@@ -1088,7 +1116,7 @@ test "parse valid group name formats" {
 /// - 匹配 "def\nabc": [4, 7] (第二行)
 /// - 不匹配 "xabc": [] (不在行首)
 test "parse line begin assertion ^" {
-  let regex = parse("^abc")
+  let regex = parse("^abc", flags={ multiline: true, singleline: false })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试匹配行首的情况
@@ -1119,7 +1147,7 @@ test "parse line begin assertion ^" {
 /// - 匹配 "def\nabc": [4, 7] (第二行)
 /// - 不匹配 "abcx": [] (不在行尾)
 test "parse line end assertion $" {
-  let regex = parse("abc$")
+  let regex = parse("abc$", flags={ multiline: true, singleline: false })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试匹配行尾的情况
@@ -1175,7 +1203,7 @@ test "parse line begin and end assertion ^...$" {
 /// 测试字符串 "line1\nline2\nnot line":
 /// - 应该匹配第一行的 "line": [0, 4]
 test "parse multiline assertions" {
-  let regex = parse("^line")
+  let regex = parse("^line", flags={ multiline: true, singleline: false })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试多行文本中第一行匹配
@@ -1183,7 +1211,7 @@ test "parse multiline assertions" {
   inspect(result, content="[0, 4]")
 
   // 测试行尾断言在多行文本中的匹配
-  let regex = parse("line$")
+  let regex = parse("line$", flags={ multiline: true, singleline: false })
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "not line\nline2\nthis line", capture_count)
   inspect(result, content="[4, 8]") // 匹配第一行的 "line"
