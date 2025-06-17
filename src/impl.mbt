@@ -122,18 +122,28 @@ fn add_thread(
         (
           pred is WordBoundary &&
           (
-            sp == 0 ||
-            sp == content.length() ||
-            is_word_char(content.char_at(sp - 1)) !=
-            is_word_char(content.char_at(sp))
+            (sp == 0 && content is [ch, ..] && is_word_char(ch)) ||
+            (sp == content.length() && content is [.., ch] && is_word_char(ch)) ||
+            (
+              sp != 0 &&
+              sp != content.length() &&
+              is_word_char(content.char_at(sp - 1)) !=
+              is_word_char(content.char_at(sp))
+            )
           )
         ) ||
         (
           pred is NoWordBoundary &&
-          sp > 0 &&
-          sp < content.length() &&
-          is_word_char(content.char_at(sp - 1)) ==
-          is_word_char(content.char_at(sp))
+          not(
+            (sp == 0 && content is [ch, ..] && is_word_char(ch)) ||
+            (sp == content.length() && content is [.., ch] && is_word_char(ch)) ||
+            (
+              sp != 0 &&
+              sp != content.length() &&
+              is_word_char(content.char_at(sp - 1)) !=
+              is_word_char(content.char_at(sp))
+            ),
+          )
         ) {
         // the assertion is true, continue
         add_thread(
@@ -338,5 +348,17 @@ test "assertions" {
   let capture = vm(instructions, "a", 1)
   inspect(capture, content="[0, 1]")
   let capture = vm(instructions, "ab", 1)
+  inspect(capture, content="[]")
+  // \b
+  let instructions = [Save(0), Assertion(WordBoundary), Save(1), Matched]
+  let capture = vm(instructions, "", 1)
+  inspect(capture, content="[]")
+  let capture = vm(instructions, "a", 1)
+  inspect(capture, content="[0, 0]")
+  // \B
+  let instructions = [Save(0), Assertion(NoWordBoundary), Save(1), Matched]
+  let capture = vm(instructions, "", 1)
+  inspect(capture, content="[0, 0]")
+  let capture = vm(instructions, "a", 1)
   inspect(capture, content="[]")
 }

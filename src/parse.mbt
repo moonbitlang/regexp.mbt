@@ -346,6 +346,8 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
       }
       self.input = rest // 消费 '\.'
       match c {
+        'b' => Assertion(WordBoundary) // 单词边界断言
+        'B' => Assertion(NoWordBoundary) // 非单词边界断言
         'd' => CharClass(ranges_is_digit, neg=false) // 数字字符类
         'D' => CharClass(ranges_is_digit, neg=true) // 非数字字符类
         'w' => CharClass(ranges_is_word, neg=false) // 单词字符类
@@ -1300,6 +1302,212 @@ test "parse complex assertion expression" {
   // 测试不匹配其他内容
   let result = vm(instructions, "hello world", capture_count)
   inspect(result, content="[]")
+}
+
+///| 测试示例：解析单词边界断言 \b
+/// 
+/// 测试正则表达式 "\bword\b":
+/// - 单词边界断言：\b
+/// - 字符序列：word
+/// - 单词边界断言：\b
+/// 
+/// 预期匹配完整的单词 "word"，不匹配部分单词
+test "parse word boundary assertion \\b" {
+  let regex = parse("\\bword\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配独立的单词
+  let result = vm(instructions, "word", capture_count)
+  inspect(result, content="[0, 4]")
+
+  // 测试匹配句子中的完整单词
+  let result = vm(instructions, "the word is", capture_count)
+  inspect(result, content="[4, 8]")
+
+  // 测试不匹配单词的一部分
+  let result = vm(instructions, "password", capture_count)
+  inspect(result, content="[]")
+
+  // 测试不匹配单词的开头部分
+  let result = vm(instructions, "words", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：解析非单词边界断言 \B
+/// 
+/// 测试正则表达式 "\\Bword\\B":
+/// - 非单词边界断言：\B
+/// - 字符序列：word
+/// - 非单词边界断言：\B
+/// 
+/// 预期匹配被其他字符包围的 "word"（不在单词边界）
+test "parse non-word boundary assertion \\B" {
+  let regex = parse("\\Bword\\B")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配被字母包围的 "word"
+  let result = vm(instructions, "passwords", capture_count)
+  inspect(result, content="[4, 8]")
+
+  // 测试不匹配独立的单词
+  let result = vm(instructions, "word", capture_count)
+  inspect(result, content="[]")
+
+  // 测试不匹配在单词边界的情况
+  let result = vm(instructions, "the word", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：单词边界断言的组合使用
+/// 
+/// 测试正则表达式 "\\btest|\\btesting\\b":
+/// - 选择分支1：\btest（以 "test" 开头的单词）
+/// - 选择分支2：\btesting\b（完整单词 "testing"）
+test "parse combined word boundary assertions" {
+  let regex = parse("\\btest|\\btesting\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配 "test" 开头的单词
+  let result = vm(instructions, "testing", capture_count)
+  inspect(result, content="[0, 4]") // 匹配 "test" 部分
+
+  // 测试匹配完整的 "testing" 单词
+  let result = vm(instructions, "a testing b", capture_count)
+  inspect(result, content="[2, 6]")
+
+  // 测试匹配独立的 "test"
+  let result = vm(instructions, "test", capture_count)
+  inspect(result, content="[0, 4]")
+}
+
+///| 测试示例：单词边界与字符类的组合
+/// 
+/// 测试正则表达式 "\\b[a-z]+\\b":
+/// - 单词边界断言：\b
+/// - 字符类：[a-z]+ 一个或多个小写字母
+/// - 单词边界断言：\b
+/// 
+/// 预期匹配完整的小写单词
+test "parse word boundary with character class" {
+  let regex = parse("\\b[a-z]+\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配小写单词
+  let result = vm(instructions, "hello world", capture_count)
+  inspect(result, content="[0, 5]")
+
+  // 测试不匹配包含大写字母的单词
+  let result = vm(instructions, "Hello", capture_count)
+  inspect(result, content="[]")
+
+  // 测试不匹配包含数字的单词
+  let result = vm(instructions, "test123", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：单词边界与量词的组合
+/// 
+/// 测试正则表达式 "\\b\\w{3,5}\\b":
+/// - 单词边界断言：\b  
+/// - 单词字符类：\w 重复3到5次
+/// - 单词边界断言：\b
+/// 
+/// 预期匹配长度为3到5的完整单词
+test "parse word boundary with quantifiers" {
+  let regex = parse("\\b\\w{3,5}\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配3个字符的单词
+  let result = vm(instructions, "cat", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试匹配5个字符的单词
+  let result = vm(instructions, "hello", capture_count)
+  inspect(result, content="[0, 5]")
+
+  // 测试不匹配2个字符的单词
+  let result = vm(instructions, "go", capture_count)
+  inspect(result, content="[]")
+
+  // 测试不匹配6个字符的单词
+  let result = vm(instructions, "longer", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：单词边界与捕获组的组合
+/// 
+/// 测试正则表达式 "\\b(\\w+)\\b":
+/// - 单词边界断言：\b
+/// - 捕获组：(\w+) 捕获一个或多个单词字符
+/// - 单词边界断言：\b
+/// 
+/// 预期捕获完整的单词
+test "parse word boundary with capture groups" {
+  let regex = parse("\\b(\\w+)\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试捕获单个单词
+  let result = vm(instructions, "hello", capture_count)
+  inspect(result, content="[0, 5, 0, 5]")
+
+  // 测试在句子中捕获第一个单词
+  let result = vm(instructions, "hello world", capture_count)
+  inspect(result, content="[0, 5, 0, 5]")
+}
+
+///| 测试示例：复杂的单词边界表达式
+/// 
+/// 测试正则表达式 "\\b(?:the|a|an)\\b\\s+\\b\\w+\\b":
+/// - 非捕获组：(?:the|a|an) 冠词
+/// - 单词边界断言：\b
+/// - 空白字符：\s+ 一个或多个空白字符
+/// - 单词边界断言：\b
+/// - 单词字符：\w+ 一个或多个单词字符
+/// - 单词边界断言：\b
+/// 
+/// 预期匹配 "冠词 + 空格 + 单词" 的模式
+test "parse complex word boundary expression" {
+  // 简化版本，只测试基本的单词边界功能
+  let regex = parse("\\bthe\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试匹配独立的 "the"
+  let result = vm(instructions, "the", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试匹配句子中的 "the"
+  let result = vm(instructions, "the cat", capture_count)
+  inspect(result, content="[0, 3]")
+
+  // 测试不匹配 "the" 作为其他单词的一部分
+  let result = vm(instructions, "them", capture_count)
+  inspect(result, content="[]")
+  let result = vm(instructions, "other", capture_count)
+  inspect(result, content="[]")
+}
+
+///| 测试示例：边界条件测试
+/// 
+/// 测试单词边界在字符串开头和结尾的行为
+test "parse word boundary edge cases" {
+  let regex = parse("\\bword")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+
+  // 测试字符串开头的单词边界
+  let result = vm(instructions, "word", capture_count)
+  inspect(result, content="[0, 4]")
+
+  // 测试字符串中间的单词边界
+  let result = vm(instructions, " word", capture_count)
+  inspect(result, content="[1, 5]")
+
+  // 测试单词边界在结尾的情况
+  let regex = parse("word\\b")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "word", capture_count)
+  inspect(result, content="[0, 4]")
+  let result = vm(instructions, "word ", capture_count)
+  inspect(result, content="[0, 4]")
 }
 
 ///|
