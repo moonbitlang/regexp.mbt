@@ -66,7 +66,7 @@ fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
   }
 
   // Sort ranges by start character
-  ranges.sort_by_key(@tuple.fst)
+  ranges.sort_by_key(range => range.0)
 
   // Simplify ranges by merging overlapping or adjacent ranges
   let simplified = []
