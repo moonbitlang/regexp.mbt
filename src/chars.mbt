@@ -35,10 +35,31 @@ let ranges_any_not_new_line : Array[Char] = [
 ]
 
 ///|
+/// white space: \u{9}, \u{B}, \u{C}, \u{FEFF}, Zs
+/// line terminator: \u{A}, \u{D}, \u{2028}, \u{2029}
+/// references:
+/// - https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space
+/// - https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-line-terminators
+/// - https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt
+let ranges_is_white_space_or_line_terminator : Array[Char] = [
+  '\u{9}', '\u{D}', '\u{20}', '\u{20}', '\u{A0}', '\u{A0}', '\u{1680}', '\u{1680}',
+  '\u{2000}', '\u{200A}', '\u{2028}', '\u{2029}', '\u{202F}', '\u{202F}', '\u{205F}',
+  '\u{205F}', '\u{3000}', '\u{3000}', '\u{FEFF}', '\u{FEFF}',
+]
+
+///|
+let ranges_is_not_white_space_or_line_terminator : Array[Char] = [
+  '\u{00}', '\u{8}', '\u{E}', '\u{1F}', '\u{21}', '\u{9f}', '\u{A1}', '\u{167F}',
+  '\u{1681}', '\u{1FFF}', '\u{200B}', '\u{2027}', '\u{202a}', '\u{202E}', '\u{2030}',
+  '\u{205E}', '\u{2060}', '\u{2FFF}', '\u{3001}', '\u{FEFE}', '\u{FF00}', '\u{10ffff}',
+]
+
+///|
 test "ordered range" {
   for
     range in [
-      ranges_is_digit, ranges_is_not_digit, ranges_is_word, ranges_is_not_word,
+      ranges_is_digit, ranges_is_not_digit, ranges_is_word, ranges_is_not_word, ranges_any,
+      ranges_any_not_new_line, ranges_is_white_space_or_line_terminator,
     ] {
     assert_eq(simplify_char_ranges(range), range)
   }
@@ -197,4 +218,8 @@ test "compute complement of charclass" {
   assert_eq(ranges_is_not_digit, compute_char_class_complement(ranges_is_digit))
   assert_eq(ranges_is_word, compute_char_class_complement(ranges_is_not_word))
   assert_eq(ranges_is_not_word, compute_char_class_complement(ranges_is_word))
+  assert_eq(
+    ranges_is_not_white_space_or_line_terminator,
+    compute_char_class_complement(ranges_is_white_space_or_line_terminator),
+  )
 }

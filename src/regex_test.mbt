@@ -238,10 +238,10 @@ test "character classes and sets" {
   assert_eq(regex.execute("hello123").results().collect(), ["hello123"])
   assert_eq(regex.execute("hello-world").results().collect(), ["hello"])
 
-  // // Test whitespace class \s
-  // let regex = @regexp.compile("\\s+")
-  // assert_eq(regex.execute("  \t\n").results().collect(), ["  \t\n"])
-  // assert_eq(regex.execute("a b").results().collect(), [" "])
+  // Test whitespace class \s
+  let regex = @regexp.compile("\\s+")
+  assert_eq(regex.execute("  \t\n").results().collect(), ["  \t\n"])
+  assert_eq(regex.execute("a b").results().collect(), [" "])
 
   // Test negated classes
   let regex = @regexp.compile("\\D+")
@@ -367,34 +367,34 @@ test "advanced capture groups" {
   inspect(result2.group(2), content="None")
 }
 
-// ///|
-// test "complex named capture groups" {
-//   // Test multiple named groups
-//   let regex = @regexp.compile("(?<first>\\w+)\\s+(?<last>\\w+)")
-//   let result = regex.execute("John Doe")
-//   assert_eq(result.group_by_name("first"), Some("John"))
-//   assert_eq(result.group_by_name("last"), Some("Doe"))
+///|
+test "complex named capture groups" {
+  // Test multiple named groups
+  let regex = @regexp.compile("(?<first>\\w+)\\s+(?<last>\\w+)")
+  let result = regex.execute("John Doe")
+  assert_eq(result.group_by_name("first"), Some("John"))
+  assert_eq(result.group_by_name("last"), Some("Doe"))
 
-//   // Test group names iteration
-//   let names = regex.group_names().collect()
-//   inspect(names.contains("first"), content="true")
-//   inspect(names.contains("last"), content="true")
+  // Test group names iteration
+  let names = regex.group_names().collect()
+  inspect(names.contains("first"), content="true")
+  inspect(names.contains("last"), content="true")
 
-//   // Test URL parsing with named groups
-//   let url_regex = @regexp.compile(
-//     "(?<protocol>https?)://(?<domain>[^/]+)(?<path>/.*)?",
-//   )
-//   let result = url_regex.execute("https://example.com/path/to/page")
-//   assert_eq(result.group_by_name("protocol"), Some("https"))
-//   assert_eq(result.group_by_name("domain"), Some("example.com"))
-//   assert_eq(result.group_by_name("path"), Some("/path/to/page"))
+  // Test URL parsing with named groups
+  let url_regex = @regexp.compile(
+    "(?<protocol>https?)://(?<domain>[^/]+)(?<path>/.*)?",
+  )
+  let result = url_regex.execute("https://example.com/path/to/page")
+  assert_eq(result.group_by_name("protocol"), Some("https"))
+  assert_eq(result.group_by_name("domain"), Some("example.com"))
+  assert_eq(result.group_by_name("path"), Some("/path/to/page"))
 
-//   // Test mixed named and unnamed groups
-//   let regex = @regexp.compile("(\\w+)@(?<domain>\\w+\\.\\w+)")
-//   let result = regex.execute("user@example.com")
-//   assert_eq(result.group(1), Some("user"))
-//   assert_eq(result.group_by_name("domain"), Some("example.com"))
-// }
+  // Test mixed named and unnamed groups
+  let regex = @regexp.compile("(\\w+)@(?<domain>\\w+\\.\\w+)")
+  let result = regex.execute("user@example.com")
+  assert_eq(result.group(1), Some("user"))
+  assert_eq(result.group_by_name("domain"), Some("example.com"))
+}
 
 // ///|
 // test "escape sequences and special characters" {
@@ -536,111 +536,111 @@ test "greedy vs non-greedy matching" {
 //   }
 // }
 
-// ///|
-// test "complex real-world patterns" {
-//   // Email validation (comprehensive)
-//   let email_regex = @regexp.compile(
-//     "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
-//   )
-//   assert_eq(email_regex.execute("user@example.com").results().collect(), [
-//     "user@example.com",
-//   ])
-//   assert_eq(
-//     email_regex.execute("test.email+tag@domain.co.uk").results().collect(),
-//     ["test.email+tag@domain.co.uk"],
-//   )
-//   assert_false(email_regex.execute("invalid.email").matched())
+///|
+test "complex real-world patterns" {
+  // Email validation (comprehensive)
+  let email_regex = @regexp.compile(
+    "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+  )
+  assert_eq(email_regex.execute("user@example.com").results().collect(), [
+    "user@example.com",
+  ])
+  assert_eq(
+    email_regex.execute("test.email+tag@domain.co.uk").results().collect(),
+    ["test.email+tag@domain.co.uk"],
+  )
+  assert_false(email_regex.execute("invalid.email").matched())
 
-//   // Phone number patterns
-//   let phone_regex = @regexp.compile("\\(?\\d{3}\\)?[-.]?\\d{3}[-.]?\\d{4}")
-//   assert_eq(phone_regex.execute("(123) 456-7890").results().collect(), [
-//     "(123) 456-7890",
-//   ])
-//   assert_eq(phone_regex.execute("123.456.7890").results().collect(), [
-//     "123.456.7890",
-//   ])
-//   assert_eq(phone_regex.execute("1234567890").results().collect(), [
-//     "1234567890",
-//   ])
+  // Phone number patterns
+  let phone_regex = @regexp.compile("\\(?\\d{3}\\)?[-.]?\\d{3}[-.]?\\d{4}")
+  assert_eq(phone_regex.execute("(123)456-7890").results().collect(), [
+    "(123)456-7890",
+  ])
+  assert_eq(phone_regex.execute("123.456.7890").results().collect(), [
+    "123.456.7890",
+  ])
+  assert_eq(phone_regex.execute("1234567890").results().collect(), [
+    "1234567890",
+  ])
 
-//   // URL matching
-//   let url_regex = @regexp.compile("https?://[^\\s]+")
-//   assert_eq(
-//     url_regex.execute("Visit https://example.com for more").results().collect(),
-//     ["https://example.com"],
-//   )
-//   assert_eq(
-//     url_regex.execute("Go to http://test.org/path?query=1").results().collect(),
-//     ["http://test.org/path?query=1"],
-//   )
+  // URL matching
+  let url_regex = @regexp.compile("https?://[^\\s]+")
+  assert_eq(
+    url_regex.execute("Visit https://example.com for more").results().collect(),
+    ["https://example.com"],
+  )
+  assert_eq(
+    url_regex.execute("Go to http://test.org/path?query=1").results().collect(),
+    ["http://test.org/path?query=1"],
+  )
 
-//   // IP address validation
-//   let ip_regex = @regexp.compile(
-//     "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
-//   )
-//   if ip_regex.execute("Server IP: 192.168.1.1").matched() {
-//     assert_eq(ip_regex.execute("Server IP: 192.168.1.1").results().collect(), [
-//       "192.168.1.1",
-//     ])
-//   }
+  // IP address validation
+  let ip_regex = @regexp.compile(
+    "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
+  )
+  if ip_regex.execute("Server IP: 192.168.1.1").matched() {
+    assert_eq(ip_regex.execute("Server IP: 192.168.1.1").results().collect(), [
+      "192.168.1.1",
+    ])
+  }
 
-//   // Credit card number (simple pattern)
-//   let cc_regex = @regexp.compile(
-//     "\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}",
-//   )
-//   assert_eq(cc_regex.execute("1234 5678 9012 3456").results().collect(), [
-//     "1234 5678 9012 3456",
-//   ])
-//   assert_eq(cc_regex.execute("1234-5678-9012-3456").results().collect(), [
-//     "1234-5678-9012-3456",
-//   ])
+  // Credit card number (simple pattern)
+  let cc_regex = @regexp.compile(
+    "\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}",
+  )
+  assert_eq(cc_regex.execute("1234 5678 9012 3456").results().collect(), [
+    "1234 5678 9012 3456",
+  ])
+  assert_eq(cc_regex.execute("1234-5678-9012-3456").results().collect(), [
+    "1234-5678-9012-3456",
+  ])
 
-//   // HTML tag matching
-//   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
-//   let result = html_regex.execute("<div class='test'>content</div>")
-//   if result.matched() {
-//     assert_eq(result.group(1), Some("div"))
-//     assert_eq(result.group(2), Some("content"))
-//   }
-// }
+  // HTML tag matching
+  let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
+  let result = html_regex.execute("<div class='test'>content</div>")
+  if result.matched() {
+    assert_eq(result.group(1), Some("div"))
+    assert_eq(result.group(2), Some("content"))
+  }
+}
 
-// ///|
-// test "edge cases and boundary conditions" {
-//   // Empty string matching
-//   let regex = @regexp.compile("")
-//   assert_eq(regex.execute("").results().collect(), [""])
-//   assert_eq(regex.execute("abc").results().collect(), [""])
+///|
+test "edge cases and boundary conditions" {
+  // Empty string matching
+  let regex = @regexp.compile("")
+  assert_eq(regex.execute("").results().collect(), [""])
+  assert_eq(regex.execute("abc").results().collect(), [""])
 
-//   // Very long strings
-//   let long_string = "a".repeat(1000) + "b"
-//   let regex = @regexp.compile("a+b")
-//   assert_eq(regex.execute(long_string).results().collect(), [long_string])
+  // Very long strings
+  let long_string = "a".repeat(1000) + "b"
+  let regex = @regexp.compile("a+b")
+  assert_eq(regex.execute(long_string).results().collect(), [long_string])
 
-//   // Pattern at string boundaries
-//   let regex = @regexp.compile("^a|b$")
-//   assert_eq(regex.execute("a").results().collect(), ["a"])
-//   assert_eq(regex.execute("b").results().collect(), ["b"])
-//   assert_eq(regex.execute("ab").results().collect(), ["a"])
-//   assert_eq(regex.execute("ba").results().collect(), ["b"])
+  // Pattern at string boundaries
+  let regex = @regexp.compile("^a|b$")
+  assert_eq(regex.execute("a").results().collect(), ["a"])
+  assert_eq(regex.execute("b").results().collect(), ["b"])
+  assert_eq(regex.execute("ab").results().collect(), ["a"])
+  assert_eq(regex.execute("ba").results().collect(), [])
 
-//   // Zero-width assertions
-//   let regex = @regexp.compile("\\b")
-//   let result = regex.execute("hello world")
-//   inspect(result.matched(), content="true")
-//   // Word boundaries are zero-width, so match should be empty string
-//   if result.matched() {
-//     inspect(result.group(0), content="Some(\"\")")
-//   }
+  // Zero-width assertions
+  let regex = @regexp.compile("\\b")
+  let result = regex.execute("hello world")
+  inspect(result.matched(), content="true")
+  // Word boundaries are zero-width, so match should be empty string
+  if result.matched() {
+    inspect(result.group(0), content="Some(\"\")")
+  }
 
-//   // Overlapping matches (should get first/leftmost)
-//   let regex = @regexp.compile("aa")
-//   assert_eq(regex.execute("aaa").results().collect(), ["aa"])
+  // Overlapping matches (should get first/leftmost)
+  let regex = @regexp.compile("aa")
+  assert_eq(regex.execute("aaa").results().collect(), ["aa"])
 
-//   // Pattern with all quantifiers
-//   let regex = @regexp.compile("a*b+c?d{2}e{2,4}f{3,}")
-//   if regex.execute("bbcddeeefffff").matched() {
-//     assert_eq(regex.execute("bbcddeeefffff").results().collect(), [
-//       "bbcddeeefffff",
-//     ])
-//   }
-// }
+  // Pattern with all quantifiers
+  let regex = @regexp.compile("a*b+c?d{2}e{2,4}f{3,}")
+  if regex.execute("bbcddeeefffff").matched() {
+    assert_eq(regex.execute("bbcddeeefffff").results().collect(), [
+      "bbcddeeefffff",
+    ])
+  }
+}

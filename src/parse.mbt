@@ -388,9 +388,11 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         'b' => Assertion(WordBoundary) // 单词边界断言
         'B' => Assertion(NoWordBoundary) // 非单词边界断言
         'd' => CharClass(ranges_is_digit, neg=false) // 数字字符类
-        'D' => CharClass(ranges_is_digit, neg=true) // 非数字字符类
+        'D' => CharClass(ranges_is_not_digit, neg=false) // 非数字字符类
         'w' => CharClass(ranges_is_word, neg=false) // 单词字符类
-        'W' => CharClass(ranges_is_word, neg=true) // 非单词字符类
+        'W' => CharClass(ranges_is_not_word, neg=false) // 非单词字符类
+        's' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 空白字符类
+        'S' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 非空白字符类
         _ => CharClass([c, c], neg=false)
       }
     }
@@ -459,6 +461,14 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
           }
           'W' => {
             ranges_is_not_word.each(chars.push(_)) // 非单词字符类
+            continue
+          }
+          's' => {
+            ranges_is_white_space_or_line_terminator.each(chars.push(_)) // 空白字符类
+            continue
+          }
+          'S' => {
+            ranges_is_white_space_or_line_terminator.each(chars.push(_)) // 非空白字符类
             continue
           }
           _ => ch
