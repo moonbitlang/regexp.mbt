@@ -121,29 +121,11 @@ fn add_thread(
         ) ||
         (
           pred is WordBoundary &&
-          (
-            (sp == 0 && content is [ch, ..] && is_word_char(ch)) ||
-            (sp == content.length() && content is [.., ch] && is_word_char(ch)) ||
-            (
-              sp != 0 &&
-              sp != content.length() &&
-              is_word_char(content.char_at(sp - 1)) !=
-              is_word_char(content.char_at(sp))
-            )
-          )
+          is_word_char_at(content, sp - 1) != is_word_char_at(content, sp)
         ) ||
         (
           pred is NoWordBoundary &&
-          not(
-            (sp == 0 && content is [ch, ..] && is_word_char(ch)) ||
-            (sp == content.length() && content is [.., ch] && is_word_char(ch)) ||
-            (
-              sp != 0 &&
-              sp != content.length() &&
-              is_word_char(content.char_at(sp - 1)) !=
-              is_word_char(content.char_at(sp))
-            ),
-          )
+          is_word_char_at(content, sp - 1) == is_word_char_at(content, sp)
         ) {
         // the assertion is true, continue
         add_thread(
