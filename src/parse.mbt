@@ -392,7 +392,8 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         'w' => CharClass(ranges_is_word, neg=false) // 单词字符类
         'W' => CharClass(ranges_is_not_word, neg=false) // 非单词字符类
         's' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 空白字符类
-        'S' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 非空白字符类
+        'S' =>
+          CharClass(ranges_is_not_white_space_or_line_terminator, neg=false) // 非空白字符类
         _ => CharClass([c, c], neg=false)
       }
     }
@@ -468,7 +469,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
             continue
           }
           'S' => {
-            ranges_is_white_space_or_line_terminator.each(chars.push(_)) // 非空白字符类
+            ranges_is_not_white_space_or_line_terminator.each(chars.push(_)) // 非空白字符类
             continue
           }
           _ => ch

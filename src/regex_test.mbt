@@ -248,8 +248,8 @@ test "character classes and sets" {
   assert_eq(regex.execute("abc123").results().collect(), ["abc"])
   let regex = @regexp.compile("\\W+")
   assert_eq(regex.execute("hello-world!").results().collect(), ["-"])
-  // let regex = @regexp.compile("\\S+")
-  // assert_eq(regex.execute("hello world").results().collect(), ["hello"])
+  let regex = @regexp.compile("\\S+")
+  assert_eq(regex.execute("hello world").results().collect(), ["hello"])
 
   // Test custom character sets
   let regex = @regexp.compile("[abc]")
