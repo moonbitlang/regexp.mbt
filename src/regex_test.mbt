@@ -92,20 +92,34 @@ test "regexp with flags" {
   assert_false(regexp.execute("\n").matched())
   let regexp = compile(".", flags="s")
   assert_true(regexp.execute("\n").matched())
+  let regexp = compile("(?s:.)")
+  assert_true(regexp.execute("\n").matched())
 
   // multiline flag
-  let regexp = compile("($)")
+  let regexp = compile("$")
   assert_true(regexp.execute("\n").matched())
-  inspect(regexp.execute("\n").results().count(), content="2")
+  inspect(regexp.execute("\n").results().count(), content="1")
   inspect(
     regexp.execute("\n").results().map(_.start_offset()).collect(),
-    content="[1, 1]",
+    content="[1]",
   )
-  let regexp = compile("($)", flags="m")
+  let regexp = compile("$", flags="m")
   assert_true(regexp.execute("\n").matched())
   inspect(
     regexp.execute("\n").results().map(_.start_offset()).collect(),
-    content="[0, 0]",
+    content="[0]",
+  )
+  let regexp = compile("(?m:$)")
+  assert_true(regexp.execute("\n").matched())
+  inspect(
+    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    content="[0]",
+  )
+  let regexp = compile("(?m-m:$)")
+  assert_true(regexp.execute("\n").matched())
+  inspect(
+    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    content="[1]",
   )
 }
 

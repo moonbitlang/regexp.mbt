@@ -70,7 +70,7 @@
 ///|
 priv struct Parser {
   mut input : @string.View
-  flags : Flags
+  mut flags : Flags
 }
 
 ///|
@@ -302,37 +302,48 @@ fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
 /// 抛出: Error_ 当遇到无效语法时
 fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
   match self.input {
-    [.. "(?:", .. rest] => {
-      self.input = rest // 消费 '(?:'
-      // 非捕获组 (?:...)
-      let expr = self.parse_expression()
-      guard self.input is [')', .. rest] else {
-        raise Error_(err=MissingParenthesis, data=self.input)
+    [.. "(?", .. rest] =>
+      // 处理各种特殊组语法
+      match rest {
+        ['<', .. rest] => {
+          // 命名捕获组 (?<name>...)
+          self.input = rest // 消费 '(?<'
+          let name = self.parse_group_name()
+          guard self.input is ['>', .. rest] else {
+            raise Error_(err=InvalidNamedCapture, data=self.input)
+          }
+          self.input = rest // 消费 '>'
+          let expr = self.parse_expression()
+          guard self.input is [')', .. rest] else {
+            raise Error_(err=MissingParenthesis, data=self.input)
+          }
+          self.input = rest // 消费 ')'
+          Capture(expr, name=Some(name))
+        }
+        _ => {
+          // (?flags:...) - 带作用域的标志组
+          self.input = rest // 消费 '(?'
+          let old_flags = self.flags
+          let new_flags = self.parse_flags()
+          self.flags = new_flags
+          let expr = self.parse_expression()
+          guard self.input is [')', .. rest] else {
+            raise Error_(err=MissingParenthesis, data=self.input)
+          }
+          self.input = rest // 消费 ')'
+          self.flags = old_flags // 恢复原标志
+          expr
+        }
       }
-      self.input = rest // 消费 ')'
-      expr
-    }
     ['(', .. rest] => {
       self.input = rest // 消费 '('
-      // 检查是否是命名捕获组 (?<name>...)
-      let name = if self.input is [.. "?<", .. rest] {
-        self.input = rest // 消费 '?<'
-        let name = self.parse_group_name()
-        guard self.input is ['>', .. rest] else {
-          raise Error_(err=InvalidNamedCapture, data=self.input)
-        }
-        self.input = rest // 消费 '>'
-        Some(name)
-      } else {
-        None
-      }
       // 普通捕获组
       let expr = self.parse_expression()
       guard self.input is [')', .. rest] else {
         raise Error_(err=MissingParenthesis, data=self.input)
       }
       self.input = rest // 消费 ')'
-      Capture(expr, name~)
+      Capture(expr, name=None)
     }
     ['[', .. rest] => {
       self.input = rest
@@ -658,6 +669,41 @@ fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
     raise Error_(err=InvalidNamedCapture, data=self.input)
   }
   name
+}
+
+///| 解析标志字符串，如 "ms" 表示多行和单行模式
+/// 
+/// 支持的标志：
+/// - `m`: 多行模式 (multiline)
+/// - `s`: 单行模式 (singleline/dotall)
+/// 
+/// 返回: (新的标志设置, 是否有冒号)
+/// 
+/// 抛出: Error_ 当遇到无效标志时
+fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
+  let mut flag = { ..self.flags }
+  let mut positive = true
+  loop self.input {
+    [':', .. rest] => {
+      self.input = rest // 消费
+      return flag
+    }
+    ['m', .. rest] => {
+      flag = { ..flag, multiline: positive }
+      continue rest
+    }
+    ['s', .. rest] => {
+      flag = { ..flag, singleline: positive }
+      continue rest
+    }
+    ['-', .. rest] if positive => {
+      positive = false // 切换为否定模式
+      continue rest
+    }
+    [_, ..] | [] =>
+      // 未知标志字符或意外结束
+      raise Error_(err=InvalidRepeatOp, data=self.input)
+  }
 }
 
 ///| 测试示例：解析带有捕获组和量词的复杂正则表达式
