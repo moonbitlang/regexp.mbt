@@ -230,13 +230,26 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
   // based on the provided character ranges.
   // For simplicity, we will just return the input for now.
   // In a real implementation, this would involve looking up case folding data.
-  let length = chars.length() / 2
   let result = []
-  for i in 0..<length {
-    let start = chars[i * 2]
-    let end = chars[i * 2 + 1]
-    result.push(start)
-    result.push(end)
+  for i in 0..<(chars.length() / 2) {
+    let mut start = chars[i * 2]
+    let mut end = chars[i * 2 + 1]
+    if (start <= MIN_FOLD && end >= MAX_FOLD) ||
+      end < MIN_FOLD ||
+      start > MAX_FOLD {
+      // If the range is outside the simple case folding range, just add it
+      result..push(start)..push(end)
+      continue
+    }
+    if start < MIN_FOLD {
+      result..push(start)..push((MIN_FOLD.to_int() - 1).unsafe_to_char())
+      start = MIN_FOLD
+    } else if end > MAX_FOLD {
+      result..push((MAX_FOLD.to_int() + 1).unsafe_to_char())..push(end)
+      end = MAX_FOLD
+    } else {
+      result..push(start)..push(end)
+    }
     // For each character in the range, add its case-insensitive equivalents
     for c in start.to_int()..=end.to_int() {
       let char = c.unsafe_to_char()
@@ -248,14 +261,12 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
           result.push(ch)
           result.push(ch)
         }
-      } else {
-        simple_case_folding_data
-        .iter()
-        .filter(p => p.1 == char)
-        .each(p => {
-          result.push(p.0)
-          result.push(p.0)
-        })
+      } else if reverse_simple_case_folding_data.get(char) is Some(array) {
+        // If the character has a reverse mapping, add those as well
+        for ch in array {
+          result.push(ch)
+          result.push(ch)
+        }
       }
     }
   }

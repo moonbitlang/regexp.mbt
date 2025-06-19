@@ -55,9 +55,13 @@ async fn top() -> Unit raise {
   data.drop()
 
   // Compute reverse mapping
+  let mut min = '\u{10FFFF}'
+  let mut max = '\u{0000}'
   let reverse : Map[Char, Array[Char]] = {}
   for mapping in mappings {
     let (k, v) = mapping
+    min = min |> @math.minimum(k) |> @math.minimum(v)
+    max = max |> @math.maximum(k) |> @math.maximum(v)
     if reverse.get(v) is Some(array) {
       array.push(k)
     } else {
@@ -104,7 +108,9 @@ async fn top() -> Unit raise {
   )
   for v in reverse.to_array() {
     let (k, v) = v
-    let array = v.map(c => "'\\u{\{c.to_int().to_string(radix=16)}}'").join(", ")
+    let array = v
+      .map(c => "'\\u{\{c.to_int().to_string(radix=16)}}'")
+      .join(", ")
     @io.println(
       $|  '\\u{\{k.to_int().to_string(radix=16)}}' : [\{array}],
       ,
@@ -113,6 +119,12 @@ async fn top() -> Unit raise {
   }
   @io.println(
     #|  }
+    #|
+    #|///|
+    $|const MIN_FOLD : Char = '\\u{\{min.to_int().to_string(radix=16)}}';
+    $|
+    $|///|
+    $|const MAX_FOLD : Char = '\\u{\{max.to_int().to_string(radix=16)}}';
     ,
     stream=output_stream,
   )

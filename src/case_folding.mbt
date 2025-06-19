@@ -2943,3 +2943,9 @@ let reverse_simple_case_folding_data : Map[Char, Array[Char]] = {
   '\u{1e942}' : ['\u{1e920}'],
   '\u{1e943}' : ['\u{1e921}'],
   }
+
+///|
+const MIN_FOLD : Char = '\u{41}';
+
+///|
+const MAX_FOLD : Char = '\u{1e943}';
