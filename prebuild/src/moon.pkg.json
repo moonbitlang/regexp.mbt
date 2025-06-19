@@ -16,6 +16,18 @@
     },
     "peter-jerry-ye/io/io",
     "peter-jerry-ye/async/loop",
-    "peter-jerry-ye/async/promise"
+    "peter-jerry-ye/async/promise",
+    "peter-jerry-ye/io/http",
+    {
+      "path": "peter-jerry-ye/wasi-imports/interface/wasi/http/types",
+      "alias": "wasi_http_types"
+    },
+    {
+      "path": "peter-jerry-ye/wasi-imports/interface/wasi/filesystem/types",
+      "alias": "fs"
+    },
+    "peter-jerry-ye/wasi-imports/interface/wasi/filesystem/preopens",
+    "peter-jerry-ye/wasi-imports/interface/wasi/io/streams",
+    "peter-jerry-ye/regexp"
   ]
 }
