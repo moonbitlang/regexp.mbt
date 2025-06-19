@@ -223,3 +223,35 @@ test "compute complement of charclass" {
     compute_char_class_complement(ranges_is_white_space_or_line_terminator),
   )
 }
+
+///|
+fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
+  // This function should compute the case-insensitive character class
+  // based on the provided character ranges.
+  // For simplicity, we will just return the input for now.
+  // In a real implementation, this would involve looking up case folding data.
+  let length = chars.length() / 2
+  let result = [..chars]
+  for i in 0..<length {
+    let start = chars[i * 2]
+    let end = chars[i * 2 + 1]
+    // For each character in the range, add its case-insensitive equivalents
+    for c in start.to_int()..=end.to_int() {
+      let char = c.unsafe_to_char()
+      // Add both lower and upper case versions of the character
+      if simple_case_folding_data.get(char) is Some(c) {
+        result.push(c)
+        result.push(c)
+      } else {
+        simple_case_folding_data
+        .iter()
+        .filter(p => p.1 == char)
+        .each(p => {
+          result.push(p.0)
+          result.push(p.0)
+        })
+      }
+    }
+  }
+  simplify_char_ranges(result)
+}

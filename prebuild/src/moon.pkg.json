@@ -20,7 +20,7 @@
     "peter-jerry-ye/io/http",
     {
       "path": "peter-jerry-ye/wasi-imports/interface/wasi/http/types",
-      "alias": "wasi_http_types"
+      "alias": "_http"
     },
     {
       "path": "peter-jerry-ye/wasi-imports/interface/wasi/filesystem/types",

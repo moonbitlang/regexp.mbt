@@ -488,28 +488,28 @@ test "greedy vs non-greedy matching" {
 //   }
 // }
 
-// ///|
-// test "case sensitivity and flags" {
-//   // Test case insensitive flag
-//   let regex = @regexp.compile("hello", flags="i")
-//   assert_eq(regex.execute("HELLO").results().collect(), ["HELLO"])
-//   assert_eq(regex.execute("Hello").results().collect(), ["Hello"])
-//   assert_eq(regex.execute("hElLo").results().collect(), ["hElLo"])
+///|
+test "case sensitivity and flags" {
+  // Test case insensitive flag
+  let regex = @regexp.compile("hello", flags="i")
+  assert_eq(regex.execute("HELLO").results().collect(), ["HELLO"])
+  assert_eq(regex.execute("Hello").results().collect(), ["Hello"])
+  assert_eq(regex.execute("hElLo").results().collect(), ["hElLo"])
 
-//   // Test inline case insensitive
-//   let regex = @regexp.compile("(?i:hello)")
-//   assert_eq(regex.execute("HELLO world").results().collect(), ["HELLO"])
+  // Test inline case insensitive
+  let regex = @regexp.compile("(?i:hello)")
+  assert_eq(regex.execute("HELLO world").results().collect(), ["HELLO"])
 
-//   // Test case sensitive (default)
-//   let regex = @regexp.compile("hello")
-//   assert_eq(regex.execute("hello").results().collect(), ["hello"])
-//   assert_false(regex.execute("HELLO").matched())
+  // Test case sensitive (default)
+  let regex = @regexp.compile("hello")
+  assert_eq(regex.execute("hello").results().collect(), ["hello"])
+  assert_false(regex.execute("HELLO").matched())
 
-//   // Test mixed case sensitivity
-//   let regex = @regexp.compile("(?i:hello) world")
-//   assert_eq(regex.execute("HELLO world").results().collect(), ["HELLO world"])
-//   assert_false(regex.execute("HELLO WORLD").matched())
-// }
+  // Test mixed case sensitivity
+  let regex = @regexp.compile("(?i:hello) world")
+  assert_eq(regex.execute("HELLO world").results().collect(), ["HELLO world"])
+  assert_false(regex.execute("HELLO WORLD").matched())
+}
 
 // ///|
 // test "unicode and international characters" {

@@ -77,6 +77,7 @@ priv struct Parser {
 priv struct Flags {
   multiline : Bool
   singleline : Bool
+  ignore_case : Bool
 } derive(Default)
 
 ///| 正则表达式解析错误类型
@@ -394,14 +395,23 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         's' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 空白字符类
         'S' =>
           CharClass(ranges_is_not_white_space_or_line_terminator, neg=false) // 非空白字符类
-        _ => CharClass([c, c], neg=false)
+        _ =>
+          if self.flags.ignore_case {
+            CharClass(case_insensitive_char_class([c, c]), neg=false)
+          } else {
+            CharClass([c, c], neg=false)
+          }
       }
     }
     [c, ..] if Parser::is_special_char(c) =>
       raise Error_(err=InvalidEscape, data=self.input)
     [c, .. rest] => {
       self.input = rest
-      CharClass([c, c], neg=false)
+      if self.flags.ignore_case {
+        CharClass(case_insensitive_char_class([c, c]), neg=false)
+      } else {
+        CharClass([c, c], neg=false)
+      }
     }
     "" => raise Error_(err=InternalError, data=self.input)
   }
@@ -526,7 +536,11 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
     raise Error_(err=MissingBracket, data=self.input)
   }
   self.input = rest // 消费 ']'
-  CharClass(chars, neg~)
+  if self.flags.ignore_case {
+    CharClass(case_insensitive_char_class(chars), neg~)
+  } else {
+    CharClass(chars, neg~)
+  }
 }
 
 ///| 检查字符是否为正则表达式特殊字符
@@ -705,6 +719,10 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
     }
     ['s', .. rest] => {
       flag = { ..flag, singleline: positive }
+      continue rest
+    }
+    ['i', .. rest] => {
+      flag = { ..flag, ignore_case: positive }
       continue rest
     }
     ['-', .. rest] if positive => {
@@ -1173,7 +1191,7 @@ test "parse valid group name formats" {
 /// - 匹配 "def\nabc": [4, 7] (第二行)
 /// - 不匹配 "xabc": [] (不在行首)
 test "parse line begin assertion ^" {
-  let regex = parse("^abc", flags={ multiline: true, singleline: false })
+  let regex = parse("^abc", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试匹配行首的情况
@@ -1204,7 +1222,7 @@ test "parse line begin assertion ^" {
 /// - 匹配 "def\nabc": [4, 7] (第二行)
 /// - 不匹配 "abcx": [] (不在行尾)
 test "parse line end assertion $" {
-  let regex = parse("abc$", flags={ multiline: true, singleline: false })
+  let regex = parse("abc$", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试匹配行尾的情况
@@ -1260,7 +1278,7 @@ test "parse line begin and end assertion ^...$" {
 /// 测试字符串 "line1\nline2\nnot line":
 /// - 应该匹配第一行的 "line": [0, 4]
 test "parse multiline assertions" {
-  let regex = parse("^line", flags={ multiline: true, singleline: false })
+  let regex = parse("^line", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // 测试多行文本中第一行匹配
@@ -1268,7 +1286,7 @@ test "parse multiline assertions" {
   inspect(result, content="[0, 4]")
 
   // 测试行尾断言在多行文本中的匹配
-  let regex = parse("line$", flags={ multiline: true, singleline: false })
+  let regex = parse("line$", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "not line\nline2\nthis line", capture_count)
   inspect(result, content="[4, 8]") // 匹配第一行的 "line"

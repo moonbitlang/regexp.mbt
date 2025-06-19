@@ -37,6 +37,7 @@ pub fn compile(
   |> parse(flags={
     multiline: flags.contains("m"),
     singleline: flags.contains("s"),
+    ignore_case: flags.contains("i"),
   })
   |> Regex::compile
 }
