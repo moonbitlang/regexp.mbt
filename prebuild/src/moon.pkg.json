@@ -1,0 +1,21 @@
+{
+  "link": {
+    "wasm": {
+      "exports": [
+        "cabi_realloc:cabi_realloc",
+        "wasmExportRun:wasi:cli/run@0.2.0#run"
+      ],
+      "export-memory-name": "memory",
+      "heap-start-address": 16
+    }
+  },
+  "import": [
+    {
+      "path": "peter-jerry-ye/wasi-imports/ffi",
+      "alias": "ffi"
+    },
+    "peter-jerry-ye/io/io",
+    "peter-jerry-ye/async/loop",
+    "peter-jerry-ye/async/promise"
+  ]
+}

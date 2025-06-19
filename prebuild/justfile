@@ -1,0 +1,12 @@
+run target=("debug"): (build target)
+    wasmtime -S http=y target/cli.wasm
+
+build target=("debug"):
+    @echo 'Building targeting {{ target }}'
+    moon build --target wasm --{{ target }}
+    wasm-tools component embed --encoding utf16 wit target/wasm/{{ target }}/build/cli-template.wasm -o target/cli.core.wasm
+    wasm-tools component new target/cli.core.wasm -o target/cli.wasm
+
+clean:
+    @echo 'Cleaning project'
+    moon clean

@@ -1,0 +1,6 @@
+package moonbit-community:cli;
+
+world cli {
+  import wasi:http/outgoing-handler@0.2.0;
+  include wasi:cli/command@0.2.0;
+}
