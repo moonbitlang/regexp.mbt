@@ -26,6 +26,45 @@ async fn top() -> Unit raise {
   guard data.consume() is Ok(body)
   guard body.stream() is Ok(input_stream)
 
+  // We only do simple case folding
+  let regexp = @regexp.compile("^([0-9A-F]+);\\s+[CS];\\s+([0-9A-F]+);")
+  let mappings = []
+  while true {
+    let next = @io.read_line(stream=input_stream)
+    if next.contains("EOF") {
+      break
+    }
+    let result = regexp.execute(next)
+    if result.matched() {
+      mappings.push(
+        (
+          result.group(1).unwrap()
+          |> @string.View::to_string
+          |> @strconv.parse_int(base=16)
+          |> Int::unsafe_to_char(),
+          result.group(2).unwrap()
+          |> @string.View::to_string
+          |> @strconv.parse_int(base=16)
+          |> Int::unsafe_to_char(),
+        ),
+      )
+    }
+  }
+  input_stream.drop()
+  body.drop()
+  data.drop()
+
+  // Compute reverse mapping
+  let reverse : Map[Char, Array[Char]] = {}
+  for mapping in mappings {
+    let (k, v) = mapping
+    if reverse.get(v) is Some(array) {
+      array.push(k)
+    } else {
+      reverse[v] = [k]
+    }
+  }
+
   // Prepare file. Assume preopen is where the file needs to be written
   guard @preopens.get_directories() is [(preopen, _), ..] else {
     fail("Error: No preopen directories found")
@@ -42,30 +81,42 @@ async fn top() -> Unit raise {
 
   // Start writing template
   @io.println(
-    "let simple_case_folding_data : Map[Char, Char] = {",
+    #|///|
+    #|let simple_case_folding_data : Map[Char, Char] = {
+    ,
     stream=output_stream,
   )
-  // We only do simple case folding
-  let regexp = @regexp.compile("^([0-9A-F]+);\\s+[CS];\\s+([0-9A-F]+);")
-  while true {
-    let next = @io.read_line(stream=input_stream)
-    if next.contains("EOF") {
-      break
-    }
-    let result = regexp.execute(next)
-    if result.matched() {
-      @io.println(
-        $|  '\\u{\{result.group(1).unwrap()}}' : '\\u{\{result.group(2).unwrap()}}',
-        ,
-        stream=output_stream,
-      )
-    }
+  for mapping in mappings {
+    let (k, v) = mapping
+    @io.println(
+      $|  '\\u{\{k.to_int().to_string(radix=16)}}' : '\\u{\{v.to_int().to_string(radix=16)}}',
+      ,
+      stream=output_stream,
+    )
   }
-  @io.println("}", stream=output_stream)
-  output_stream.flush().unwrap()
+  @io.println(
+    #|  }
+    #|
+    #|///|
+    #|let reverse_simple_case_folding_data : Map[Char, Array[Char]] = {
+    ,
+    stream=output_stream,
+  )
+  for v in reverse.to_array() {
+    let (k, v) = v
+    let array = v.map(c => "'\\u{\{c.to_int().to_string(radix=16)}}'").join(", ")
+    @io.println(
+      $|  '\\u{\{k.to_int().to_string(radix=16)}}' : [\{array}],
+      ,
+      stream=output_stream,
+    )
+  }
+  @io.println(
+    #|  }
+    ,
+    stream=output_stream,
+  )
+  output_stream.blocking_flush().unwrap()
   output_stream.drop()
   file.drop()
-  input_stream.drop()
-  body.drop()
-  data.drop()
 }

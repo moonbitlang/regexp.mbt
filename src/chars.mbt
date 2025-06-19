@@ -231,10 +231,12 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
   // For simplicity, we will just return the input for now.
   // In a real implementation, this would involve looking up case folding data.
   let length = chars.length() / 2
-  let result = [..chars]
+  let result = []
   for i in 0..<length {
     let start = chars[i * 2]
     let end = chars[i * 2 + 1]
+    result.push(start)
+    result.push(end)
     // For each character in the range, add its case-insensitive equivalents
     for c in start.to_int()..=end.to_int() {
       let char = c.unsafe_to_char()
@@ -242,6 +244,10 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
       if simple_case_folding_data.get(char) is Some(c) {
         result.push(c)
         result.push(c)
+        for ch in reverse_simple_case_folding_data.get(c).unwrap() {
+          result.push(ch)
+          result.push(ch)
+        }
       } else {
         simple_case_folding_data
         .iter()
@@ -254,4 +260,16 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
     }
   }
   simplify_char_ranges(result)
+}
+
+///|
+test "case insensitive char class" {
+  inspect(
+    case_insensitive_char_class(['a', 'z']),
+    content="['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']",
+  )
+  inspect(
+    case_insensitive_char_class(['A', 'Z']),
+    content="['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']",
+  )
 }
