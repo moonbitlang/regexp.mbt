@@ -395,6 +395,12 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         's' => CharClass(ranges_is_white_space_or_line_terminator, neg=false) // 空白字符类
         'S' =>
           CharClass(ranges_is_not_white_space_or_line_terminator, neg=false) // 非空白字符类
+        // ControlEscape
+        't' => CharClass(['\t', '\t'], neg=false) // 制表符
+        'n' => CharClass(['\n', '\n'], neg=false) // 换行符
+        'v' => CharClass(['\u{b}', '\u{b}'], neg=false) // 垂直制表符
+        'f' => CharClass(['\u{c}', '\u{c}'], neg=false) // 换页符
+        'r' => CharClass(['\r', '\r'], neg=false) // 回车符
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -480,6 +486,27 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
           }
           'S' => {
             ranges_is_not_white_space_or_line_terminator.each(chars.push(_)) // 非空白字符类
+            continue
+          }
+          // ControlEscape
+          't' => {
+            ['\t', '\t'].each(chars.push(_))
+            continue
+          }
+          'n' => {
+            ['\n', '\n'].each(chars.push(_))
+            continue
+          }
+          'v' => {
+            ['\u{b}', '\u{b}'].each(chars.push(_))
+            continue
+          }
+          'f' => {
+            ['\u{c}', '\u{c}'].each(chars.push(_))
+            continue
+          }
+          'r' => {
+            ['\r', '\r'].each(chars.push(_))
             continue
           }
           _ => ch

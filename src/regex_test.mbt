@@ -396,37 +396,41 @@ test "complex named capture groups" {
   assert_eq(result.group_by_name("domain"), Some("example.com"))
 }
 
-// ///|
-// test "escape sequences and special characters" {
-//   // Test literal special characters
-//   let regex = @regexp.compile("\\.")
-//   assert_eq(regex.execute("3.14").results().collect(), ["."])
-//   assert_false(regex.execute("314").matched())
-//   let regex = @regexp.compile("\\*")
-//   assert_eq(regex.execute("2*3").results().collect(), ["*"])
-//   let regex = @regexp.compile("\\+")
-//   assert_eq(regex.execute("1+1").results().collect(), ["+"])
-//   let regex = @regexp.compile("\\?")
-//   assert_eq(regex.execute("what?").results().collect(), ["?"])
+///|
+test "escape sequences and special characters" {
+  // Test literal special characters
+  let regex = @regexp.compile("\\.")
+  assert_eq(regex.execute("3.14").results().collect(), ["."])
+  assert_false(regex.execute("314").matched())
+  let regex = @regexp.compile("\\*")
+  assert_eq(regex.execute("2*3").results().collect(), ["*"])
+  let regex = @regexp.compile("\\+")
+  assert_eq(regex.execute("1+1").results().collect(), ["+"])
+  let regex = @regexp.compile("\\?")
+  assert_eq(regex.execute("what?").results().collect(), ["?"])
 
-//   // Test escaped brackets
-//   let regex = @regexp.compile("\\[\\]")
-//   assert_eq(regex.execute("array[]").results().collect(), ["[]"])
-//   let regex = @regexp.compile("\\(\\)")
-//   assert_eq(regex.execute("func()").results().collect(), ["()"])
+  // Test escaped brackets
+  let regex = @regexp.compile("\\[\\]")
+  assert_eq(regex.execute("array[]").results().collect(), ["[]"])
+  let regex = @regexp.compile("\\(\\)")
+  assert_eq(regex.execute("func()").results().collect(), ["()"])
 
-//   // Test escaped backslash
-//   let regex = @regexp.compile("\\\\")
-//   assert_eq(regex.execute("path\\file").results().collect(), ["\\"])
+  // Test escaped backslash
+  let regex = @regexp.compile("\\\\")
+  assert_eq(regex.execute("path\\file").results().collect(), ["\\"])
 
-//   // Test tab, newline, etc.
-//   let regex = @regexp.compile("\\t")
-//   assert_eq(regex.execute("a\tb").results().collect(), ["\t"])
-//   let regex = @regexp.compile("\\n")
-//   assert_eq(regex.execute("line1\nline2").results().collect(), ["\n"])
-//   let regex = @regexp.compile("\\r")
-//   assert_eq(regex.execute("line1\rline2").results().collect(), ["\r"])
-// }
+  // Test tab, newline, etc.
+  let regex = @regexp.compile("\\t")
+  assert_eq(regex.execute("a\tb").results().collect(), ["\t"])
+  let regex = @regexp.compile("\\n")
+  assert_eq(regex.execute("line1\nline2").results().collect(), ["\n"])
+  let regex = @regexp.compile("\\r")
+  assert_eq(regex.execute("line1\rline2").results().collect(), ["\r"])
+  let regex = @regexp.compile("[\\t\\n\\r]")
+  assert_eq(regex.execute("a\tb").results().collect(), ["\t"])
+  assert_eq(regex.execute("line1\nline2").results().collect(), ["\n"])
+  assert_eq(regex.execute("line1\rline2").results().collect(), ["\r"])
+}
 
 ///|
 test "greedy vs non-greedy matching" {
