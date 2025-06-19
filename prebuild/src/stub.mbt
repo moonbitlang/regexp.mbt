@@ -109,13 +109,13 @@ async fn top() -> Unit raise {
   for mapping in mappings {
     let (k, v) = mapping
     @io.println(
-      $|  '\\u{\{k.to_int().to_string(radix=16)}}' : '\\u{\{v.to_int().to_string(radix=16)}}',
+      $|  '\\u{\{k.to_int().to_string(radix=16)}}': '\\u{\{v.to_int().to_string(radix=16)}}',
       ,
       stream=output_stream,
     )
   }
   @io.println(
-    #|  }
+    #|}
     #|
     #|///|
     #|let reverse_simple_case_folding_data : Map[Char, Array[Char]] = {
@@ -128,19 +128,19 @@ async fn top() -> Unit raise {
       .map(c => "'\\u{\{c.to_int().to_string(radix=16)}}'")
       .join(", ")
     @io.println(
-      $|  '\\u{\{k.to_int().to_string(radix=16)}}' : [\{array}],
+      $|  '\\u{\{k.to_int().to_string(radix=16)}}': [\{array}],
       ,
       stream=output_stream,
     )
   }
   @io.println(
-    #|  }
+    #|}
     #|
     #|///|
-    $|const MIN_FOLD : Char = '\\u{\{min.to_int().to_string(radix=16)}}';
+    $|const MIN_FOLD : Char = '\\u{\{min.to_int().to_string(radix=16)}}'
     $|
     $|///|
-    $|const MAX_FOLD : Char = '\\u{\{max.to_int().to_string(radix=16)}}';
+    $|const MAX_FOLD : Char = '\\u{\{max.to_int().to_string(radix=16)}}'
     ,
     stream=output_stream,
   )
