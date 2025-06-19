@@ -509,6 +509,11 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
             ['\r', '\r'].each(chars.push(_))
             continue
           }
+          // backspace
+          'b' => {
+            ['\u{8}', '\u{8}'].each(chars.push(_))
+            continue
+          }
           _ => ch
         }
       }
