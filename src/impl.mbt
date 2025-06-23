@@ -47,7 +47,6 @@ priv struct Thread {
 /// @param sp the current position in the input string  
 /// @param content the input string  
 /// @param instructions the list of instructions to execute  
-/// @param gen the generation number for the instruction  
 /// @param inst_gen an array to track the generation of each instruction  
 /// @param thread the current thread to add  
 /// @param clist the list of threads to be processed in the next iteration  
@@ -55,16 +54,15 @@ fn add_thread(
   sp : Int,
   content : @string.View,
   instructions : Array[Instruction],
-  gen : Int,
   inst_gen : Array[Int],
   thread : Thread,
   clist : Array[Thread]
 ) -> Unit {
-  if inst_gen[thread.pc] == gen {
+  if inst_gen[thread.pc] == sp {
     // already on the list
     return
   }
-  inst_gen[thread.pc] = gen
+  inst_gen[thread.pc] = sp
   match instructions[thread.pc] {
     Save(i) => {
       thread.captures[i] = sp
@@ -72,7 +70,6 @@ fn add_thread(
         sp,
         content,
         instructions,
-        gen,
         inst_gen,
         { pc: thread.pc + 1, captures: thread.captures },
         clist,
@@ -83,7 +80,6 @@ fn add_thread(
         sp,
         content,
         instructions,
-        gen,
         inst_gen,
         { pc: i, captures: thread.captures },
         clist,
@@ -93,7 +89,6 @@ fn add_thread(
         sp,
         content,
         instructions,
-        gen,
         inst_gen,
         { pc: i1, captures: thread.captures.copy() },
         clist,
@@ -102,7 +97,6 @@ fn add_thread(
         sp,
         content,
         instructions,
-        gen,
         inst_gen,
         { pc: i2, captures: thread.captures },
         clist,
@@ -132,7 +126,6 @@ fn add_thread(
           sp,
           content,
           instructions,
-          gen,
           inst_gen,
           { pc: thread.pc + 1, captures: thread.captures },
           clist,
@@ -155,7 +148,7 @@ fn vm(
   captures : Int
 ) -> Array[Int] {
   guard instructions is [.., Save(1), Matched]
-  let inst_gen = Array::make(instructions.length(), 0)
+  let inst_gen = Array::make(instructions.length(), -1)
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
   let mut matched : Array[Int] = []
@@ -163,7 +156,6 @@ fn vm(
     0,
     input,
     instructions,
-    1,
     inst_gen,
     { pc: 0, captures: Array::make(captures * 2, -1) },
     clist,
@@ -192,7 +184,6 @@ fn vm(
           next_sp,
           input,
           instructions,
-          next_sp + 1,
           inst_gen,
           { pc: pc + 1, captures },
           nlist,
