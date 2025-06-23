@@ -117,6 +117,8 @@ fn char_in_ranges(ch : Char, chars : Array[Char]) -> Bool {
 /// Simplifies a character class by merging overlapping ranges and removing duplicates.
 /// Input: Array of characters representing ranges [start1, end1, start2, end2, ...]
 /// Output: Simplified array with non-overlapping ranges in sorted order
+/// 
+/// Invariant: The input array must contain an even number of elements, representing pairs of start and end characters.
 fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
   if chars.length() == 0 {
     return []
@@ -128,9 +130,6 @@ fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
     let start = chars[i]
     let end = chars[i + 1]
     ranges.push((start, end))
-  }
-  if ranges.length() == 0 {
-    return []
   }
 
   // Sort ranges by start character
@@ -171,9 +170,16 @@ fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
 }
 
 ///|
+test "simplify char ranges" {
+  inspect(simplify_char_ranges(['A', 'z', 'A', 'Z']), content="['A', 'z']")
+}
+
+///|
 /// Computes the complement of a character class.
 /// Input: Array of characters representing ranges [start1, end1, start2, end2, ...]
 /// Output: Array representing the complement ranges
+/// 
+/// Invariant: The input array must contain an even number of elements, representing pairs of start and end characters.
 fn compute_char_class_complement(chars : Array[Char]) -> Array[Char] {
   // First simplify the input ranges
   let simplified = simplify_char_ranges(chars)
@@ -221,6 +227,10 @@ test "compute complement of charclass" {
   assert_eq(
     ranges_is_not_white_space_or_line_terminator,
     compute_char_class_complement(ranges_is_white_space_or_line_terminator),
+  )
+  inspect(
+    compute_char_class_complement([]),
+    content="['\\u{00}', '\\u{10ffff}']",
   )
 }
 
@@ -288,10 +298,7 @@ test "case insensitive char class" {
     case_insensitive_char_class(['!', 'z']),
     content="['!', 'z', 'ſ', 'ſ', 'K', 'K']",
   )
-  inspect(
-    case_insensitive_char_class(['B', '🀄']),
-    content="['A', '🀄']",
-  )
+  inspect(case_insensitive_char_class(['B', '🀄']), content="['A', '🀄']")
   inspect(
     case_insensitive_char_class(['🀄', '🀡']),
     content="['🀄', '🀡']",
