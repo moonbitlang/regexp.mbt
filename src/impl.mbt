@@ -168,25 +168,16 @@ fn vm(
     { pc: 0, captures: Array::make(captures * 2, -1) },
     clist,
   )
-  for sp = 0; sp <= input.length(); sp = sp + 1 {
+  for sp = 0; sp <= input.length(); {
     if clist.is_empty() {
       break
     }
     let actual_char = if sp == input.length() {
       (-1).unsafe_to_char()
     } else {
-      let ch = input.charcode_at(sp)
-      if ch is (0xD800..=0xDFFF) {
-        let next_ch = input.charcode_at(sp + 1)
-        guard next_ch is (0xDC00..=0xDFFF)
-        let high = ch - 0xD800
-        let low = next_ch - 0xDC00
-        (high * 0x400 + low + 0x10000).unsafe_to_char()
-      } else {
-        guard ch is (0x0000..=0xD7FF | 0xE000..=0xFFFF)
-        ch.unsafe_to_char()
-      }
+      input.char_at(sp)
     }
+    let next_sp = if actual_char.to_int() > 0xFFFF { sp + 2 } else { sp + 1 }
     for thread in clist {
       let { pc, captures } = thread
       if instructions[pc] is Matched {
@@ -198,14 +189,10 @@ fn vm(
       guard instructions[pc] is Char(chars)
       if char_in_ranges(actual_char, chars) {
         add_thread(
-          if actual_char.to_int() > 0xFFFF {
-            sp + 2
-          } else {
-            sp + 1
-          },
+          next_sp,
           input,
           instructions,
-          sp + 2,
+          next_sp + 1,
           inst_gen,
           { pc: pc + 1, captures },
           nlist,
@@ -216,9 +203,7 @@ fn vm(
     clist = nlist
     nlist = tmp
     nlist.clear()
-    if actual_char.to_int() > 0xFFFF {
-      continue sp + 2
-    }
+    continue next_sp
   }
   return matched
 }
