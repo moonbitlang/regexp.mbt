@@ -516,29 +516,36 @@ test "case sensitivity and flags" {
 }
 
 // ///|
-// test "unicode and international characters" {
-//   // Test basic unicode
-//   let regex = @regexp.compile("café")
-//   assert_eq(regex.execute("I love café").results().collect(), ["café"])
 
-//   // Test unicode word boundaries
-//   let regex = @regexp.compile("\\w+")
-//   assert_eq(regex.execute("hello 世界").results().collect(), ["hello"])
+///|
+test "unicode and international characters" {
+  // Test basic unicode
+  let regex = @regexp.compile("café")
+  assert_eq(regex.execute("I love café").results().collect(), ["café"])
 
-//   // Test unicode character classes
-//   let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
-//   if regex.execute("Hello 世界 World").matched() {
-//     assert_eq(regex.execute("Hello 世界 World").results().collect(), [
-//       "世界",
-//     ])
-//   }
+  // Test unicode word boundaries
+  let regex = @regexp.compile("\\w+")
+  assert_eq(regex.execute("hello 世界").results().collect(), ["hello"])
 
-//   // Test emoji (if supported)
-//   let regex = @regexp.compile("😀")
-//   if regex.execute("Happy 😀 face").matched() {
-//     assert_eq(regex.execute("Happy 😀 face").results().collect(), ["😀"])
-//   }
-// }
+  // // Test unicode character classes
+  // let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
+  // if regex.execute("Hello 世界 World").matched() {
+  //   assert_eq(regex.execute("Hello 世界 World").results().collect(), [
+  //     "世界",
+  //   ])
+  // }
+
+  // Test emoji (if supported)
+  let regex = @regexp.compile("😀")
+  let result = regex.execute("Happy 😀 face")
+  guard result.matched()
+  inspect(
+    result.group(0),
+    content=
+      #|Some("😀")
+    ,
+  )
+}
 
 ///|
 test "complex real-world patterns" {

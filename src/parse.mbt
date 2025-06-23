@@ -1653,3 +1653,11 @@ test "to be fixed" {
     content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
   )
 }
+
+///|
+test "parse unicode" {
+  let regex = parse("😀")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "Hello 😀 World", capture_count)
+  inspect(result, content="[6, 8]")
+}

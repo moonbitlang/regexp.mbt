@@ -198,7 +198,11 @@ fn vm(
       guard instructions[pc] is Char(chars)
       if char_in_ranges(actual_char, chars) {
         add_thread(
-          sp + 1,
+          if actual_char.to_int() > 0xFFFF {
+            sp + 2
+          } else {
+            sp + 1
+          },
           input,
           instructions,
           sp + 2,
