@@ -15,18 +15,15 @@
 ///|
 test "simple regex test" {
   let regex = @regexp.compile("abc")
-  let result = regex.execute("abc").results().collect()
   inspect(
-    result,
+    regex.execute("abc").results(),
     content=
       #|[Some("abc")]
     ,
   )
-  let result = regex.execute("ab").results().collect()
-  inspect(result, content="[]")
-  let result = regex.execute("abcd").results().collect()
+  inspect(regex.execute("ab").results(), content="[]")
   inspect(
-    result,
+    regex.execute("abcd").results(),
     content=
       #|[Some("abc")]
     ,
@@ -36,9 +33,8 @@ test "simple regex test" {
 ///|
 test "simple regex test matching leftmost" {
   let regex = @regexp.compile("a(bc|de)f")
-  let result = regex.execute("xxabcf").results().collect()
   inspect(
-    result,
+    regex.execute("xxabcf").results(),
     content=
       #|[Some("abcf"), Some("bc")]
     ,
@@ -48,9 +44,8 @@ test "simple regex test matching leftmost" {
 ///|
 test "simple regex test with repeat" {
   let regex = @regexp.compile("a(bc|de){2,}f")
-  let result = regex.execute("xxabcdebcf").results().collect()
   inspect(
-    result,
+    regex.execute("xxabcdebcf").results(),
     content=
       #|[Some("abcdebcf"), Some("bc")]
     ,
@@ -64,7 +59,7 @@ test "character classes" {
     #|[\w-]+@[\w-]+\.\w+
     ,
   )
-  let email_result = email.execute("user@example.com").results().collect()
+  let email_result = email.execute("user@example.com").results()
   inspect(
     email_result,
     content=
@@ -76,7 +71,7 @@ test "character classes" {
     #|\d+\.\d{2}
     ,
   )
-  let result = numbers.execute("Price: $42.99").results().collect()
+  let result = numbers.execute("Price: $42.99").results()
   inspect(
     result,
     content=
@@ -125,25 +120,25 @@ test "regexp with flags" {
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(regexp.execute("\n").results().count(), content="1")
   inspect(
-    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[1]",
   )
   let regexp = compile("$", flags="m")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[0]",
   )
   let regexp = compile("(?m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[0]",
   )
   let regexp = compile("(?m-m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[1]",
   )
 }
@@ -185,19 +180,19 @@ test "quantifiers and repetition" {
   // Test * quantifier (zero or more)
   let regex = @regexp.compile("ab*c")
   inspect(
-    regex.execute("ac").results().collect(),
+    regex.execute("ac").results(),
     content=
       #|[Some("ac")]
     ,
   )
   inspect(
-    regex.execute("abc").results().collect(),
+    regex.execute("abc").results(),
     content=
       #|[Some("abc")]
     ,
   )
   inspect(
-    regex.execute("abbbbc").results().collect(),
+    regex.execute("abbbbc").results(),
     content=
       #|[Some("abbbbc")]
     ,
@@ -208,13 +203,13 @@ test "quantifiers and repetition" {
   let regex = @regexp.compile("ab+c")
   inspect(regex.execute("ac").matched(), content="false")
   inspect(
-    regex.execute("abc").results().collect(),
+    regex.execute("abc").results(),
     content=
       #|[Some("abc")]
     ,
   )
   inspect(
-    regex.execute("abbbbc").results().collect(),
+    regex.execute("abbbbc").results(),
     content=
       #|[Some("abbbbc")]
     ,
@@ -223,13 +218,13 @@ test "quantifiers and repetition" {
   // Test ? quantifier (zero or one)
   let regex = @regexp.compile("ab?c")
   inspect(
-    regex.execute("ac").results().collect(),
+    regex.execute("ac").results(),
     content=
       #|[Some("ac")]
     ,
   )
   inspect(
-    regex.execute("abc").results().collect(),
+    regex.execute("abc").results(),
     content=
       #|[Some("abc")]
     ,
@@ -240,13 +235,13 @@ test "quantifiers and repetition" {
   let regex = @regexp.compile("a{3}")
   inspect(regex.execute("aa").matched(), content="false")
   inspect(
-    regex.execute("aaa").results().collect(),
+    regex.execute("aaa").results(),
     content=
       #|[Some("aaa")]
     ,
   )
   inspect(
-    regex.execute("aaaa").results().collect(),
+    regex.execute("aaaa").results(),
     content=
       #|[Some("aaa")]
     ,
@@ -256,25 +251,25 @@ test "quantifiers and repetition" {
   let regex = @regexp.compile("a{2,4}")
   inspect(regex.execute("a").matched(), content="false")
   inspect(
-    regex.execute("aa").results().collect(),
+    regex.execute("aa").results(),
     content=
       #|[Some("aa")]
     ,
   )
   inspect(
-    regex.execute("aaa").results().collect(),
+    regex.execute("aaa").results(),
     content=
       #|[Some("aaa")]
     ,
   )
   inspect(
-    regex.execute("aaaa").results().collect(),
+    regex.execute("aaaa").results(),
     content=
       #|[Some("aaaa")]
     ,
   )
   inspect(
-    regex.execute("aaaaa").results().collect(),
+    regex.execute("aaaaa").results(),
     content=
       #|[Some("aaaa")]
     ,
@@ -284,13 +279,13 @@ test "quantifiers and repetition" {
   let regex = @regexp.compile("a{3,}")
   inspect(regex.execute("aa").matched(), content="false")
   inspect(
-    regex.execute("aaa").results().collect(),
+    regex.execute("aaa").results(),
     content=
       #|[Some("aaa")]
     ,
   )
   inspect(
-    regex.execute("aaaaa").results().collect(),
+    regex.execute("aaaaa").results(),
     content=
       #|[Some("aaaaa")]
     ,
@@ -302,13 +297,13 @@ test "character classes and sets" {
   // Test digit class \d
   let regex = @regexp.compile("\\d+")
   inspect(
-    regex.execute("123").results().collect(),
+    regex.execute("123").results(),
     content=
       #|[Some("123")]
     ,
   )
   inspect(
-    regex.execute("abc123def").results().collect(),
+    regex.execute("abc123def").results(),
     content=
       #|[Some("123")]
     ,
@@ -318,13 +313,13 @@ test "character classes and sets" {
   // Test word class \w
   let regex = @regexp.compile("\\w+")
   inspect(
-    regex.execute("hello123").results().collect(),
+    regex.execute("hello123").results(),
     content=
       #|[Some("hello123")]
     ,
   )
   inspect(
-    regex.execute("hello-world").results().collect(),
+    regex.execute("hello-world").results(),
     content=
       #|[Some("hello")]
     ,
@@ -333,13 +328,13 @@ test "character classes and sets" {
   // Test whitespace class \s
   let regex = @regexp.compile("\\s+")
   inspect(
-    regex.execute("  \t\n").results().collect(),
+    regex.execute("  \t\n").results(),
     content=
       #|[Some("  \t\n")]
     ,
   )
   inspect(
-    regex.execute("a b").results().collect(),
+    regex.execute("a b").results(),
     content=
       #|[Some(" ")]
     ,
@@ -348,21 +343,21 @@ test "character classes and sets" {
   // Test negated classes
   let regex = @regexp.compile("\\D+")
   inspect(
-    regex.execute("abc123").results().collect(),
+    regex.execute("abc123").results(),
     content=
       #|[Some("abc")]
     ,
   )
   let regex = @regexp.compile("\\W+")
   inspect(
-    regex.execute("hello-world!").results().collect(),
+    regex.execute("hello-world!").results(),
     content=
       #|[Some("-")]
     ,
   )
   let regex = @regexp.compile("\\S+")
   inspect(
-    regex.execute("hello world").results().collect(),
+    regex.execute("hello world").results(),
     content=
       #|[Some("hello")]
     ,
@@ -371,13 +366,13 @@ test "character classes and sets" {
   // Test custom character sets
   let regex = @regexp.compile("[abc]")
   inspect(
-    regex.execute("apple").results().collect(),
+    regex.execute("apple").results(),
     content=
       #|[Some("a")]
     ,
   )
   inspect(
-    regex.execute("banana").results().collect(),
+    regex.execute("banana").results(),
     content=
       #|[Some("b")]
     ,
@@ -387,20 +382,20 @@ test "character classes and sets" {
   // Test character ranges
   let regex = @regexp.compile("[a-z]+")
   inspect(
-    regex.execute("hello123").results().collect(),
+    regex.execute("hello123").results(),
     content=
       #|[Some("hello")]
     ,
   )
   inspect(
-    regex.execute("Hello").results().collect(),
+    regex.execute("Hello").results(),
     content=
       #|[Some("ello")]
     ,
   )
   let regex = @regexp.compile("[0-9]+")
   inspect(
-    regex.execute("abc123def").results().collect(),
+    regex.execute("abc123def").results(),
     content=
       #|[Some("123")]
     ,
@@ -409,13 +404,13 @@ test "character classes and sets" {
   // Test negated character sets
   let regex = @regexp.compile("[^abc]+")
   inspect(
-    regex.execute("abcdef").results().collect(),
+    regex.execute("abcdef").results(),
     content=
       #|[Some("def")]
     ,
   )
   inspect(
-    regex.execute("xyz").results().collect(),
+    regex.execute("xyz").results(),
     content=
       #|[Some("xyz")]
     ,
@@ -424,13 +419,13 @@ test "character classes and sets" {
   // Test mixed character sets
   let regex = @regexp.compile("[a-zA-Z0-9_]+")
   inspect(
-    regex.execute("Hello_World123").results().collect(),
+    regex.execute("Hello_World123").results(),
     content=
       #|[Some("Hello_World123")]
     ,
   )
   inspect(
-    regex.execute("test-case").results().collect(),
+    regex.execute("test-case").results(),
     content=
       #|[Some("test")]
     ,
@@ -442,7 +437,7 @@ test "anchors and boundaries" {
   // Test start anchor ^
   let regex = @regexp.compile("^hello")
   inspect(
-    regex.execute("hello world").results().collect(),
+    regex.execute("hello world").results(),
     content=
       #|[Some("hello")]
     ,
@@ -452,7 +447,7 @@ test "anchors and boundaries" {
   // Test end anchor $
   let regex = @regexp.compile("world$")
   inspect(
-    regex.execute("hello world").results().collect(),
+    regex.execute("hello world").results(),
     content=
       #|[Some("world")]
     ,
@@ -462,7 +457,7 @@ test "anchors and boundaries" {
   // Test both anchors
   let regex = @regexp.compile("^hello$")
   inspect(
-    regex.execute("hello").results().collect(),
+    regex.execute("hello").results(),
     content=
       #|[Some("hello")]
     ,
@@ -473,13 +468,13 @@ test "anchors and boundaries" {
   // Test word boundaries \b
   let regex = @regexp.compile("\\bword\\b")
   inspect(
-    regex.execute("a word here").results().collect(),
+    regex.execute("a word here").results(),
     content=
       #|[Some("word")]
     ,
   )
   inspect(
-    regex.execute("word").results().collect(),
+    regex.execute("word").results(),
     content=
       #|[Some("word")]
     ,
@@ -490,7 +485,7 @@ test "anchors and boundaries" {
   // Test non-word boundaries \B
   let regex = @regexp.compile("\\Bor\\B")
   inspect(
-    regex.execute("words").results().collect(),
+    regex.execute("words").results(),
     content=
       #|[Some("or")]
     ,
@@ -504,13 +499,13 @@ test "alternation and grouping" {
   // Test simple alternation
   let regex = @regexp.compile("cat|dog")
   inspect(
-    regex.execute("I have a cat").results().collect(),
+    regex.execute("I have a cat").results(),
     content=
       #|[Some("cat")]
     ,
   )
   inspect(
-    regex.execute("I have a dog").results().collect(),
+    regex.execute("I have a dog").results(),
     content=
       #|[Some("dog")]
     ,
@@ -519,7 +514,7 @@ test "alternation and grouping" {
 
   // Test alternation with groups
   let regex = @regexp.compile("(cat|dog) food")
-  let result = regex.execute("cat food").results().collect()
+  let result = regex.execute("cat food").results()
   inspect(
     result,
     content=
@@ -529,7 +524,7 @@ test "alternation and grouping" {
 
   // Test nested groups
   let regex = @regexp.compile("((a|b)(c|d))")
-  let result = regex.execute("ac").results().collect()
+  let result = regex.execute("ac").results()
   inspect(
     result,
     content=
@@ -540,7 +535,7 @@ test "alternation and grouping" {
   // Test non-capturing groups
   let regex = @regexp.compile("(?:cat|dog) food")
   inspect(
-    regex.execute("cat food").results().collect(),
+    regex.execute("cat food").results(),
     content=
       #|[Some("cat food")]
     ,
@@ -549,19 +544,19 @@ test "alternation and grouping" {
   // Test multiple alternations
   let regex = @regexp.compile("red|green|blue")
   inspect(
-    regex.execute("red car").results().collect(),
+    regex.execute("red car").results(),
     content=
       #|[Some("red")]
     ,
   )
   inspect(
-    regex.execute("green light").results().collect(),
+    regex.execute("green light").results(),
     content=
       #|[Some("green")]
     ,
   )
   inspect(
-    regex.execute("blue sky").results().collect(),
+    regex.execute("blue sky").results(),
     content=
       #|[Some("blue")]
     ,
@@ -716,7 +711,7 @@ test "escape sequences and special characters" {
   // Test literal special characters
   let regex = @regexp.compile("\\.")
   inspect(
-    regex.execute("3.14").results().collect(),
+    regex.execute("3.14").results(),
     content=
       #|[Some(".")]
     ,
@@ -724,21 +719,21 @@ test "escape sequences and special characters" {
   inspect(regex.execute("314").matched(), content="false")
   let regex = @regexp.compile("\\*")
   inspect(
-    regex.execute("2*3").results().collect(),
+    regex.execute("2*3").results(),
     content=
       #|[Some("*")]
     ,
   )
   let regex = @regexp.compile("\\+")
   inspect(
-    regex.execute("1+1").results().collect(),
+    regex.execute("1+1").results(),
     content=
       #|[Some("+")]
     ,
   )
   let regex = @regexp.compile("\\?")
   inspect(
-    regex.execute("what?").results().collect(),
+    regex.execute("what?").results(),
     content=
       #|[Some("?")]
     ,
@@ -747,14 +742,14 @@ test "escape sequences and special characters" {
   // Test escaped brackets
   let regex = @regexp.compile("\\[\\]")
   inspect(
-    regex.execute("array[]").results().collect(),
+    regex.execute("array[]").results(),
     content=
       #|[Some("[]")]
     ,
   )
   let regex = @regexp.compile("\\(\\)")
   inspect(
-    regex.execute("func()").results().collect(),
+    regex.execute("func()").results(),
     content=
       #|[Some("()")]
     ,
@@ -763,7 +758,7 @@ test "escape sequences and special characters" {
   // Test escaped backslash
   let regex = @regexp.compile("\\\\")
   inspect(
-    regex.execute("path\\file").results().collect(),
+    regex.execute("path\\file").results(),
     content=
       #|[Some("\\")]
     ,
@@ -772,40 +767,40 @@ test "escape sequences and special characters" {
   // Test tab, newline, etc.
   let regex = @regexp.compile("\\t")
   inspect(
-    regex.execute("a\tb").results().collect(),
+    regex.execute("a\tb").results(),
     content=
       #|[Some("\t")]
     ,
   )
   let regex = @regexp.compile("\\n")
   inspect(
-    regex.execute("line1\nline2").results().collect(),
+    regex.execute("line1\nline2").results(),
     content=
       #|[Some("\n")]
     ,
   )
   let regex = @regexp.compile("\\r")
   inspect(
-    regex.execute("line1\rline2").results().collect(),
+    regex.execute("line1\rline2").results(),
     content=
       #|[Some("\r")]
     ,
   )
   let regex = @regexp.compile("[\\t\\n\\r]")
   inspect(
-    regex.execute("a\tb").results().collect(),
+    regex.execute("a\tb").results(),
     content=
       #|[Some("\t")]
     ,
   )
   inspect(
-    regex.execute("line1\nline2").results().collect(),
+    regex.execute("line1\nline2").results(),
     content=
       #|[Some("\n")]
     ,
   )
   inspect(
-    regex.execute("line1\rline2").results().collect(),
+    regex.execute("line1\rline2").results(),
     content=
       #|[Some("\r")]
     ,
@@ -817,7 +812,7 @@ test "greedy vs non-greedy matching" {
   // Test greedy quantifiers
   let regex = @regexp.compile("<.*>")
   inspect(
-    regex.execute("<div><span></span></div>").results().collect(),
+    regex.execute("<div><span></span></div>").results(),
     content=
       #|[Some("<div><span></span></div>")]
     ,
@@ -826,7 +821,7 @@ test "greedy vs non-greedy matching" {
   // Test non-greedy quantifiers
   let regex = @regexp.compile("<.*?>")
   inspect(
-    regex.execute("<div><span></span></div>").results().collect(),
+    regex.execute("<div><span></span></div>").results(),
     content=
       #|[Some("<div>")]
     ,
@@ -835,7 +830,7 @@ test "greedy vs non-greedy matching" {
   // Test non-greedy +
   let regex = @regexp.compile("a.+?b")
   inspect(
-    regex.execute("axxxbyyybzzz").results().collect(),
+    regex.execute("axxxbyyybzzz").results(),
     content=
       #|[Some("axxxb")]
     ,
@@ -844,7 +839,7 @@ test "greedy vs non-greedy matching" {
   // Test non-greedy *
   let regex = @regexp.compile("a.*?b")
   inspect(
-    regex.execute("axxxbyyybzzz").results().collect(),
+    regex.execute("axxxbyyybzzz").results(),
     content=
       #|[Some("axxxb")]
     ,
@@ -858,7 +853,7 @@ test "greedy vs non-greedy matching" {
 //   let result = regex.execute("running jumping walking")
 //   if result.matched() {
 //     inspect(
-//       result.results().collect(),
+//       result.results(),
 //       content=
 //         #|["runn", "jump", "walk"]
 //       ,
@@ -870,21 +865,31 @@ test "greedy vs non-greedy matching" {
 //   let result = regex.execute("running jump walking")
 //   if result.matched() {
 //     // Should match words not followed by "ing"
-//     inspect(result.results().collect()[0], content="jump")
+//     inspect(result.results().take(0), content="jump")
 //   }
 
 //   // Test positive lookbehind
 //   let regex = @regexp.compile("(?<=\\$)\\d+")
 //   let result = regex.execute("Price: $100 and €200")
 //   if result.matched() {
-//     assert_eq(result.results().collect(), ["100"])
+//     inspect(
+//       result.results(),
+//       content=
+//         #|["100"]
+//       ,
+//     )
 //   }
 
 //   // Test negative lookbehind
 //   let regex = @regexp.compile("(?<!\\$)\\d+")
 //   let result = regex.execute("Price: $100 and 200")
 //   if result.matched() {
-//     assert_eq(result.results().collect(), ["200"])
+//     inspect(
+//       result.results(),
+//       content=
+//         #|["200"]
+//       ,
+//     )
 //   }
 // }
 
@@ -893,19 +898,19 @@ test "case sensitivity and flags" {
   // Test case insensitive flag
   let regex = @regexp.compile("hello", flags="i")
   inspect(
-    regex.execute("HELLO").results().collect(),
+    regex.execute("HELLO").results(),
     content=
       #|[Some("HELLO")]
     ,
   )
   inspect(
-    regex.execute("Hello").results().collect(),
+    regex.execute("Hello").results(),
     content=
       #|[Some("Hello")]
     ,
   )
   inspect(
-    regex.execute("hElLo").results().collect(),
+    regex.execute("hElLo").results(),
     content=
       #|[Some("hElLo")]
     ,
@@ -914,7 +919,7 @@ test "case sensitivity and flags" {
   // Test inline case insensitive
   let regex = @regexp.compile("(?i:hello)")
   inspect(
-    regex.execute("HELLO world").results().collect(),
+    regex.execute("HELLO world").results(),
     content=
       #|[Some("HELLO")]
     ,
@@ -923,7 +928,7 @@ test "case sensitivity and flags" {
   // Test case sensitive (default)
   let regex = @regexp.compile("hello")
   inspect(
-    regex.execute("hello").results().collect(),
+    regex.execute("hello").results(),
     content=
       #|[Some("hello")]
     ,
@@ -933,7 +938,7 @@ test "case sensitivity and flags" {
   // Test mixed case sensitivity
   let regex = @regexp.compile("(?i:hello) world")
   inspect(
-    regex.execute("HELLO world").results().collect(),
+    regex.execute("HELLO world").results(),
     content=
       #|[Some("HELLO world")]
     ,
@@ -948,7 +953,7 @@ test "unicode and international characters" {
   // Test basic unicode
   let regex = @regexp.compile("café")
   inspect(
-    regex.execute("I love café").results().collect(),
+    regex.execute("I love café").results(),
     content=
       #|[Some("café")]
     ,
@@ -957,7 +962,7 @@ test "unicode and international characters" {
   // Test unicode word boundaries
   let regex = @regexp.compile("\\w+")
   inspect(
-    regex.execute("hello 世界").results().collect(),
+    regex.execute("hello 世界").results(),
     content=
       #|[Some("hello")]
     ,
@@ -966,9 +971,12 @@ test "unicode and international characters" {
   // // Test unicode character classes
   // let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
   // if regex.execute("Hello 世界 World").matched() {
-  //   assert_eq(regex.execute("Hello 世界 World").results().collect(), [
-  //     "世界",
-  //   ])
+  //   inspect(
+  //     regex.execute("Hello 世界 World").results(),
+  //     content=
+  //       #|["世界"]
+  //     ,
+  //   )
   // }
 
   // Test emoji (if supported)
@@ -990,13 +998,13 @@ test "complex real-world patterns" {
     "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
   )
   inspect(
-    email_regex.execute("user@example.com").results().collect(),
+    email_regex.execute("user@example.com").results(),
     content=
       #|[Some("user@example.com")]
     ,
   )
   inspect(
-    email_regex.execute("test.email+tag@domain.co.uk").results().collect(),
+    email_regex.execute("test.email+tag@domain.co.uk").results(),
     content=
       #|[Some("test.email+tag@domain.co.uk")]
     ,
@@ -1006,19 +1014,19 @@ test "complex real-world patterns" {
   // Phone number patterns
   let phone_regex = @regexp.compile("\\(?\\d{3}\\)?[ -.]?\\d{3}[-.]?\\d{4}")
   inspect(
-    phone_regex.execute("(123)456-7890").results().collect(),
+    phone_regex.execute("(123)456-7890").results(),
     content=
       #|[Some("(123)456-7890")]
     ,
   )
   inspect(
-    phone_regex.execute("123.456.7890").results().collect(),
+    phone_regex.execute("123.456.7890").results(),
     content=
       #|[Some("123.456.7890")]
     ,
   )
   inspect(
-    phone_regex.execute("1234567890").results().collect(),
+    phone_regex.execute("1234567890").results(),
     content=
       #|[Some("1234567890")]
     ,
@@ -1027,13 +1035,13 @@ test "complex real-world patterns" {
   // URL matching
   let url_regex = @regexp.compile("https?://[^\\s]+")
   inspect(
-    url_regex.execute("Visit https://example.com for more").results().collect(),
+    url_regex.execute("Visit https://example.com for more").results(),
     content=
       #|[Some("https://example.com")]
     ,
   )
   inspect(
-    url_regex.execute("Go to http://test.org/path?query=1").results().collect(),
+    url_regex.execute("Go to http://test.org/path?query=1").results(),
     content=
       #|[Some("http://test.org/path?query=1")]
     ,
@@ -1044,7 +1052,7 @@ test "complex real-world patterns" {
     "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
   )
   inspect(
-    ip_regex.execute("Server IP: 192.168.1.1").results().collect(),
+    ip_regex.execute("Server IP: 192.168.1.1").results(),
     content=
       #|[Some("192.168.1.1")]
     ,
@@ -1055,13 +1063,13 @@ test "complex real-world patterns" {
     "\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}",
   )
   inspect(
-    cc_regex.execute("1234 5678 9012 3456").results().collect(),
+    cc_regex.execute("1234 5678 9012 3456").results(),
     content=
       #|[Some("1234 5678 9012 3456")]
     ,
   )
   inspect(
-    cc_regex.execute("1234-5678-9012-3456").results().collect(),
+    cc_regex.execute("1234-5678-9012-3456").results(),
     content=
       #|[Some("1234-5678-9012-3456")]
     ,
@@ -1079,13 +1087,13 @@ test "edge cases and boundary conditions" {
   // Empty string matching
   let regex = @regexp.compile("")
   inspect(
-    regex.execute("").results().collect(),
+    regex.execute("").results(),
     content=
       #|[Some("")]
     ,
   )
   inspect(
-    regex.execute("abc").results().collect(),
+    regex.execute("abc").results(),
     content=
       #|[Some("")]
     ,
@@ -1095,7 +1103,7 @@ test "edge cases and boundary conditions" {
   let long_string = "a".repeat(1000) + "b"
   let regex = @regexp.compile("a+b")
   inspect(
-    regex.execute(long_string).results().collect(),
+    regex.execute(long_string).results(),
     content=
       #|[Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab")]
     ,
@@ -1104,24 +1112,24 @@ test "edge cases and boundary conditions" {
   // Pattern at string boundaries
   let regex = @regexp.compile("^a|b$")
   inspect(
-    regex.execute("a").results().collect(),
+    regex.execute("a").results(),
     content=
       #|[Some("a")]
     ,
   )
   inspect(
-    regex.execute("b").results().collect(),
+    regex.execute("b").results(),
     content=
       #|[Some("b")]
     ,
   )
   inspect(
-    regex.execute("ab").results().collect(),
+    regex.execute("ab").results(),
     content=
       #|[Some("a")]
     ,
   )
-  inspect(regex.execute("ba").results().collect(), content="[]")
+  inspect(regex.execute("ba").results(), content="[]")
 
   // Zero-width assertions
   let regex = @regexp.compile("\\b")
@@ -1135,7 +1143,7 @@ test "edge cases and boundary conditions" {
   // Overlapping matches (should get first/leftmost)
   let regex = @regexp.compile("aa")
   inspect(
-    regex.execute("aaa").results().collect(),
+    regex.execute("aaa").results(),
     content=
       #|[Some("aa")]
     ,
@@ -1144,7 +1152,7 @@ test "edge cases and boundary conditions" {
   // Pattern with all quantifiers
   let regex = @regexp.compile("a*b+c?d{2}e{2,4}f{3,}")
   inspect(
-    regex.execute("bbcddeeefffff").results().collect(),
+    regex.execute("bbcddeeefffff").results(),
     content=
       #|[Some("bbcddeeefffff")]
     ,
