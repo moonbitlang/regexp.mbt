@@ -102,26 +102,19 @@ fn add_thread(
         clist,
       )
     }
-    Assertion(pred) =>
-      if (pred is BeginText && sp == 0) ||
-        (pred is EndText && sp == content.length()) ||
-        (
-          pred is BeginLine &&
-          (sp == 0 || content.charcode_at(sp - 1) == '\n'.to_int())
-        ) ||
-        (
-          pred is EndLine &&
-          (sp == content.length() || content.charcode_at(sp) == '\n'.to_int())
-        ) ||
-        (
-          pred is WordBoundary &&
+    Assertion(pred) => {
+      let assertion = match pred {
+        BeginText => sp == 0
+        EndText => sp == content.length()
+        BeginLine => sp == 0 || content.charcode_at(sp - 1) == '\n'.to_int()
+        EndLine =>
+          sp == content.length() || content.charcode_at(sp) == '\n'.to_int()
+        WordBoundary =>
           is_word_char_at(content, sp - 1) != is_word_char_at(content, sp)
-        ) ||
-        (
-          pred is NoWordBoundary &&
+        NoWordBoundary =>
           is_word_char_at(content, sp - 1) == is_word_char_at(content, sp)
-        ) {
-        // the assertion is true, continue
+      }
+      if assertion {
         add_thread(
           sp,
           content,
@@ -131,6 +124,7 @@ fn add_thread(
           clist,
         )
       }
+    }
     _ => clist.push(thread)
   }
 }
