@@ -175,15 +175,12 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       // for taking up position
       instructions.push(Split(-1, -1))
       left.compile_aux(matcher)
-      let { capture: next_capture, .. } = matcher
       let jmp_pos = instructions.length()
       // placeholder for jump
       instructions.push(Jump(-1))
-      matcher.capture = capture
       right.compile_aux(matcher)
       instructions[split_pos] = Split(split_pos + 1, jmp_pos + 1)
       instructions[jmp_pos] = Jump(instructions.length())
-      matcher.capture = @math.maximum(next_capture, matcher.capture)
     }
   }
 }
@@ -396,18 +393,18 @@ test "alternate capture" {
     { "$tag": "Char", "0": ["a", "a"] },
     { "$tag": "Save", "0": 3 },
     { "$tag": "Jump", "0": 12 },
-    { "$tag": "Save", "0": 2 },
+    { "$tag": "Save", "0": 4 },
     { "$tag": "Char", "0": ["b", "b"] },
-    { "$tag": "Save", "0": 3 },
+    { "$tag": "Save", "0": 5 },
     { "$tag": "Split", "0": 13, "1": 22 },
     { "$tag": "Split", "0": 14, "1": 18 },
     { "$tag": "Save", "0": 2 },
     { "$tag": "Char", "0": ["a", "a"] },
     { "$tag": "Save", "0": 3 },
     { "$tag": "Jump", "0": 21 },
-    { "$tag": "Save", "0": 2 },
+    { "$tag": "Save", "0": 4 },
     { "$tag": "Char", "0": ["b", "b"] },
-    { "$tag": "Save", "0": 3 },
+    { "$tag": "Save", "0": 5 },
     { "$tag": "Jump", "0": 12 },
     { "$tag": "Save", "0": 1 },
     { "$tag": "Matched" },

@@ -212,7 +212,7 @@ test "to be fixed" {
   inspect(
     result.group_by_name("a"),
     content=
-      #|Some("b")
+      #|Some("a")
     ,
   )
   inspect(
