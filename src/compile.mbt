@@ -59,7 +59,11 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
     Assertion(pred) => instructions.push(Assertion(pred))
     Capture(inner, name~) => {
       if name is Some(name) {
-        guard matcher.map.get(name) is None
+        guard matcher.map.get(name) is None ||
+          (
+            matcher.map.get(name) is Some(prev_capture) &&
+            prev_capture == capture
+          )
         matcher.map[name] = capture
       }
       instructions.push(Save(capture * 2))
@@ -370,4 +374,16 @@ test "empty" {
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "xyz".view(), capture_count)
   inspect(result, content="[0, 0]")
+}
+
+///|
+test "alternate capture" {
+  let regex = OneOrMore(
+    Alternate(
+      Capture(CharClass(['a', 'a'], neg=false), name=Some("a")),
+      Capture(CharClass(['b', 'b'], neg=false), name=Some("b")),
+    ),
+    greedy=true,
+  )
+  regex.compile() |> ignore
 }
