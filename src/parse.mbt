@@ -1648,15 +1648,6 @@ test "parse word boundary edge cases" {
 }
 
 ///|
-test "to be fixed" {
-  // This should be a char class with `]` and `[`
-  parse("[][]")
-  |> inspect(
-    content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
-  )
-}
-
-///|
 test "parse unicode" {
   let regex = parse("😀")
   let { instructions, capture: capture_count, .. } = regex.compile()

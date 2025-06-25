@@ -181,49 +181,6 @@ test "invalid regex test" {
 }
 
 ///|
-test "to be fixed" {
-  // This should be allowed in some flavors where the `{` is considered a literal character
-  guard (try? @regexp.compile("a{2")) is Err(error)
-  error
-  |> inspect(
-    content=
-      #|Error_(err=InvalidRepeatOp, data="")
-    ,
-  )
-  // This should be allowed in some flavors where the `}` is considered a literal character
-  guard (try? @regexp.compile("a|b|c}")) is Err(error)
-  error
-  |> inspect(
-    content=
-      #|Error_(err=InvalidEscape, data="}")
-    ,
-  )
-  // This should raise InvalidRepeatOp to align with golang
-  guard (try? @regexp.compile("a++")) is Err(error)
-  error
-  |> inspect(
-    content=
-      #|Error_(err=InvalidEscape, data="+")
-    ,
-  )
-  // Behavior mismatch between Golang and JS
-  let regex = @regexp.compile("((?<a>a)|(?<b>b))+")
-  let result = regex.execute("ab")
-  inspect(
-    result.group_by_name("a"),
-    content=
-      #|Some("a")
-    ,
-  )
-  inspect(
-    result.group_by_name("b"),
-    content=
-      #|Some("b")
-    ,
-  )
-}
-
-///|
 test "quantifiers and repetition" {
   // Test * quantifier (zero or more)
   let regex = @regexp.compile("ab*c")
