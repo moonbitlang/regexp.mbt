@@ -19,7 +19,7 @@ test "simple regex test" {
   inspect(
     result,
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
   let result = regex.execute("ab").results().collect()
@@ -28,7 +28,7 @@ test "simple regex test" {
   inspect(
     result,
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
 }
@@ -40,7 +40,7 @@ test "simple regex test matching leftmost" {
   inspect(
     result,
     content=
-      #|["abcf", "bc"]
+      #|[Some("abcf"), Some("bc")]
     ,
   )
 }
@@ -52,7 +52,7 @@ test "simple regex test with repeat" {
   inspect(
     result,
     content=
-      #|["abcdebcf", "bc"]
+      #|[Some("abcdebcf"), Some("bc")]
     ,
   )
 }
@@ -68,7 +68,7 @@ test "character classes" {
   inspect(
     email_result,
     content=
-      #|["user@example.com"]
+      #|[Some("user@example.com")]
     ,
   )
   // Extract numbers
@@ -80,7 +80,7 @@ test "character classes" {
   inspect(
     result,
     content=
-      #|["42.99"]
+      #|[Some("42.99")]
     ,
   )
 
@@ -125,25 +125,25 @@ test "regexp with flags" {
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(regexp.execute("\n").results().count(), content="1")
   inspect(
-    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
     content="[1]",
   )
   let regexp = compile("$", flags="m")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
     content="[0]",
   )
   let regexp = compile("(?m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
     content="[0]",
   )
   let regexp = compile("(?m-m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(
-    regexp.execute("\n").results().map(_.start_offset()).collect(),
+    regexp.execute("\n").results().map(r => r.unwrap().start_offset()).collect(),
     content="[1]",
   )
 }
@@ -187,19 +187,19 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("ac").results().collect(),
     content=
-      #|["ac"]
+      #|[Some("ac")]
     ,
   )
   inspect(
     regex.execute("abc").results().collect(),
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
   inspect(
     regex.execute("abbbbc").results().collect(),
     content=
-      #|["abbbbc"]
+      #|[Some("abbbbc")]
     ,
   )
   inspect(regex.execute("bc").matched(), content="false")
@@ -210,13 +210,13 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("abc").results().collect(),
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
   inspect(
     regex.execute("abbbbc").results().collect(),
     content=
-      #|["abbbbc"]
+      #|[Some("abbbbc")]
     ,
   )
 
@@ -225,13 +225,13 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("ac").results().collect(),
     content=
-      #|["ac"]
+      #|[Some("ac")]
     ,
   )
   inspect(
     regex.execute("abc").results().collect(),
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
   inspect(regex.execute("abbc").matched(), content="false")
@@ -242,13 +242,13 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("aaa").results().collect(),
     content=
-      #|["aaa"]
+      #|[Some("aaa")]
     ,
   )
   inspect(
     regex.execute("aaaa").results().collect(),
     content=
-      #|["aaa"]
+      #|[Some("aaa")]
     ,
   )
 
@@ -258,25 +258,25 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("aa").results().collect(),
     content=
-      #|["aa"]
+      #|[Some("aa")]
     ,
   )
   inspect(
     regex.execute("aaa").results().collect(),
     content=
-      #|["aaa"]
+      #|[Some("aaa")]
     ,
   )
   inspect(
     regex.execute("aaaa").results().collect(),
     content=
-      #|["aaaa"]
+      #|[Some("aaaa")]
     ,
   )
   inspect(
     regex.execute("aaaaa").results().collect(),
     content=
-      #|["aaaa"]
+      #|[Some("aaaa")]
     ,
   )
 
@@ -286,13 +286,13 @@ test "quantifiers and repetition" {
   inspect(
     regex.execute("aaa").results().collect(),
     content=
-      #|["aaa"]
+      #|[Some("aaa")]
     ,
   )
   inspect(
     regex.execute("aaaaa").results().collect(),
     content=
-      #|["aaaaa"]
+      #|[Some("aaaaa")]
     ,
   )
 }
@@ -304,13 +304,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("123").results().collect(),
     content=
-      #|["123"]
+      #|[Some("123")]
     ,
   )
   inspect(
     regex.execute("abc123def").results().collect(),
     content=
-      #|["123"]
+      #|[Some("123")]
     ,
   )
   inspect(regex.execute("abc").matched(), content="false")
@@ -320,13 +320,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("hello123").results().collect(),
     content=
-      #|["hello123"]
+      #|[Some("hello123")]
     ,
   )
   inspect(
     regex.execute("hello-world").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
 
@@ -335,13 +335,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("  \t\n").results().collect(),
     content=
-      #|["  \t\n"]
+      #|[Some("  \t\n")]
     ,
   )
   inspect(
     regex.execute("a b").results().collect(),
     content=
-      #|[" "]
+      #|[Some(" ")]
     ,
   )
 
@@ -350,21 +350,21 @@ test "character classes and sets" {
   inspect(
     regex.execute("abc123").results().collect(),
     content=
-      #|["abc"]
+      #|[Some("abc")]
     ,
   )
   let regex = @regexp.compile("\\W+")
   inspect(
     regex.execute("hello-world!").results().collect(),
     content=
-      #|["-"]
+      #|[Some("-")]
     ,
   )
   let regex = @regexp.compile("\\S+")
   inspect(
     regex.execute("hello world").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
 
@@ -373,13 +373,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("apple").results().collect(),
     content=
-      #|["a"]
+      #|[Some("a")]
     ,
   )
   inspect(
     regex.execute("banana").results().collect(),
     content=
-      #|["b"]
+      #|[Some("b")]
     ,
   )
   inspect(regex.execute("xyz").matched(), content="false")
@@ -389,20 +389,20 @@ test "character classes and sets" {
   inspect(
     regex.execute("hello123").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
   inspect(
     regex.execute("Hello").results().collect(),
     content=
-      #|["ello"]
+      #|[Some("ello")]
     ,
   )
   let regex = @regexp.compile("[0-9]+")
   inspect(
     regex.execute("abc123def").results().collect(),
     content=
-      #|["123"]
+      #|[Some("123")]
     ,
   )
 
@@ -411,13 +411,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("abcdef").results().collect(),
     content=
-      #|["def"]
+      #|[Some("def")]
     ,
   )
   inspect(
     regex.execute("xyz").results().collect(),
     content=
-      #|["xyz"]
+      #|[Some("xyz")]
     ,
   )
 
@@ -426,13 +426,13 @@ test "character classes and sets" {
   inspect(
     regex.execute("Hello_World123").results().collect(),
     content=
-      #|["Hello_World123"]
+      #|[Some("Hello_World123")]
     ,
   )
   inspect(
     regex.execute("test-case").results().collect(),
     content=
-      #|["test"]
+      #|[Some("test")]
     ,
   )
 }
@@ -444,7 +444,7 @@ test "anchors and boundaries" {
   inspect(
     regex.execute("hello world").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
   inspect(regex.execute("say hello").matched(), content="false")
@@ -454,7 +454,7 @@ test "anchors and boundaries" {
   inspect(
     regex.execute("hello world").results().collect(),
     content=
-      #|["world"]
+      #|[Some("world")]
     ,
   )
   inspect(regex.execute("world peace").matched(), content="false")
@@ -464,7 +464,7 @@ test "anchors and boundaries" {
   inspect(
     regex.execute("hello").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
   inspect(regex.execute("hello world").matched(), content="false")
@@ -475,13 +475,13 @@ test "anchors and boundaries" {
   inspect(
     regex.execute("a word here").results().collect(),
     content=
-      #|["word"]
+      #|[Some("word")]
     ,
   )
   inspect(
     regex.execute("word").results().collect(),
     content=
-      #|["word"]
+      #|[Some("word")]
     ,
   )
   inspect(regex.execute("sword").matched(), content="false")
@@ -492,7 +492,7 @@ test "anchors and boundaries" {
   inspect(
     regex.execute("words").results().collect(),
     content=
-      #|["or"]
+      #|[Some("or")]
     ,
   )
   inspect(regex.execute("or").matched(), content="false")
@@ -506,13 +506,13 @@ test "alternation and grouping" {
   inspect(
     regex.execute("I have a cat").results().collect(),
     content=
-      #|["cat"]
+      #|[Some("cat")]
     ,
   )
   inspect(
     regex.execute("I have a dog").results().collect(),
     content=
-      #|["dog"]
+      #|[Some("dog")]
     ,
   )
   inspect(regex.execute("I have a bird").matched(), content="false")
@@ -523,7 +523,7 @@ test "alternation and grouping" {
   inspect(
     result,
     content=
-      #|["cat food", "cat"]
+      #|[Some("cat food"), Some("cat")]
     ,
   )
 
@@ -533,7 +533,7 @@ test "alternation and grouping" {
   inspect(
     result,
     content=
-      #|["ac", "ac", "a", "c"]
+      #|[Some("ac"), Some("ac"), Some("a"), Some("c")]
     ,
   )
 
@@ -542,7 +542,7 @@ test "alternation and grouping" {
   inspect(
     regex.execute("cat food").results().collect(),
     content=
-      #|["cat food"]
+      #|[Some("cat food")]
     ,
   )
 
@@ -551,19 +551,19 @@ test "alternation and grouping" {
   inspect(
     regex.execute("red car").results().collect(),
     content=
-      #|["red"]
+      #|[Some("red")]
     ,
   )
   inspect(
     regex.execute("green light").results().collect(),
     content=
-      #|["green"]
+      #|[Some("green")]
     ,
   )
   inspect(
     regex.execute("blue sky").results().collect(),
     content=
-      #|["blue"]
+      #|[Some("blue")]
     ,
   )
 }
@@ -718,7 +718,7 @@ test "escape sequences and special characters" {
   inspect(
     regex.execute("3.14").results().collect(),
     content=
-      #|["."]
+      #|[Some(".")]
     ,
   )
   inspect(regex.execute("314").matched(), content="false")
@@ -726,21 +726,21 @@ test "escape sequences and special characters" {
   inspect(
     regex.execute("2*3").results().collect(),
     content=
-      #|["*"]
+      #|[Some("*")]
     ,
   )
   let regex = @regexp.compile("\\+")
   inspect(
     regex.execute("1+1").results().collect(),
     content=
-      #|["+"]
+      #|[Some("+")]
     ,
   )
   let regex = @regexp.compile("\\?")
   inspect(
     regex.execute("what?").results().collect(),
     content=
-      #|["?"]
+      #|[Some("?")]
     ,
   )
 
@@ -749,14 +749,14 @@ test "escape sequences and special characters" {
   inspect(
     regex.execute("array[]").results().collect(),
     content=
-      #|["[]"]
+      #|[Some("[]")]
     ,
   )
   let regex = @regexp.compile("\\(\\)")
   inspect(
     regex.execute("func()").results().collect(),
     content=
-      #|["()"]
+      #|[Some("()")]
     ,
   )
 
@@ -765,7 +765,7 @@ test "escape sequences and special characters" {
   inspect(
     regex.execute("path\\file").results().collect(),
     content=
-      #|["\\"]
+      #|[Some("\\")]
     ,
   )
 
@@ -774,40 +774,40 @@ test "escape sequences and special characters" {
   inspect(
     regex.execute("a\tb").results().collect(),
     content=
-      #|["\t"]
+      #|[Some("\t")]
     ,
   )
   let regex = @regexp.compile("\\n")
   inspect(
     regex.execute("line1\nline2").results().collect(),
     content=
-      #|["\n"]
+      #|[Some("\n")]
     ,
   )
   let regex = @regexp.compile("\\r")
   inspect(
     regex.execute("line1\rline2").results().collect(),
     content=
-      #|["\r"]
+      #|[Some("\r")]
     ,
   )
   let regex = @regexp.compile("[\\t\\n\\r]")
   inspect(
     regex.execute("a\tb").results().collect(),
     content=
-      #|["\t"]
+      #|[Some("\t")]
     ,
   )
   inspect(
     regex.execute("line1\nline2").results().collect(),
     content=
-      #|["\n"]
+      #|[Some("\n")]
     ,
   )
   inspect(
     regex.execute("line1\rline2").results().collect(),
     content=
-      #|["\r"]
+      #|[Some("\r")]
     ,
   )
 }
@@ -819,7 +819,7 @@ test "greedy vs non-greedy matching" {
   inspect(
     regex.execute("<div><span></span></div>").results().collect(),
     content=
-      #|["<div><span></span></div>"]
+      #|[Some("<div><span></span></div>")]
     ,
   )
 
@@ -828,7 +828,7 @@ test "greedy vs non-greedy matching" {
   inspect(
     regex.execute("<div><span></span></div>").results().collect(),
     content=
-      #|["<div>"]
+      #|[Some("<div>")]
     ,
   )
 
@@ -837,7 +837,7 @@ test "greedy vs non-greedy matching" {
   inspect(
     regex.execute("axxxbyyybzzz").results().collect(),
     content=
-      #|["axxxb"]
+      #|[Some("axxxb")]
     ,
   )
 
@@ -846,7 +846,7 @@ test "greedy vs non-greedy matching" {
   inspect(
     regex.execute("axxxbyyybzzz").results().collect(),
     content=
-      #|["axxxb"]
+      #|[Some("axxxb")]
     ,
   )
 }
@@ -895,19 +895,19 @@ test "case sensitivity and flags" {
   inspect(
     regex.execute("HELLO").results().collect(),
     content=
-      #|["HELLO"]
+      #|[Some("HELLO")]
     ,
   )
   inspect(
     regex.execute("Hello").results().collect(),
     content=
-      #|["Hello"]
+      #|[Some("Hello")]
     ,
   )
   inspect(
     regex.execute("hElLo").results().collect(),
     content=
-      #|["hElLo"]
+      #|[Some("hElLo")]
     ,
   )
 
@@ -916,7 +916,7 @@ test "case sensitivity and flags" {
   inspect(
     regex.execute("HELLO world").results().collect(),
     content=
-      #|["HELLO"]
+      #|[Some("HELLO")]
     ,
   )
 
@@ -925,7 +925,7 @@ test "case sensitivity and flags" {
   inspect(
     regex.execute("hello").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
   inspect(regex.execute("HELLO").matched(), content="false")
@@ -935,7 +935,7 @@ test "case sensitivity and flags" {
   inspect(
     regex.execute("HELLO world").results().collect(),
     content=
-      #|["HELLO world"]
+      #|[Some("HELLO world")]
     ,
   )
   inspect(regex.execute("HELLO WORLD").matched(), content="false")
@@ -950,7 +950,7 @@ test "unicode and international characters" {
   inspect(
     regex.execute("I love café").results().collect(),
     content=
-      #|["café"]
+      #|[Some("café")]
     ,
   )
 
@@ -959,7 +959,7 @@ test "unicode and international characters" {
   inspect(
     regex.execute("hello 世界").results().collect(),
     content=
-      #|["hello"]
+      #|[Some("hello")]
     ,
   )
 
@@ -992,13 +992,13 @@ test "complex real-world patterns" {
   inspect(
     email_regex.execute("user@example.com").results().collect(),
     content=
-      #|["user@example.com"]
+      #|[Some("user@example.com")]
     ,
   )
   inspect(
     email_regex.execute("test.email+tag@domain.co.uk").results().collect(),
     content=
-      #|["test.email+tag@domain.co.uk"]
+      #|[Some("test.email+tag@domain.co.uk")]
     ,
   )
   inspect(email_regex.execute("invalid.email").matched(), content="false")
@@ -1008,19 +1008,19 @@ test "complex real-world patterns" {
   inspect(
     phone_regex.execute("(123)456-7890").results().collect(),
     content=
-      #|["(123)456-7890"]
+      #|[Some("(123)456-7890")]
     ,
   )
   inspect(
     phone_regex.execute("123.456.7890").results().collect(),
     content=
-      #|["123.456.7890"]
+      #|[Some("123.456.7890")]
     ,
   )
   inspect(
     phone_regex.execute("1234567890").results().collect(),
     content=
-      #|["1234567890"]
+      #|[Some("1234567890")]
     ,
   )
 
@@ -1029,13 +1029,13 @@ test "complex real-world patterns" {
   inspect(
     url_regex.execute("Visit https://example.com for more").results().collect(),
     content=
-      #|["https://example.com"]
+      #|[Some("https://example.com")]
     ,
   )
   inspect(
     url_regex.execute("Go to http://test.org/path?query=1").results().collect(),
     content=
-      #|["http://test.org/path?query=1"]
+      #|[Some("http://test.org/path?query=1")]
     ,
   )
 
@@ -1046,7 +1046,7 @@ test "complex real-world patterns" {
   inspect(
     ip_regex.execute("Server IP: 192.168.1.1").results().collect(),
     content=
-      #|["192.168.1.1"]
+      #|[Some("192.168.1.1")]
     ,
   )
 
@@ -1057,13 +1057,13 @@ test "complex real-world patterns" {
   inspect(
     cc_regex.execute("1234 5678 9012 3456").results().collect(),
     content=
-      #|["1234 5678 9012 3456"]
+      #|[Some("1234 5678 9012 3456")]
     ,
   )
   inspect(
     cc_regex.execute("1234-5678-9012-3456").results().collect(),
     content=
-      #|["1234-5678-9012-3456"]
+      #|[Some("1234-5678-9012-3456")]
     ,
   )
 
@@ -1081,13 +1081,13 @@ test "edge cases and boundary conditions" {
   inspect(
     regex.execute("").results().collect(),
     content=
-      #|[""]
+      #|[Some("")]
     ,
   )
   inspect(
     regex.execute("abc").results().collect(),
     content=
-      #|[""]
+      #|[Some("")]
     ,
   )
 
@@ -1097,7 +1097,7 @@ test "edge cases and boundary conditions" {
   inspect(
     regex.execute(long_string).results().collect(),
     content=
-      #|["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"]
+      #|[Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab")]
     ,
   )
 
@@ -1106,19 +1106,19 @@ test "edge cases and boundary conditions" {
   inspect(
     regex.execute("a").results().collect(),
     content=
-      #|["a"]
+      #|[Some("a")]
     ,
   )
   inspect(
     regex.execute("b").results().collect(),
     content=
-      #|["b"]
+      #|[Some("b")]
     ,
   )
   inspect(
     regex.execute("ab").results().collect(),
     content=
-      #|["a"]
+      #|[Some("a")]
     ,
   )
   inspect(regex.execute("ba").results().collect(), content="[]")
@@ -1137,7 +1137,7 @@ test "edge cases and boundary conditions" {
   inspect(
     regex.execute("aaa").results().collect(),
     content=
-      #|["aa"]
+      #|[Some("aa")]
     ,
   )
 
@@ -1146,7 +1146,7 @@ test "edge cases and boundary conditions" {
   inspect(
     regex.execute("bbcddeeefffff").results().collect(),
     content=
-      #|["bbcddeeefffff"]
+      #|[Some("bbcddeeefffff")]
     ,
   )
 }

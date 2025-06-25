@@ -244,13 +244,15 @@ pub fn MatchResult::group_by_name(
 /// let result = engine.execute("abc")
 /// let all_groups = result.results().collect()  // ["abc", "bc"]
 /// ```
-pub fn MatchResult::results(self : Self) -> Iter[@string.View] {
+pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
   Iter::new(fn(yield_) {
     for i = 0; i < self.captures.length() / 2; i = i + 1 {
       let start = self.captures[i * 2]
       let end = self.captures[i * 2 + 1]
-      if 0 <= start && start <= end && end <= self.input.length() {
-        guard yield_(self.input.view(start_offset=start, end_offset=end))
+      if start == -1 && end == -1 {
+        guard yield_(None) is IterContinue else { return IterEnd }
+      } else {
+        guard yield_(Some(self.input.view(start_offset=start, end_offset=end)))
           is IterContinue else {
           return IterEnd
         }
