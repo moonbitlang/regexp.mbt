@@ -386,4 +386,30 @@ test "alternate capture" {
     greedy=true,
   )
   regex.compile() |> ignore
+  @json.inspect(regex.compile().instructions, content=[
+    { "$tag": "Split", "0": 3, "1": 1 },
+    { "$tag": "Char", "0": ["\u0000", "\u{10FFFF}"] },
+    { "$tag": "Jump", "0": 0 },
+    { "$tag": "Save", "0": 0 },
+    { "$tag": "Split", "0": 5, "1": 9 },
+    { "$tag": "Save", "0": 2 },
+    { "$tag": "Char", "0": ["a", "a"] },
+    { "$tag": "Save", "0": 3 },
+    { "$tag": "Jump", "0": 12 },
+    { "$tag": "Save", "0": 2 },
+    { "$tag": "Char", "0": ["b", "b"] },
+    { "$tag": "Save", "0": 3 },
+    { "$tag": "Split", "0": 13, "1": 22 },
+    { "$tag": "Split", "0": 14, "1": 18 },
+    { "$tag": "Save", "0": 2 },
+    { "$tag": "Char", "0": ["a", "a"] },
+    { "$tag": "Save", "0": 3 },
+    { "$tag": "Jump", "0": 21 },
+    { "$tag": "Save", "0": 2 },
+    { "$tag": "Char", "0": ["b", "b"] },
+    { "$tag": "Save", "0": 3 },
+    { "$tag": "Jump", "0": 12 },
+    { "$tag": "Save", "0": 1 },
+    { "$tag": "Matched" },
+  ])
 }

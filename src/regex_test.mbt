@@ -206,6 +206,21 @@ test "to be fixed" {
       #|Error_(err=InvalidEscape, data="+")
     ,
   )
+  // Behavior mismatch between Golang and JS
+  let regex = @regexp.compile("((?<a>a)|(?<b>b))+")
+  let result = regex.execute("ab")
+  inspect(
+    result.group_by_name("a"),
+    content=
+      #|Some("b")
+    ,
+  )
+  inspect(
+    result.group_by_name("b"),
+    content=
+      #|Some("b")
+    ,
+  )
 }
 
 ///|

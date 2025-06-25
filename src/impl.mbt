@@ -21,7 +21,7 @@ priv enum Instruction {
   Split(Int, Int)
   /// Zero-width assertions
   Assertion(Predicate)
-} derive(Show)
+} derive(Show, ToJson)
 
 ///|
 priv enum Predicate {
@@ -31,7 +31,7 @@ priv enum Predicate {
   EndLine
   WordBoundary
   NoWordBoundary
-} derive(Show)
+} derive(Show, ToJson)
 
 ///|
 /// A thread represents a point in the execution of the VM.
