@@ -39,4 +39,5 @@ const UNICODE_DATABASE_PATH = "/Public/UCD/latest/ucd"
 async fn top() -> Unit raise {
   @promise.spawn(handle_case_folding).await()
   @promise.spawn(handle_property_value_aliases).await()
+  @promise.spawn(handle_general_category).await()
 }
