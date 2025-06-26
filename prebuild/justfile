@@ -1,5 +1,5 @@
 run target=("debug"): (build target)
-    wasmtime -S http=y --dir ../src target/cli.wasm
+    wasmtime -S http=y --dir ../src/unicode target/cli.wasm
 
 build target=("debug"):
     @echo 'Building targeting {{ target }}'

@@ -12,6 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+////////////////////
+/// UNICODE DATA ///
+////////////////////
+
+///|
+const MIN_FOLD : Char = @unicode.MIN_FOLD
+
+///|
+const MAX_FOLD : Char = @unicode.MAX_FOLD
+
+///|
+let simple_case_folding_data = @unicode.simple_case_folding_data
+
+///|
+let reverse_simple_case_folding_data = @unicode.reverse_simple_case_folding_data
+
+//////////////
+/// RANGES ///
+//////////////
+
 ///|
 let ranges_is_digit : Array[Char] = ['0', '9']
 
