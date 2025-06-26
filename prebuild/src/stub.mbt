@@ -29,7 +29,14 @@ pub fn run() -> Result[Unit, Unit] {
 }
 
 ///|
+const UNICODE_ADDRESS = "www.unicode.org"
+
+///|
+const UNICODE_DATABASE_PATH = "/Public/UCD/latest/ucd"
+
+///|
 /// User should change this function to do what they want
 async fn top() -> Unit raise {
   @promise.spawn(handle_case_folding).await()
+  @promise.spawn(handle_property_value_aliases).await()
 }
