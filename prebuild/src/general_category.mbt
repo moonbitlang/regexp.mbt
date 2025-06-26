@@ -32,7 +32,16 @@ async fn get_general_category_code_points(
   defer_(() => input_stream.drop())
 
   // Map to store the character ranges for each category
-  let category_ranges : Map[String, Array[Char]] = {}
+  let category_ranges : Map[String, Array[Char]] = {
+    "LC": [],
+    "L": [],
+    "M": [],
+    "N": [],
+    "P": [],
+    "S": [],
+    "Z": [],
+    "C": [],
+  }
   category_ranges[Unassigned] = []
 
   // Process UnicodeData.txt
@@ -65,6 +74,13 @@ async fn get_general_category_code_points(
       .unwrap()
       ..push((prev_code_point.to_int() + 1).unsafe_to_char())
       ..push((charcode.to_int() - 1).unsafe_to_char())
+      if prev_category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
+        category_ranges
+        .get("C")
+        .unwrap()
+        ..unsafe_pop_back()
+        ..push((charcode.to_int() - 1).unsafe_to_char())
+      }
       prev_category = Unassigned
     }
 
@@ -81,6 +97,64 @@ async fn get_general_category_code_points(
       range.push(charcode)
     } else {
       range..push(charcode)..push(charcode)
+    }
+
+    // Handle special case
+    if category is ("Lu" | "Ll" | "Lt") {
+      if prev_category is ("Lu" | "Ll" | "Lt") {
+        category_ranges.get("LC").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("LC").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Lu" | "Ll" | "Lt" | "Lm" | "Lo") {
+      if prev_category is ("Lu" | "Ll" | "Lt" | "Lm" | "Lo") {
+        category_ranges.get("L").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("L").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Mn" | "Mc" | "Me") {
+      if prev_category is ("Mn" | "Mc" | "Me") {
+        category_ranges.get("M").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("M").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Nd" | "Nl" | "No") {
+      if prev_category is ("Nd" | "Nl" | "No") {
+        category_ranges.get("N").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("N").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Pc" | "Pd" | "Ps" | "Pe" | "Pi" | "Pf" | "Po") {
+      if prev_category is ("Pc" | "Pd" | "Ps" | "Pe" | "Pi" | "Pf" | "Po") {
+        category_ranges.get("P").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("P").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Sm" | "Sc" | "Sk" | "So") {
+      if prev_category is ("Sm" | "Sc" | "Sk" | "So") {
+        category_ranges.get("S").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("S").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Zs" | "Zl" | "Zp") {
+      if prev_category is ("Zs" | "Zl" | "Zp") {
+        category_ranges.get("Z").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("Z").unwrap()..push(charcode)..push(charcode)
+      }
+    }
+    if category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
+      if prev_category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
+        category_ranges.get("C").unwrap()..unsafe_pop_back()..push(charcode)
+      } else {
+        category_ranges.get("C").unwrap()..push(charcode)..push(charcode)
+      }
     }
 
     // Update
