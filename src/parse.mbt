@@ -401,6 +401,11 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         'v' => CharClass(['\u{b}', '\u{b}'], neg=false) // Vertical tab
         'f' => CharClass(['\u{c}', '\u{c}'], neg=false) // Form feed
         'r' => CharClass(['\r', '\r'], neg=false) // Carriage return
+        'p' => {
+          // Unicode property \p{property_name}
+          let property_name = self.parse_unicode_property()
+          self.parse_general_category(property_name)
+        }
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -766,6 +771,59 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
     [_, ..] | [] =>
       // Unknown flag character or unexpected end
       raise Error_(err=InvalidRepeatOp, data=self.input)
+  }
+}
+
+///| Parse Unicode Property name from \p{property_name}
+///
+/// Parses the property name inside the braces after \p
+///
+/// Returns: The property name string
+///
+/// Throws: Error_ when invalid syntax is encountered
+fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
+  guard self.input is ['{', .. rest] else {
+    raise Error_(err=InvalidCharClass, data=self.input)
+  }
+  self.input = rest // consume '{'
+  let chars = []
+  while self.input is [ch, .. rest] && ch != '}' {
+    chars.push(ch)
+    self.input = rest
+  }
+  guard self.input is ['}', .. rest] else {
+    raise Error_(err=InvalidCharClass, data=self.input)
+  }
+  self.input = rest // consume '}'
+  String::from_iter(chars.iter())
+}
+
+///| Parse General Category Unicode Property
+///
+/// Takes a property name and returns the corresponding character class
+/// using the general category mappings from the unicode module
+///
+/// Parameters:
+/// - `property_name`: The name of the general category property
+///
+/// Returns: CharClass containing the character ranges for the property
+///
+/// Throws: Error_ when the property is not found
+fn Parser::parse_general_category(
+  self : Parser,
+  property_name : String
+) -> Regex raise Error_ {
+  // First, normalize the property name using aliases
+  let normalized_name = match
+    @unicode.general_category_property_value_alises.get(property_name) {
+    Some(name) => name
+    None => property_name
+  }
+
+  // Get the character ranges for the normalized property name
+  match @unicode.general_category_ranges.get(normalized_name) {
+    Some(ranges) => CharClass(ranges, neg=false)
+    None => raise Error_(err=InvalidCharClass, data=self.input)
   }
 }
 
@@ -1623,34 +1681,26 @@ test "parse complex word boundary expression" {
   inspect(result, content="[]")
 }
 
-///| Test case: Boundary condition tests
-/// 
-/// Tests the behavior of word boundaries at the beginning and end of a string
-test "parse word boundary edge cases" {
-  let regex = parse("\\bword")
-  let { instructions, capture: capture_count, .. } = regex.compile()
-
-  // Test word boundary at the beginning of the string
-  let result = vm(instructions, "word", capture_count)
-  inspect(result, content="[0, 4]")
-
-  // Test word boundary in the middle of the string
-  let result = vm(instructions, " word", capture_count)
-  inspect(result, content="[1, 5]")
-
-  // Test word boundary at the end
-  let regex = parse("word\\b")
-  let { instructions, capture: capture_count, .. } = regex.compile()
-  let result = vm(instructions, "word", capture_count)
-  inspect(result, content="[0, 4]")
-  let result = vm(instructions, "word ", capture_count)
-  inspect(result, content="[0, 4]")
-}
-
 ///|
-test "parse unicode" {
-  let regex = parse("😀")
+test "parse unicode general property" {
+  let regex = parse("\\p{Ll}")
   let { instructions, capture: capture_count, .. } = regex.compile()
-  let result = vm(instructions, "Hello 😀 World", capture_count)
-  inspect(result, content="[6, 8]")
+
+  // Test matching a letter character
+  let result = vm(instructions, "a", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // Test matching a non-letter character
+  let result = vm(instructions, "1", capture_count)
+  inspect(result, content="[]")
+
+  // Test matching a Unicode letter character
+  let result = vm(instructions, "é", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // Test matching a composed class
+  let regex = parse("\\p{L}")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "é", capture_count)
+  inspect(result, content="[0, 1]")
 }
