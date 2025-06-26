@@ -1,5 +1,5 @@
 {
   "import": [
-    "peter-jerry-ye/regexp/unicode"
+    "peter-jerry-ye/regexp/internal/unicode"
   ]
 }
