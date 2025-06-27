@@ -406,6 +406,11 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           let property_name = self.parse_unicode_property()
           self.parse_general_category(property_name, flag == 'P')
         }
+        'u' => {
+          // Unicode escape \u{aaaa} or \uaaaa
+          let unicode_char = self.parse_unicode_escape()
+          CharClass([unicode_char, unicode_char], neg=false)
+        }
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -517,6 +522,12 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
           // backspace
           'b' => {
             ['\u{8}', '\u{8}'].each(chars.push(_))
+            continue
+          }
+          'u' => {
+            // Unicode escape \u{aaaa} or \uaaaa  
+            let unicode_char = self.parse_unicode_escape()
+            [unicode_char, unicode_char].each(chars.push(_))
             continue
           }
           _ => ch
@@ -772,6 +783,109 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
       // Unknown flag character or unexpected end
       raise Error_(err=InvalidRepeatOp, data=self.input)
   }
+}
+
+///| Parse Unicode Property name from \p{property_name}
+
+///| Parse Unicode escape sequence \u{aaaa} or \uaaaa
+///
+/// Supports two formats:
+/// - `\u{aaaa}`  : Unicode codepoint in hex inside braces (1-6 hex digits)
+/// - `\uaaaa`    : Unicode codepoint in hex, exactly 4 digits
+///
+/// Parameters:
+/// - `self`: Parser instance
+///
+/// Returns: Unicode character corresponding to the hex codepoint
+///
+/// Throws: Error_ when invalid Unicode escape format is encountered
+fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
+  match self.input {
+    ['{', .. rest] => {
+      self.input = rest // consume '{'
+      let hex_digits = []
+
+      // Parse hex digits until '}'
+      while self.input is [ch, .. rest] && ch != '}' {
+        if Parser::is_hex_digit(ch) {
+          hex_digits.push(ch)
+          self.input = rest
+        } else {
+          raise Error_(err=InvalidEscape, data=self.input)
+        }
+      }
+
+      // Check for closing brace
+      guard self.input is ['}', .. rest] else {
+        raise Error_(err=InvalidEscape, data=self.input)
+      }
+      self.input = rest // consume '}'
+
+      // Validate hex digit count (1-6 digits)
+      if hex_digits.length() == 0 || hex_digits.length() > 6 {
+        raise Error_(err=InvalidEscape, data=self.input)
+      }
+
+      // Convert hex string to codepoint
+      let hex_str = String::from_array(hex_digits)
+      let codepoint = Parser::hex_to_int(hex_str)
+
+      // Validate Unicode range (0x0 to 0x10FFFF)
+      if codepoint < 0 || codepoint > 0x10FFFF {
+        raise Error_(err=InvalidEscape, data=self.input)
+      }
+      codepoint.unsafe_to_char()
+    }
+    _ => {
+      // Parse exactly 4 hex digits for \uaaaa format
+      let hex_digits = []
+      for i in 0..<4 {
+        guard self.input is [ch, .. rest] && Parser::is_hex_digit(ch) else {
+          raise Error_(err=InvalidEscape, data=self.input)
+        }
+        hex_digits.push(ch)
+        self.input = rest
+      }
+      let hex_str = String::from_array(hex_digits)
+      let codepoint = Parser::hex_to_int(hex_str)
+      codepoint.unsafe_to_char()
+    }
+  }
+}
+
+///| Check if a character is a hexadecimal digit
+fn Parser::is_hex_digit(ch : Char) -> Bool {
+  (ch >= '0' && ch <= '9') ||
+  (ch >= 'a' && ch <= 'f') ||
+  (ch >= 'A' && ch <= 'F')
+}
+
+///| Convert hexadecimal string to integer
+fn Parser::hex_to_int(hex_str : String) -> Int {
+  let mut result = 0
+  for ch in hex_str {
+    result = result * 16
+    result += match ch {
+      '0' => 0
+      '1' => 1
+      '2' => 2
+      '3' => 3
+      '4' => 4
+      '5' => 5
+      '6' => 6
+      '7' => 7
+      '8' => 8
+      '9' => 9
+      'a' | 'A' => 10
+      'b' | 'B' => 11
+      'c' | 'C' => 12
+      'd' | 'D' => 13
+      'e' | 'E' => 14
+      'f' | 'F' => 15
+      _ => 0 // This shouldn't happen if is_hex_digit was checked
+    }
+  }
+  result
 }
 
 ///| Parse Unicode Property name from \p{property_name}

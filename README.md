@@ -53,6 +53,7 @@ test {
 | **Named**       | `(?<word>abc)`     | Named capture groups                |
 | **Choice**      | `cat\|dog`         | Match either option                 |
 | **Anchors**     | `^start`, `end$`   | Line boundaries                     |
+| **Escapes**     | `\\u{41}`, `\\u0041` | Unicode escapes, standard escapes   |
 
 ## 💡 Real Examples
 
