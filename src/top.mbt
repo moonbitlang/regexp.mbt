@@ -119,11 +119,18 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
 /// if result.matched() { /* 处理匹配结果 */ }
 /// ```
 pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
-  {
-    input,
-    captures: vm(self.instructions, input, self.capture),
-    names: self.map,
+  let captures = vm(self.instructions, input, self.capture)
+  let rest = if captures.length() < 2 {
+    input
+  } else {
+    let match_end = captures[1]
+    if match_end >= 0 && match_end <= input.length() {
+      input.view(start_offset=match_end)
+    } else {
+      input
+    }
   }
+  { input, captures, names: self.map, rest }
 }
 
 ///| 正则表达式匹配结果
@@ -142,6 +149,7 @@ struct MatchResult {
   input : @string.View
   captures : Array[Int]
   names : Map[String, Int]
+  rest : @string.View
 }
 
 ///| 检查是否匹配成功
@@ -261,4 +269,90 @@ pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
       IterContinue
     }
   })
+}
+
+///| 获取匹配后的剩余字符串
+/// 
+/// 返回匹配结束位置之后的剩余输入文本，用于继续进行下一次匹配。
+/// 如果匹配失败，返回原始输入文本。
+/// 
+/// 参数:
+/// - `self`: 匹配结果对象
+/// 
+/// 返回: 从匹配结束位置开始的剩余文本视图
+/// 
+/// 示例:
+/// ```moonbit skip
+/// let result = engine.execute("hello world")
+/// let remaining = result.rest()  // "world" if pattern matched "hello "
+/// ```
+pub fn MatchResult::rest(self : Self) -> @string.View {
+  self.rest
+}
+
+///|
+test "rest method" {
+  let engine = compile("hello")
+  let result = engine.execute("hello world")
+  inspect(result.matched(), content="true")
+  inspect(result.rest(), content=" world")
+  let result2 = engine.execute("say hello")
+  inspect(result2.matched(), content="true")
+  inspect(result2.rest(), content="")
+  let result3 = engine.execute("hi there")
+  inspect(result3.matched(), content="false")
+  inspect(result3.rest(), content="hi there")
+  inspect("Test rest method completed", content="Test rest method completed")
+}
+
+///|
+test "rest method with capture groups" {
+  let engine = compile("(\\w+)\\s+")
+  let result = engine.execute("hello world test")
+  inspect(result.matched(), content="true")
+  inspect(
+    result.group(0),
+    content=
+      #|Some("hello ")
+    ,
+  )
+  inspect(
+    result.group(1),
+    content=
+      #|Some("hello")
+    ,
+  )
+  inspect(result.rest(), content="world test")
+  let engine2 = compile(".*")
+  let result2 = engine2.execute("everything")
+  inspect(result2.matched(), content="true")
+  inspect(
+    result2.group(0),
+    content=
+      #|Some("everything")
+    ,
+  )
+  inspect(result2.rest(), content="")
+}
+
+///|
+test "rest method usage example" {
+  let engine = compile("\\b\\w+\\b")
+  let mut input : @string.View = "word1 word2 word3"
+  let result1 = engine.execute(input)
+  inspect(
+    result1.group(0),
+    content=
+      #|Some("word1")
+    ,
+  )
+  input = result1.rest()
+  let result2 = engine.execute(input)
+  inspect(
+    result2.group(0),
+    content=
+      #|Some("word2")
+    ,
+  )
+  inspect(result2.rest(), content=" word3")
 }

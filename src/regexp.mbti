@@ -38,6 +38,7 @@ type MatchResult
 fn MatchResult::group(Self, Int) -> @string.StringView?
 fn MatchResult::group_by_name(Self, String) -> @string.StringView? raise
 fn MatchResult::matched(Self) -> Bool
+fn MatchResult::rest(Self) -> @string.StringView
 fn MatchResult::results(Self) -> Iter[@string.StringView?]
 
 // Type aliases
