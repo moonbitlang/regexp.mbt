@@ -1,4 +1,4 @@
-package "peter-jerry-ye/regexp/unicode"
+package "peter-jerry-ye/regexp/internal/unicode"
 
 // Values
 const MAX_FOLD : Char = '𞥃'
@@ -6,6 +6,8 @@ const MAX_FOLD : Char = '𞥃'
 const MIN_FOLD : Char = 'A'
 
 let general_category_property_value_alises : Map[String, String]
+
+let general_category_ranges : Map[String, Array[Char]]
 
 let reverse_simple_case_folding_data : Map[Char, Array[Char]]
 
