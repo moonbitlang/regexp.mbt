@@ -401,10 +401,10 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         'v' => CharClass(['\u{b}', '\u{b}'], neg=false) // Vertical tab
         'f' => CharClass(['\u{c}', '\u{c}'], neg=false) // Form feed
         'r' => CharClass(['\r', '\r'], neg=false) // Carriage return
-        'p' => {
+        'p' | 'P' as flag => {
           // Unicode property \p{property_name}
           let property_name = self.parse_unicode_property()
-          self.parse_general_category(property_name)
+          self.parse_general_category(property_name, flag == 'P')
         }
         _ =>
           if self.flags.ignore_case {
@@ -811,20 +811,19 @@ fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
 /// Throws: Error_ when the property is not found
 fn Parser::parse_general_category(
   self : Parser,
-  property_name : String
+  property_name : String,
+  neg : Bool
 ) -> Regex raise Error_ {
   // First, normalize the property name using aliases
   let normalized_name = match
     @unicode.general_category_property_value_alises.get(property_name) {
     Some(name) => name
-    None => property_name
+    None => raise Error_(err=InvalidCharClass, data=self.input)
   }
 
   // Get the character ranges for the normalized property name
-  match @unicode.general_category_ranges.get(normalized_name) {
-    Some(ranges) => CharClass(ranges, neg=false)
-    None => raise Error_(err=InvalidCharClass, data=self.input)
-  }
+  guard @unicode.general_category_ranges.get(normalized_name) is Some(ranges)
+  CharClass(ranges, neg~)
 }
 
 ///| Test case: Parse a complex regular expression with capture groups and quantifiers
@@ -1702,5 +1701,13 @@ test "parse unicode general property" {
   let regex = parse("\\p{L}")
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "é", capture_count)
+  inspect(result, content="[0, 1]")
+
+  // Negated matching
+  let regex = parse("\\P{L}")
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "é", capture_count)
+  inspect(result, content="[]")
+  let result = vm(instructions, "\t", capture_count)
   inspect(result, content="[0, 1]")
 }
