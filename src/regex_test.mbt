@@ -53,7 +53,7 @@ test "unicode escape sequences" {
       #|[Some("A")]
     ,
   )
-  
+
   // Test Unicode characters beyond ASCII
   let regex = @regexp.compile("\\u{4e16}")
   inspect(
@@ -62,7 +62,7 @@ test "unicode escape sequences" {
       #|[Some("世")]
     ,
   )
-  
+
   // Test large Unicode escape
   let regex = @regexp.compile("\\u{10348}")
   inspect(
@@ -74,14 +74,9 @@ test "unicode escape sequences" {
 
   // Test in character classes
   let regex = @regexp.compile("[\\u{41}-\\u{43}]")
-  inspect(
-    regex.execute("B").results().collect(),
-    content=
-      "[]"
-    ,
-  )
+  inspect(regex.execute("B").results().collect(), content="[]")
   inspect(regex.execute("D").matched(), content="false")
-  
+
   // Test with \uaaaa format in character classes
   let regex = @regexp.compile("[\\u0041\\u0042]")
   inspect(
@@ -97,7 +92,7 @@ test "unicode escape sequences" {
     ,
   )
   inspect(regex.execute("C").matched(), content="false")
-  
+
   // Test combining with other patterns
   let regex = @regexp.compile("\\u{48}ello \\u{4e16}")
   inspect(
@@ -106,39 +101,40 @@ test "unicode escape sequences" {
       #|[Some("Hello 世")]
     ,
   )
-  
+
   // Test error cases
   guard (try? @regexp.compile("\\u{}")) is Err(error)
   error
-  |> inspect(content=
-    #|Error_(err=InvalidEscape, data="")
-  )  
-  
+  |> inspect(
+    content=
+      #|Error_(err=InvalidEscape, data="")
+    ,
+  )
   guard (try? @regexp.compile("\\u{1234567}")) is Err(error)
   error
-  |> inspect(content=
-    #|Error_(err=InvalidEscape, data="")
-  )  
-  
+  |> inspect(
+    content=
+      #|Error_(err=InvalidEscape, data="")
+    ,
+  )
   guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
-  error
-  |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG}\")")  
-  
+  error |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG}\")")
   guard (try? @regexp.compile("\\u123")) is Err(error)
   error
-  |> inspect(content=
-    #|Error_(err=InvalidEscape, data="")
-  )  
-  
+  |> inspect(
+    content=
+      #|Error_(err=InvalidEscape, data="")
+    ,
+  )
   guard (try? @regexp.compile("\\uGGGG")) is Err(error)
-  error
-  |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG\")")  
-  
+  error |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG\")")
   guard (try? @regexp.compile("\\u{110000}")) is Err(error)
   error
-  |> inspect(content=
-    #|Error_(err=InvalidEscape, data="")
-  )  
+  |> inspect(
+    content=
+      #|Error_(err=InvalidEscape, data="")
+    ,
+  )
 }
 
 ///|
