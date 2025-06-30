@@ -25,9 +25,11 @@
 /// Throws: `Error_` if the regular expression syntax is invalid.
 /// 
 /// Example:
-/// ```moonbit skip
+/// ```moonbit
 /// let engine = compile("a(bc|de)f")
-/// let result = engine.execute("xxabcf")
+/// inspect(engine.execute("xxabcf").results(), content=(
+///   #|[Some("abcf"), Some("bc")]
+/// ))
 /// ```
 pub fn compile(
   regexp : @string.View,
@@ -54,9 +56,9 @@ pub fn compile(
 /// Returns: The index of the capture group, or `None` if the group name does not exist.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let engine = compile("(?<word>\w+)")
-/// let index = engine.group_by_name("word")  // Some(1)
+/// ```moonbit
+/// let engine = compile("(?<word>\\w+)")
+/// inspect(engine.group_by_name("word"), content="Some(1)")
 /// ```
 pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
   self.map.get(name)
@@ -70,12 +72,12 @@ pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
 /// Args:
 /// - `self`: The regular expression execution engine.
 /// 
-/// Returns: The total number of capture groups (excluding the full match at index 0).
+/// Returns: The total number of capture groups (including the full match at index 0).
 /// 
 /// Example:
-/// ```moonbit skip
+/// ```moonbit
 /// let engine = compile("(a)(b|c)")
-/// let count = engine.group_count()  // 2
+/// inspect(engine.group_count(), content="3")
 /// ```
 pub fn Engine::group_count(self : Self) -> Int {
   self.capture
@@ -92,9 +94,11 @@ pub fn Engine::group_count(self : Self) -> Int {
 /// Returns: An iterator containing all group names.
 /// 
 /// Example:
-/// ```moonbit skip
+/// ```moonbit
 /// let engine = compile("(?<first>a)(?<second>b)")
-/// let names = engine.group_names().collect()  // ["first", "second"]
+/// inspect(engine.group_names(), content=
+///   #|["first", "second"]
+/// )
 /// ```
 pub fn Engine::group_names(self : Self) -> Iter[String] {
   self.map.keys()
@@ -113,10 +117,14 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
 /// Returns: A `MatchResult` object containing the match status and capture group information.
 /// 
 /// Example:
-/// ```moonbit skip
+/// ```moonbit
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
-/// if result.matched() { /* Process match result */ }
+/// if result.matched() { 
+///   inspect(result.group(0), content=(
+///     #|Some("abcf")
+///   ))
+/// }
 /// ```
 pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
   let captures = vm(self.instructions, input, self.capture)
@@ -163,11 +171,9 @@ struct MatchResult {
 /// Returns: `true` if a match was found, otherwise `false`.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let result = engine.execute("text")
-/// if result.matched() {
-///   println("Match successful")
-/// }
+/// ```moonbit
+/// let result = compile("text").execute("text")
+/// inspect(result.matched(), content="true")
 /// ```
 pub fn MatchResult::matched(self : Self) -> Bool {
   not(self.captures is [])
@@ -187,10 +193,15 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 /// - `None`: If the index is invalid or the capture group did not match.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let result = engine.execute("abc")
-/// let full_match = result.group(0)    // Some("abc")
-/// let first_group = result.group(1)   // Some("bc")
+/// ```moonbit
+/// let result = compile(".(bc)").execute("abc")
+/// inspect(result.group(0), content=(
+///   #|Some("abc")
+/// ))
+/// let first_group = result.group(1)
+/// inspect(first_group, content=(
+///   #|Some("bc")
+/// ))
 /// ```
 pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
   if self.captures.is_empty() ||
@@ -222,9 +233,11 @@ pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
 /// Throws: `Error_` when the specified group name does not exist.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let result = engine.execute("abc")
-/// let word = result.group_by_name("word")  // Some("abc")
+/// ```moonbit
+/// let result = compile("(?<word>\\p{Letter}+)").execute("abc")
+/// inspect(result.group_by_name("word"), content=(
+///   #|Some("abc")
+/// ))
 /// ```
 pub fn MatchResult::group_by_name(
   self : Self,
@@ -248,9 +261,11 @@ pub fn MatchResult::group_by_name(
 /// Returns: An iterator containing the content of all valid capture groups.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let result = engine.execute("abc")
-/// let all_groups = result.results().collect()  // ["abc", "bc"]
+/// ```moonbit
+/// let result = compile("(\\w)+").execute("abc")
+/// inspect(result.results(), content=(
+///   #|[Some("abc"), Some("c")]
+/// ))
 /// ```
 pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
   Iter::new(fn(yield_) {
@@ -282,9 +297,11 @@ pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
 /// Returns: A view of the text remaining from the end of the match.
 /// 
 /// Example:
-/// ```moonbit skip
-/// let result = engine.execute("hello world")
-/// let remaining = result.rest()  // "world" if pattern matched "hello "
+/// ```moonbit
+/// let result = compile("hello ").execute("hello world")
+/// inspect(result.rest(), content="world")
+/// let result = compile("hello ").execute("what?")
+/// inspect(result.rest(), content="what?")
 /// ```
 pub fn MatchResult::rest(self : Self) -> @string.View {
   self.rest
