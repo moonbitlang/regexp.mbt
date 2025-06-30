@@ -1,4 +1,4 @@
-package "peter-jerry-ye/regexp"
+package "moonbitlang/regexp"
 
 import(
   "moonbitlang/core/string"
