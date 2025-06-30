@@ -1072,16 +1072,16 @@ test "unicode and international characters" {
     ,
   )
 
-  // // Test unicode character classes
-  // let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
-  // if regex.execute("Hello 世界 World").matched() {
-  //   inspect(
-  //     regex.execute("Hello 世界 World").results(),
-  //     content=
-  //       #|["世界"]
-  //     ,
-  //   )
-  // }
+  // Test unicode character classes
+  let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
+  if regex.execute("Hello 世界 World").matched() {
+    inspect(
+      regex.execute("Hello 世界 World").results(),
+      content=
+        #|["世界"]
+      ,
+    )
+  }
 
   // Test emoji (if supported)
   let regex = @regexp.compile("😀")
