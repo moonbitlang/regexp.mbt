@@ -790,32 +790,38 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
   match self.input {
     ['{', .. rest] => {
       self.input = rest // consume '{'
-      let hex_digits = []
+      let mut codepoint = 0
+      let mut len = 0
 
       // Parse hex digits until '}'
       while self.input is [ch, .. rest] && ch != '}' {
-        if Parser::is_hex_digit(ch) {
-          hex_digits.push(ch)
-          self.input = rest
-        } else {
+        match ch {
+          '0'..='9' as ch => {
+            codepoint = (codepoint << 4) | (ch.to_int() - '0'.to_int())
+            self.input = rest
+          }
+          'a'..='f' as ch => {
+            codepoint = (codepoint << 4) | (ch.to_int() - 'a'.to_int() + 10)
+            self.input = rest
+          }
+          'A'..='F' as ch => {
+            codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
+            self.input = rest
+          }
+          _ => raise Error_(err=InvalidEscape, data=self.input)
+        }
+        len += 1
+        if len > 6 {
           raise Error_(err=InvalidEscape, data=self.input)
         }
       }
+      if len == 0 {
+        raise Error_(err=InvalidEscape, data=self.input)
+      }
 
       // Check for closing brace
-      guard self.input is ['}', .. rest] else {
-        raise Error_(err=InvalidEscape, data=self.input)
-      }
+      guard self.input is ['}', .. rest]
       self.input = rest // consume '}'
-
-      // Validate hex digit count (1-6 digits)
-      if hex_digits.length() == 0 || hex_digits.length() > 6 {
-        raise Error_(err=InvalidEscape, data=self.input)
-      }
-
-      // Convert hex string to codepoint
-      let hex_str = String::from_array(hex_digits)
-      let codepoint = Parser::hex_to_int(hex_str)
 
       // Validate Unicode range (0x0 to 0x10FFFF)
       if codepoint < 0 || codepoint > 0x10FFFF {
@@ -825,54 +831,27 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
     }
     _ => {
       // Parse exactly 4 hex digits for \uaaaa format
-      let hex_digits = []
+      let mut codepoint = 0
       for i in 0..<4 {
-        guard self.input is [ch, .. rest] && Parser::is_hex_digit(ch) else {
-          raise Error_(err=InvalidEscape, data=self.input)
+        match self.input {
+          ['0'..='9' as ch, .. rest] => {
+            codepoint = (codepoint << 4) | (ch.to_int() - '0'.to_int())
+            self.input = rest
+          }
+          ['a'..='f' as ch, .. rest] => {
+            codepoint = (codepoint << 4) | (ch.to_int() - 'a'.to_int() + 10)
+            self.input = rest
+          }
+          ['A'..='F' as ch, .. rest] => {
+            codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
+            self.input = rest
+          }
+          _ => raise Error_(err=InvalidEscape, data=self.input)
         }
-        hex_digits.push(ch)
-        self.input = rest
       }
-      let hex_str = String::from_array(hex_digits)
-      let codepoint = Parser::hex_to_int(hex_str)
       codepoint.unsafe_to_char()
     }
   }
-}
-
-///| Check if a character is a hexadecimal digit
-fn Parser::is_hex_digit(ch : Char) -> Bool {
-  (ch >= '0' && ch <= '9') ||
-  (ch >= 'a' && ch <= 'f') ||
-  (ch >= 'A' && ch <= 'F')
-}
-
-///| Convert hexadecimal string to integer
-fn Parser::hex_to_int(hex_str : String) -> Int {
-  let mut result = 0
-  for ch in hex_str {
-    result = result * 16
-    result += match ch {
-      '0' => 0
-      '1' => 1
-      '2' => 2
-      '3' => 3
-      '4' => 4
-      '5' => 5
-      '6' => 6
-      '7' => 7
-      '8' => 8
-      '9' => 9
-      'a' | 'A' => 10
-      'b' | 'B' => 11
-      'c' | 'C' => 12
-      'd' | 'D' => 13
-      'e' | 'E' => 14
-      'f' | 'F' => 15
-      _ => 0 // This shouldn't happen if is_hex_digit was checked
-    }
-  }
-  result
 }
 
 ///|

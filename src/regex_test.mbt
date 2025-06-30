@@ -104,14 +104,14 @@ test "unicode escape sequences" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="")
+      #|Error_(err=InvalidEscape, data="}")
     ,
   )
   guard (try? @regexp.compile("\\u{1234567}")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="")
+      #|Error_(err=InvalidEscape, data="}")
     ,
   )
   guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
