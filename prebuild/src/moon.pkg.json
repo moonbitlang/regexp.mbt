@@ -28,6 +28,6 @@
     },
     "peter-jerry-ye/wasi-imports/interface/wasi/filesystem/preopens",
     "peter-jerry-ye/wasi-imports/interface/wasi/io/streams",
-    "peter-jerry-ye/regexp"
+    "moonbitlang/regexp"
   ]
 }

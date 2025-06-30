@@ -1,10 +1,10 @@
 {
-  "name": "peter-jerry-ye/regexp",
+  "name": "moonbitlang/regexp",
   "version": "0.1.0",
   "readme": "README.md",
-  "repository": "",
+  "repository": "https://github.com/moonbitlang/regexp.mbt",
   "license": "Apache-2.0",
-  "keywords": [],
+  "keywords": ["regexp"],
   "description": "",
   "source": "src"
 }
