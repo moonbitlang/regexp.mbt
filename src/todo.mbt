@@ -21,3 +21,22 @@ test "to be discussed" {
     content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
   )
 }
+
+///|
+/// Reference: https://github.com/golang/go/issues/46123
+test "to be fixed" {
+  let result = parse("(|a)*").compile().execute("aaa")
+  inspect(
+    result.group(0),
+    content=
+      #|Some("aaa")
+    ,
+  )
+  let result = parse("(|a)+").compile().execute("aaa")
+  inspect(
+    result.group(0),
+    content=
+      #|Some("aaa")
+    ,
+  )
+}

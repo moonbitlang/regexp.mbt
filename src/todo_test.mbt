@@ -38,7 +38,9 @@ test "to be discussed" {
       #|Error_(err=InvalidEscape, data="+")
     ,
   )
-  // Behavior mismatch between Golang and JS
+  // Behavior difference between Golang and JS
+  // The current behavior aligns with Golang, where the last match is returned for each submatch
+  // In JS, the submatch is matched only if the parent is matched
   let regex = @regexp.compile("((?<a>a)|(?<b>b))+")
   let result = regex.execute("ab")
   inspect(
@@ -51,6 +53,25 @@ test "to be discussed" {
     result.group_by_name("b"),
     content=
       #|Some("b")
+    ,
+  )
+  // Behavior difference between Golang and JS
+  // The current behavior aligns with JavaScript
+  // For Golang's behavior, reference https://github.com/golang/go/issues/46123
+  let regex = @regexp.compile("(|a)+")
+  let result = regex.execute("aaa")
+  inspect(
+    result.group(0),
+    content=
+      #|Some("aaa")
+    ,
+  )
+  let regex = @regexp.compile("(|a)*")
+  let result = regex.execute("aaa")
+  inspect(
+    result.group(0),
+    content=
+      #|Some("aaa")
     ,
   )
 }

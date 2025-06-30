@@ -371,6 +371,12 @@ test "empty" {
   inspect(result, content="[0, 3]")
   let result = vm(instructions, "xyz".view(), capture_count)
   inspect(result, content="[0, 0]")
+
+  /// Reversed
+  let regex = Regex::Alternate(Regex::Empty, Regex::Literal("abc".to_string()))
+  let { instructions, capture: capture_count, .. } = regex.compile()
+  let result = vm(instructions, "abc".view(), capture_count)
+  inspect(result, content="[0, 0]")
 }
 
 ///|
