@@ -22,14 +22,6 @@ test "to be discussed" {
       #|Error_(err=InvalidRepeatOp, data="")
     ,
   )
-  // This should be allowed in some flavors where the `}` is considered a literal character
-  guard (try? @regexp.compile("a|b|c}")) is Err(error)
-  error
-  |> inspect(
-    content=
-      #|Error_(err=InvalidEscape, data="}")
-    ,
-  )
   // This should raise InvalidRepeatOp to align with golang
   guard (try? @regexp.compile("a++")) is Err(error)
   error

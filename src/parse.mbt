@@ -600,20 +600,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
 ///
 /// Returns: `true` if it is a special character
 fn Parser::is_special_char(c : Char) -> Bool {
-  c
-  is ('*'
-  | '+'
-  | '?'
-  | '|'
-  | '('
-  | ')'
-  | '['
-  | ']'
-  | '{'
-  | '}'
-  | '.'
-  | '^'
-  | '$')
+  c is ('*' | '+' | '?' | '|' | '(' | ')' | '[' | ']' | '{' | '.' | '^' | '$')
 }
 
 ///| Parse Repeat Quantifier
@@ -1570,4 +1557,13 @@ test "parse unicode general property" {
   inspect(result, content="[]")
   let result = vm(instructions, "\t", capture_count)
   inspect(result, content="[0, 1]")
+}
+
+///|
+test "parse unmatched curly brace" {
+  let regex = parse("a|b}")
+  inspect(
+    regex,
+    content="Alternate(CharClass(['a', 'a'], neg=false), Concat([CharClass(['b', 'b'], neg=false), CharClass(['}', '}'], neg=false)]))",
+  )
 }
