@@ -888,13 +888,7 @@ fn Parser::hex_to_int(hex_str : String) -> Int {
   result
 }
 
-///| Parse Unicode Property name from \p{property_name}
-///
-/// Parses the property name inside the braces after \p
-///
-/// Returns: The property name string
-///
-/// Throws: Error_ when invalid syntax is encountered
+///|
 fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
   guard self.input is ['{', .. rest] else {
     raise Error_(err=InvalidCharClass, data=self.input)
@@ -912,17 +906,7 @@ fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
   String::from_iter(chars.iter())
 }
 
-///| Parse General Category Unicode Property
-///
-/// Takes a property name and returns the corresponding character class
-/// using the general category mappings from the unicode module
-///
-/// Parameters:
-/// - `property_name`: The name of the general category property
-///
-/// Returns: CharClass containing the character ranges for the property
-///
-/// Throws: Error_ when the property is not found
+///|
 fn Parser::parse_general_category(
   self : Parser,
   property_name : String,
@@ -940,16 +924,7 @@ fn Parser::parse_general_category(
   CharClass(ranges, neg~)
 }
 
-///| Test case: Parse a complex regular expression with capture groups and quantifiers
-///
-/// Test regex "a(b|c)*d":
-/// - Character 'a'
-/// - Capture group (b|c) repeated 0 or more times
-/// - Character 'd'
-///
-/// Expected match for string "abbd":
-/// - Full match range: [0, 4]
-/// - Last match of the first capture group: [2, 3] (character 'b')
+///|
 test "parse complex regex with capture group and quantifier" {
   let regex = parse("a(b|c)*d")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -957,14 +932,7 @@ test "parse complex regex with capture group and quantifier" {
   inspect(result, content="[0, 4, 2, 3]")
 }
 
-///| Test case: Parse a multi-branch alternation expression
-///
-/// Test regex "abc|def|ghi":
-/// - Three alternative branches: "abc", "def", "ghi"
-/// - Matches any one of them
-///
-/// Expected match for the first branch "abc" in "abcdefghi":
-/// - Match range: [0, 3]
+///|
 test "parse multi-branch alternation expression" {
   let regex = parse("abc|def|ghi")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -972,15 +940,7 @@ test "parse multi-branch alternation expression" {
   inspect(result, content="[0, 3]")
 }
 
-///| Test case: Parse dot character (any character match)
-///
-/// Test regex "a.c":
-/// - Character 'a'
-/// - Any character '.'
-/// - Character 'c'
-///
-/// Expected to match strings like "abc", "axc", "a1c", etc.:
-/// - Match range: [0, 3]
+///|
 test "parse dot character (any character match)" {
   let regex = parse("a.c")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -992,13 +952,7 @@ test "parse dot character (any character match)" {
   inspect(result, content="[0, 3]")
 }
 
-///| Test case: Parse character class range syntax
-///
-/// Test regex "[a-z]":
-/// - Character range: matches any character between 'a' and 'z'
-///
-/// Expected to match the first character 'h' in "hello":
-/// - Match range: [0, 1]
+///|
 test "parse character class range syntax" {
   let regex = parse("[a-z]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1006,14 +960,7 @@ test "parse character class range syntax" {
   inspect(result, content="[0, 1]")
 }
 
-///| Test case: Parse multiple character class ranges
-///
-/// Test regex "[a-zA-Z]":
-/// - Two character ranges: 'a' to 'z' and 'A' to 'Z'
-/// - Matches any English letter
-///
-/// Expected to match the first character 'H' in "Hello123":
-/// - Match range: [0, 1]
+///|
 test "parse multiple character class ranges" {
   let regex = parse("[a-zA-Z]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1021,15 +968,7 @@ test "parse multiple character class ranges" {
   inspect(result, content="[0, 1]")
 }
 
-///| Test case: Parse mixed character class (ranges and individual characters)
-///
-/// Test regex "[a-z0-9_]":
-/// - Character range: 'a' to 'z'
-/// - Character range: '0' to '9'
-/// - Single character: '_'
-///
-/// Expected to match the first character '_' in "_test123":
-/// - Match range: [0, 1]
+///|
 test "parse mixed character class (ranges and individual characters)" {
   let regex = parse("[a-z0-9_]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1037,14 +976,7 @@ test "parse mixed character class (ranges and individual characters)" {
   inspect(result, content="[0, 1]")
 }
 
-///| Test case: Parse literal hyphen in a character class
-///
-/// Test regex "[abc-]":
-/// - Single characters: 'a', 'b', 'c'
-/// - Literal hyphen: '-' (at the end, does not form a range)
-///
-/// Expected to match the hyphen in "-":
-/// - Match range: [0, 1]
+///|
 test "parse literal hyphen in character class" {
   let regex = parse("[abc-]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1052,14 +984,7 @@ test "parse literal hyphen in character class" {
   inspect(result, content="[0, 1]")
 }
 
-///| Test case: Parse a character class range with escaped characters
-///
-/// Test regex "[\]-a]":
-/// - Uses escape character '\]' to include a right bracket
-/// - Character range: from ']' to 'a'
-///
-/// Expected to match the ']' character in "]":
-/// - Match range: [0, 1]
+///|
 test "parse character class range with escaped characters" {
   let regex = parse("[\\]-a]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1076,13 +1001,7 @@ test "parse character class range with escaped characters" {
   )
 }
 
-///| Test case: Parse exact repeat quantifier {n}
-///
-/// Test regex "a{3}":
-/// - Character 'a' repeated exactly 3 times
-///
-/// Expected to match the string "aaa":
-/// - Match range: [0, 3]
+///|
 test "parse exact repeat quantifier {n}" {
   let regex = parse("a{3}")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1098,13 +1017,7 @@ test "parse exact repeat quantifier {n}" {
   inspect(result, content="[0, 3]")
 }
 
-///| Test case: Parse minimum repeat quantifier {n,}
-///
-/// Test regex "b{2,}":
-/// - Character 'b' repeated at least 2 times
-///
-/// Expected to match strings "bb", "bbb", "bbbb":
-/// - Match range: [0, string length]
+///|
 test "parse minimum repeat quantifier {n,}" {
   let regex = parse("b{2,}")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1122,13 +1035,7 @@ test "parse minimum repeat quantifier {n,}" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse range repeat quantifier {n,m}
-///
-/// Test regex "c{2,4}":
-/// - Character 'c' repeated 2 to 4 times
-///
-/// Expected to match strings "cc", "ccc", "cccc":
-/// - Match range: [0, actual match length]
+///|
 test "parse range repeat quantifier {n,m}" {
   let regex = parse("c{2,4}")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1154,12 +1061,7 @@ test "parse range repeat quantifier {n,m}" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse lazy minimum repeat quantifier {n,}?
-///
-/// Test regex "d{2,}?":
-/// - Character 'd' repeated at least 2 times, lazy mode
-///
-/// Lazy mode matches as few characters as possible
+///|
 test "parse lazy minimum repeat quantifier {n,}?" {
   let regex = parse("d{2,}?")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1169,12 +1071,7 @@ test "parse lazy minimum repeat quantifier {n,}?" {
   inspect(result, content="[0, 2]")
 }
 
-///| Test case: Parse a complex repeat quantifier expression
-///
-/// Test regex "a{2}b{1,3}c{2,}":
-/// - Character 'a' exactly 2 times
-/// - Character 'b' 1 to 3 times
-/// - Character 'c' at least 2 times
+///|
 test "parse complex repeat quantifier expression" {
   let regex = parse("a{2}b{1,3}c{2,}")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1188,10 +1085,7 @@ test "parse complex repeat quantifier expression" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse a repeat quantifier with groups
-///
-/// Test regex "(ab){2}":
-/// - Group (ab) repeated exactly 2 times
+///|
 test "parse repeat quantifier with groups" {
   let regex = parse("(ab){2}")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1201,9 +1095,7 @@ test "parse repeat quantifier with groups" {
   inspect(result, content="[0, 4, 2, 4]")
 }
 
-///| Test case: Test error cases for repeat quantifiers
-///
-/// Tests various invalid repeat quantifier syntaxes
+///|
 test "parse repeat quantifier error cases" {
   // Test case where {m,n} has m > n
   let regex = try? parse("a{5,2}")
@@ -1227,10 +1119,7 @@ test "parse repeat quantifier error cases" {
   inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")
 }
 
-///| Test case: Parse a non-capturing group
-///
-/// Test regex "(?:abc)":
-/// - Non-capturing group: matches "abc" but does not capture
+///|
 test "parse non-capturing group" {
   let regex = parse("(?:abc)")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1238,13 +1127,7 @@ test "parse non-capturing group" {
   inspect(result, content="[0, 3]")
 }
 
-///| Test case: Parse a named capture group
-///
-/// Test regex "(?<name>abc)":
-/// - Named capture group: name is "name", matches "abc"
-///
-/// Expected match for string "abc":
-/// - Match range: [0, 3, 0, 3] (full match and named group match)
+///|
 test "parse named capture group" {
   let regex = parse("(?<name>abc)")
   let { instructions, capture: capture_count, map } = regex.compile()
@@ -1255,14 +1138,7 @@ test "parse named capture group" {
   inspect(map.get("name"), content="Some(1)")
 }
 
-///| Test case: Parse a complex named capture group expression
-///
-/// Test regex "(?<first>a+)(?<second>b+)":
-/// - First named capture group: name "first", matches one or more 'a's
-/// - Second named capture group: name "second", matches one or more 'b's
-///
-/// Expected match for string "aaabbb":
-/// - Match range: [0, 6, 0, 3, 3, 6]
+///|
 test "parse complex named capture group expression" {
   let regex = parse("(?<first>a+)(?<second>b+)")
   let { instructions, capture: capture_count, map } = regex.compile()
@@ -1274,14 +1150,7 @@ test "parse complex named capture group expression" {
   inspect(map.get("second"), content="Some(2)")
 }
 
-///| Test case: Parse nested named capture groups
-///
-/// Test regex "(?<outer>a(?<inner>bc)d)":
-/// - Outer named capture group: name "outer"
-/// - Inner named capture group: name "inner"
-///
-/// Expected match for string "abcd":
-/// - Match range: [0, 4, 0, 4, 1, 3]
+///|
 test "parse nested named capture groups" {
   let regex = parse("(?<outer>a(?<inner>bc)d)")
   let { instructions, capture: capture_count, map } = regex.compile()
@@ -1293,15 +1162,7 @@ test "parse nested named capture groups" {
   inspect(map.get("inner"), content="Some(2)")
 }
 
-///| Test case: Mix named and regular capture groups
-///
-/// Test regex "(a)(?<named>b)(c)":
-/// - First regular capture group: matches "a"
-/// - Named capture group: name "named", matches "b"
-/// - Second regular capture group: matches "c"
-///
-/// Expected match for string "abc":
-/// - Match range: [0, 3, 0, 1, 1, 2, 2, 3]
+///|
 test "parse mixed named and regular capture groups" {
   let regex = parse("(a)(?<named>b)(c)")
   let { instructions, capture: capture_count, map } = regex.compile()
@@ -1312,9 +1173,7 @@ test "parse mixed named and regular capture groups" {
   inspect(map.get("named"), content="Some(2)")
 }
 
-///| Test case: Error cases for named capture groups
-///
-/// Tests various invalid named capture group syntaxes
+///|
 test "parse named capture group error cases" {
   // Test empty group name
   let regex = try? parse("(?<>abc)")
@@ -1343,9 +1202,7 @@ test "parse named capture group error cases" {
   inspect(regex, content="Err(Error_(err=MissingParenthesis, data=\"\"))")
 }
 
-///| Test case: Valid group name formats
-///
-/// Tests various valid group name formats
+///|
 test "parse valid group name formats" {
   // Starts with a letter
   let regex = parse("(?<group>abc)")
@@ -1384,17 +1241,7 @@ test "parse valid group name formats" {
   )
 }
 
-///| Test case: Parse line begin assertion ^
-///
-/// Test regex "^abc":
-/// - Line begin assertion: ^
-/// - Character sequence: abc
-///
-/// Expected to match lines starting with "abc":
-/// - Match "abc" itself: [0, 3]
-/// - Match "abc\ndef": [0, 3] (first line)
-/// - Match "def\nabc": [4, 7] (second line)
-/// - Should not match "xabc": [] (not at the beginning of a line)
+///|
 test "parse line begin assertion ^" {
   let regex = parse("^abc", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1415,17 +1262,7 @@ test "parse line begin assertion ^" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse line end assertion $
-///
-/// Test regex "abc$":
-/// - Character sequence: abc
-/// - Line end assertion: $
-///
-/// Expected to match lines ending with "abc":
-/// - Match "abc" itself: [0, 3]
-/// - Match "abc\ndef": [0, 3] (first line)
-/// - Match "def\nabc": [4, 7] (second line)
-/// - Should not match "abcx": [] (not at the end of a line)
+///|
 test "parse line end assertion $" {
   let regex = parse("abc$", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1447,17 +1284,7 @@ test "parse line end assertion $" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse combination of line begin and end assertions ^...$
-///
-/// Test regex "^abc$":
-/// - Line begin assertion: ^
-/// - Character sequence: abc
-/// - Line end assertion: $
-///
-/// Expected to match when the entire line is "abc":
-/// - Match "abc": [0, 3]
-/// - Should not match "abcd": [] (extra characters at the end)
-/// - Should not match "xabc": [] (extra characters at the beginning)
+///|
 test "parse line begin and end assertion ^...$" {
   let regex = parse("^abc$")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1475,13 +1302,7 @@ test "parse line begin and end assertion ^...$" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse assertions in multiline mode
-///
-/// Test matching "^line" in multiline text:
-/// - Should match "line" at the beginning of each line
-///
-/// Test string "line1\nline2\nnot line":
-/// - Should match "line" on the first line: [0, 4]
+///|
 test "parse multiline assertions" {
   let regex = parse("^line", flags={ ..Flags::default(), multiline: true })
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1497,14 +1318,7 @@ test "parse multiline assertions" {
   inspect(result, content="[4, 8]") // Matches "line" on the first line
 }
 
-///| Test case: Combination of assertions and quantifiers
-///
-/// Test regex "^a+$":
-/// - Line begin assertion: ^
-/// - Character 'a' repeated one or more times
-/// - Line end assertion: $
-///
-/// Expected to match when the entire line consists of 'a' characters
+///|
 test "parse assertion with quantifiers" {
   let regex = parse("^a+$")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1522,14 +1336,7 @@ test "parse assertion with quantifiers" {
   inspect(result, content="[]")
 }
 
-///| Test case: Combination of assertions and capture groups
-///
-/// Test regex "^(abc)$":
-/// - Line begin assertion: ^
-/// - Capture group: (abc)
-/// - Line end assertion: $
-///
-/// Expected to capture the entire line's content
+///|
 test "parse assertion with capture groups" {
   let regex = parse("^(abc)$")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1543,14 +1350,7 @@ test "parse assertion with capture groups" {
   inspect(result, content="[]")
 }
 
-///| Test case: Escaped assertion characters
-///
-/// Test regex "\\^abc\\$":
-/// - Escaped '^' character
-/// - Character sequence: abc
-/// - Escaped '$' character
-///
-/// Expected to match the literal string "^abc$"
+///|
 test "parse escaped assertion characters" {
   let regex = parse("\\^abc\\$")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1564,12 +1364,7 @@ test "parse escaped assertion characters" {
   inspect(result, content="[]")
 }
 
-///| Test case: Assertion characters within a character class
-///
-/// Test regex "[^$]":
-/// - Character class: matches any character except '$'
-///
-/// In a character class, ^ at the beginning means negation, and $ is treated as a literal character.
+///|
 test "parse assertion characters in character class" {
   let regex = parse("[^$]")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1587,14 +1382,7 @@ test "parse assertion characters in character class" {
   inspect(result, content="[]")
 }
 
-///| Test case: Complex assertion expression
-///
-/// Test regex "^(hello|world)$":
-/// - Line begin assertion: ^
-/// - Alternation group: (hello|world)
-/// - Line end assertion: $
-///
-/// Expected to match when the entire line is "hello" or "world"
+///|
 test "parse complex assertion expression" {
   let regex = parse("^(hello|world)$")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1612,14 +1400,7 @@ test "parse complex assertion expression" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse word boundary assertion \b
-///
-/// Test regex "\bword\b":
-/// - Word boundary assertion: \b
-/// - Character sequence: word
-/// - Word boundary assertion: \b
-///
-/// Expected to match the whole word "word", not partial words
+///|
 test "parse word boundary assertion \\b" {
   let regex = parse("\\bword\\b")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1641,14 +1422,7 @@ test "parse word boundary assertion \\b" {
   inspect(result, content="[]")
 }
 
-///| Test case: Parse non-word boundary assertion \B
-///
-/// Test regex "\\Bword\\B":
-/// - Non-word boundary assertion: \B
-/// - Character sequence: word
-/// - Non-word boundary assertion: \B
-///
-/// Expected to match "word" surrounded by other characters (not at a word boundary)
+///|
 test "parse non-word boundary assertion \\B" {
   let regex = parse("\\Bword\\B")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1666,11 +1440,7 @@ test "parse non-word boundary assertion \\B" {
   inspect(result, content="[]")
 }
 
-///| Test case: Combined use of word boundary assertions
-///
-/// Test regex "\\btest|\\btesting\\b":
-/// - Alternative 1: \btest (word starting with "test")
-/// - Alternative 2: \btesting\b (whole word "testing")
+///|
 test "parse combined word boundary assertions" {
   let regex = parse("\\btest|\\btesting\\b")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1688,14 +1458,7 @@ test "parse combined word boundary assertions" {
   inspect(result, content="[0, 4]")
 }
 
-///| Test case: Word boundary combined with character class
-///
-/// Test regex "\\b[a-z]+\\b":
-/// - Word boundary assertion: \b
-/// - Character class: [a-z]+ one or more lowercase letters
-/// - Word boundary assertion: \b
-///
-/// Expected to match whole lowercase words
+///|
 test "parse word boundary with character class" {
   let regex = parse("\\b[a-z]+\\b")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1713,14 +1476,7 @@ test "parse word boundary with character class" {
   inspect(result, content="[]")
 }
 
-///| Test case: Word boundary combined with quantifiers
-///
-/// Test regex "\\b\\w{3,5}\\b":
-/// - Word boundary assertion: \b
-/// - Word character class: \w repeated 3 to 5 times
-/// - Word boundary assertion: \b
-///
-/// Expected to match whole words of length 3 to 5
+///|
 test "parse word boundary with quantifiers" {
   let regex = parse("\\b\\w{3,5}\\b")
   let { instructions, capture: capture_count, .. } = regex.compile()
@@ -1763,17 +1519,7 @@ test "parse word boundary with capture groups" {
   inspect(result, content="[0, 5, 0, 5]")
 }
 
-///| Test case: Complex word boundary expression
-///
-/// Test regex "\\b(?:the|a|an)\\b\\s+\\b\\w+\\b":
-/// - Non-capturing group: (?:the|a|an) for articles
-/// - Word boundary assertion: \b
-/// - Whitespace character: \s+ one or more whitespace characters
-/// - Word boundary assertion: \b
-/// - Word character: \w+ one or more word characters
-/// - Word boundary assertion: \b
-///
-/// Expected to match the pattern "article + space + word"
+///|
 test "parse complex word boundary expression" {
   // Simplified version, only tests basic word boundary functionality
   let regex = parse("\\bthe\\b")
