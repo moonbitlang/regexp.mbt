@@ -6,5 +6,6 @@
   "license": "Apache-2.0",
   "keywords": ["regexp"],
   "description": "",
-  "source": "src"
+  "source": "src",
+  "exclude": ["prebuild"]
 }
