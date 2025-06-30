@@ -319,19 +319,21 @@ test "repeat" {
   inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab".view(), capture_count)
   inspect(result, content="[]")
+
+  // with capture
   let regex = Regex::Repeat(
     min=2,
     max=Some(4),
-    Regex::Literal("abc".to_string()),
+    Capture(name=Some("a"), Regex::Literal("abc".to_string())),
     greedy=false,
   )
-  let { instructions, capture: capture_count, .. } = regex.compile()
-  let result = vm(instructions, "abcabcabcabc".view(), capture_count)
-  inspect(result, content="[0, 6]")
-  let result = vm(instructions, "abcabc".view(), capture_count)
-  inspect(result, content="[0, 6]")
-  let result = vm(instructions, "ab".view(), capture_count)
-  inspect(result, content="[]")
+  let { map, .. } = regex.compile()
+  inspect(
+    map,
+    content=
+      #|{"a": 1}
+    ,
+  )
 }
 
 ///|
