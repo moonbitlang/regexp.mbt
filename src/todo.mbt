@@ -29,14 +29,14 @@ test "to be fixed" {
   inspect(
     result.group(0),
     content=
-      #|Some("aaa")
+      #|Some("")
     ,
   )
   let result = parse("(|a)+").compile().execute("aaa")
   inspect(
     result.group(0),
     content=
-      #|Some("aaa")
+      #|Some("")
     ,
   )
 }

@@ -72,35 +72,34 @@ fn Regex::compile_aux(regex : Self, matcher : Engine) -> Unit {
       instructions.push(Save(capture * 2 + 1))
     }
     ZeroOrMore(inner, greedy~) => {
-      // [ ..., split, inner, jmp, ... ]
+      // Compiles to (a+)?
+      // See https://github.com/golang/go/issues/46123
+      // [ ..., split, inner, split, ... ]
       //          ^ -- instructions.length() at the beginning
       //                            ^ -- instructions.length() at the end
       let split_pos = instructions.length()
       // placeholder for split
       instructions.push(Split(-1, -1))
       inner.compile_aux(matcher)
-      instructions.push(Jump(split_pos))
+      let next_pos = instructions.length()
       if not(greedy) {
-        instructions[split_pos] = Split(instructions.length(), split_pos + 1)
+        instructions.push(Split(next_pos + 1, split_pos + 1))
+        instructions[split_pos] = Split(next_pos + 1, split_pos + 1)
       } else {
-        instructions[split_pos] = Split(split_pos + 1, instructions.length())
+        instructions.push(Split(split_pos + 1, next_pos + 1))
+        instructions[split_pos] = Split(split_pos + 1, next_pos + 1)
       }
     }
     OneOrMore(inner, greedy~) => {
-      // [ ..., inner, split, inner, jmp, ... ]
-      //                  ^ -- instructions.length() at the beginning
-      //                                   ^ -- instructions.length() at the end
+      // [ ..., inner, split, ... ]
+      //         ^ -- instructions.length() at the beginning
+      let jmp_pos = instructions.length()
       inner.compile_aux(matcher)
-      let split_pos = instructions.length()
-      // placeholder for split
-      instructions.push(Split(-1, -1))
-      matcher.capture = capture
-      inner.compile_aux(matcher)
-      instructions.push(Jump(split_pos))
+      let next_pos = instructions.length()
       if not(greedy) {
-        instructions[split_pos] = Split(instructions.length(), split_pos + 1)
+        instructions.push(Split(next_pos + 1, jmp_pos))
       } else {
-        instructions[split_pos] = Split(split_pos + 1, instructions.length())
+        instructions.push(Split(jmp_pos, next_pos + 1))
       }
     }
     ZeroOrOne(inner, greedy~) => {
@@ -402,16 +401,7 @@ test "alternate capture" {
     { "$tag": "Save", "0": 4 },
     { "$tag": "Char", "0": ["b", "b"] },
     { "$tag": "Save", "0": 5 },
-    { "$tag": "Split", "0": 13, "1": 22 },
-    { "$tag": "Split", "0": 14, "1": 18 },
-    { "$tag": "Save", "0": 2 },
-    { "$tag": "Char", "0": ["a", "a"] },
-    { "$tag": "Save", "0": 3 },
-    { "$tag": "Jump", "0": 21 },
-    { "$tag": "Save", "0": 4 },
-    { "$tag": "Char", "0": ["b", "b"] },
-    { "$tag": "Save", "0": 5 },
-    { "$tag": "Jump", "0": 12 },
+    { "$tag": "Split", "0": 4, "1": 13 },
     { "$tag": "Save", "0": 1 },
     { "$tag": "Matched" },
   ])

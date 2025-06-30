@@ -56,14 +56,14 @@ test "to be discussed" {
     ,
   )
   // Behavior difference between Golang and JS
-  // The current behavior aligns with JavaScript
-  // For Golang's behavior, reference https://github.com/golang/go/issues/46123
+  // The current behavior aligns with Golang
+  // reference https://github.com/golang/go/issues/46123
   let regex = @regexp.compile("(|a)+")
   let result = regex.execute("aaa")
   inspect(
     result.group(0),
     content=
-      #|Some("aaa")
+      #|Some("")
     ,
   )
   let regex = @regexp.compile("(|a)*")
@@ -71,7 +71,7 @@ test "to be discussed" {
   inspect(
     result.group(0),
     content=
-      #|Some("aaa")
+      #|Some("")
     ,
   )
 }
