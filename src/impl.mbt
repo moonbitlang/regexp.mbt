@@ -21,6 +21,7 @@ priv enum Instruction {
   Split(Int, Int)
   /// Zero-width assertions
   Assertion(Predicate)
+  Backreference(Int)
 } derive(Show)
 
 ///|
@@ -32,6 +33,7 @@ impl ToJson for Instruction with to_json(self) {
     Jump(i) => ["Jump", i]
     Split(i1, i2) => ["Split", i1, i2]
     Assertion(pred) => ["Assertion", pred]
+    Backreference(i) => ["Backreference", i]
   }
 }
 
@@ -55,6 +57,8 @@ priv struct Thread {
 
 ///|
 /// Add a thread to the list of threads to be processed.
+/// 
+/// This function will forward the thread to the next instruction that consumes at least one character.
 /// 
 /// @param sp the current position in the input string  
 /// @param content the input string  
@@ -137,6 +141,16 @@ fn add_thread(
         )
       }
     }
+    Backreference(i) if thread.captures[i * 2] == -1 ||
+      thread.captures[i * 2 + 1] == thread.captures[i * 2] =>
+      add_thread(
+        sp,
+        content,
+        instructions,
+        inst_gen,
+        { pc: thread.pc + 1, captures: thread.captures },
+        clist,
+      )
     _ => clist.push(thread)
   }
 }
@@ -184,16 +198,38 @@ fn vm(
         break
       }
       // should have been handled in the add_thread
-      guard instructions[pc] is Char(chars)
-      if char_in_ranges(actual_char, chars) {
-        add_thread(
-          next_sp,
-          input,
-          instructions,
-          inst_gen,
-          { pc: pc + 1, captures },
-          nlist,
-        )
+      match instructions[pc] {
+        Char(chars) =>
+          if char_in_ranges(actual_char, chars) {
+            add_thread(
+              next_sp,
+              input,
+              instructions,
+              inst_gen,
+              { pc: pc + 1, captures },
+              nlist,
+            )
+          }
+        Backreference(i) => {
+          let start = captures[i * 2]
+          let end = captures[i * 2 + 1]
+          let len = end - start
+          guard len != 0
+          let next_sp = sp + len
+          if next_sp <= input.length() &&
+            input.charcodes(start~, end~) ==
+            input.charcodes(start=sp, end=next_sp) {
+            add_thread(
+              next_sp,
+              input,
+              instructions,
+              inst_gen,
+              { pc: pc + 1, captures },
+              nlist,
+            )
+          }
+        }
+        _ => panic()
       }
     }
     let tmp = clist
@@ -329,4 +365,57 @@ test "assertions" {
   inspect(capture, content="[0, 0]")
   let capture = vm(instructions, "a", 1)
   inspect(capture, content="[]")
+}
+
+///|
+test "backreference" {
+  // \1(a)\1
+  let instructions = [
+    Save(0),
+    Backreference(1),
+    Save(2),
+    Char(['a', 'a']),
+    Save(3),
+    Save(4),
+    Backreference(1),
+    Save(5),
+    Save(1),
+    Matched,
+  ]
+  let capture = vm(instructions, "aa", 3)
+  inspect(capture, content="[0, 2, 0, 1, 1, 2]")
+
+  // (b*a)\1
+  let instructions = [
+    Save(0),
+    Save(2),
+    Split(3, 5),
+    Char(['b', 'b']),
+    Jump(2),
+    Char(['a', 'a']),
+    Save(3),
+    Backreference(1),
+    Save(1),
+    Matched,
+  ]
+  let capture = vm(instructions, "bbabba", 2)
+  inspect(capture, content="[0, 6, 0, 3]")
+
+  // (a|b)\1
+  let instructions = [
+    Save(0),
+    Save(2),
+    Split(3, 5),
+    Char(['a', 'a']),
+    Jump(6),
+    Char(['b', 'b']),
+    Save(3),
+    Backreference(1),
+    Save(1),
+    Matched,
+  ]
+  let capture = vm(instructions, "aa", 2)
+  inspect(capture, content="[0, 2, 0, 1]")
+  let capture = vm(instructions, "bb", 2)
+  inspect(capture, content="[0, 2, 0, 1]")
 }
