@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| 编译正则表达式为执行引擎
+///| Compiles a regular expression into an execution engine.
 /// 
-/// 将正则表达式字符串解析并编译为可重用的执行引擎。
-/// 编译后的引擎可以多次执行，避免重复解析和编译的开销。
+/// Parses and compiles a regular expression string into a reusable execution engine.
+/// The compiled engine can be executed multiple times, avoiding the overhead of repeated parsing and compilation.
 /// 
-/// 参数:
-/// - `regexp`: 正则表达式字符串视图
+/// Args:
+/// - `regexp`: A string view of the regular expression.
 /// 
-/// 返回: 编译后的正则表达式执行引擎
+/// Returns: The compiled regular expression execution engine.
 /// 
-/// 抛出: Error_ 当正则表达式语法错误时
+/// Throws: `Error_` if the regular expression syntax is invalid.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
@@ -42,37 +42,37 @@ pub fn compile(
   |> Regex::compile
 }
 
-///| 通过组名获取捕获组的索引
+///| Gets the index of a capture group by its name.
 /// 
-/// 查找指定名称的捕获组在结果中的索引位置。
-/// 用于访问命名捕获组，如 `(?<name>pattern)` 形式定义的组。
+/// Finds the index of a capture group with the specified name in the results.
+/// Used to access named capture groups, such as those defined in the form `(?<name>pattern)`.
 /// 
-/// 参数:
-/// - `self`: 正则表达式执行引擎
-/// - `name`: 捕获组的名称
+/// Args:
+/// - `self`: The regular expression execution engine.
+/// - `name`: The name of the capture group.
 /// 
-/// 返回: 捕获组的索引，如果组名不存在则返回 None
+/// Returns: The index of the capture group, or `None` if the group name does not exist.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
-/// let engine = compile("(?<word>\\w+)")
+/// let engine = compile("(?<word>\w+)")
 /// let index = engine.group_by_name("word")  // Some(1)
 /// ```
 pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
   self.map.get(name)
 }
 
-///| 获取正则表达式中捕获组的总数
+///| Gets the total number of capture groups in the regular expression.
 /// 
-/// 返回正则表达式模式中定义的捕获组数量，包括命名和匿名捕获组。
-/// 索引为 0 的组始终表示整个匹配，实际的捕获组从索引 1 开始。
+/// Returns the number of capture groups defined in the regular expression pattern, including both named and anonymous groups.
+/// Group with index 0 always represents the entire match, and actual capture groups start from index 1.
 /// 
-/// 参数:
-/// - `self`: 正则表达式执行引擎
+/// Args:
+/// - `self`: The regular expression execution engine.
 /// 
-/// 返回: 捕获组的总数（不包括索引 0 的完整匹配）
+/// Returns: The total number of capture groups (excluding the full match at index 0).
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let engine = compile("(a)(b|c)")
 /// let count = engine.group_count()  // 2
@@ -81,18 +81,18 @@ pub fn Engine::group_count(self : Self) -> Int {
   self.capture
 }
 
-///| 获取正则表达式中所有命名捕获组的名称
+///| Gets the names of all named capture groups in the regular expression.
 /// 
-/// 返回一个迭代器，包含正则表达式中所有命名捕获组的名称。
-/// 只返回显式命名的捕获组，如 `(?<name>pattern)` 形式定义的组。
+/// Returns an iterator that contains the names of all named capture groups in the regular expression.
+/// Only explicitly named capture groups, such as those defined in the form `(?<name>pattern)`, are returned.
 /// 
-/// 参数:
-/// - `self`: 正则表达式执行引擎
+/// Args:
+/// - `self`: The regular expression execution engine.
 /// 
-/// 返回: 包含所有组名的迭代器
+/// Returns: An iterator containing all group names.
 /// 
-/// 示例:
-/// ```moonbit skip skip
+/// Example:
+/// ```moonbit skip
 /// let engine = compile("(?<first>a)(?<second>b)")
 /// let names = engine.group_names().collect()  // ["first", "second"]
 /// ```
@@ -100,23 +100,23 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
   self.map.keys()
 }
 
-///| 对输入文本执行正则表达式匹配
+///| Executes a regular expression match on the input text.
 /// 
-/// 使用已编译的正则表达式引擎对指定的输入文本进行匹配，
-/// 返回包含匹配结果和捕获组信息的 MatchResult 对象。
-/// 采用最左匹配策略，返回第一个找到的匹配。
+/// Uses the compiled regular expression engine to perform a match on the specified input text,
+/// returning a `MatchResult` object containing the match results and capture group information.
+/// It uses a leftmost-first matching strategy, returning the first match found.
 /// 
-/// 参数:
-/// - `self`: 正则表达式执行引擎
-/// - `input`: 要进行匹配的输入文本
+/// Args:
+/// - `self`: The regular expression execution engine.
+/// - `input`: The input text to match against.
 /// 
-/// 返回: 匹配结果对象，包含匹配状态和捕获组信息
+/// Returns: A `MatchResult` object containing the match status and capture group information.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
-/// if result.matched() { /* 处理匹配结果 */ }
+/// if result.matched() { /* Process match result */ }
 /// ```
 pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
   let captures = vm(self.instructions, input, self.capture)
@@ -133,18 +133,18 @@ pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
   { input, captures, names: self.map, rest }
 }
 
-///| 正则表达式匹配结果
+///| Regular expression match result.
 /// 
-/// 包含正则表达式匹配的完整结果信息，包括：
-/// - 原始输入文本
-/// - 捕获组的位置信息数组
-/// - 命名捕获组的映射关系
+/// Contains the complete result information of a regular expression match, including:
+/// - The original input text.
+/// - An array of capture group position information.
+/// - A map of named capture groups.
 /// 
-/// 捕获组数组的结构：
-/// - 索引 0,1: 完整匹配的开始和结束位置
-/// - 索引 2,3: 第一个捕获组的开始和结束位置
-/// - 索引 4,5: 第二个捕获组的开始和结束位置
-/// - 以此类推...
+/// Structure of the capture group array:
+/// - Index 0, 1: Start and end positions of the full match.
+/// - Index 2, 3: Start and end positions of the first capture group.
+/// - Index 4, 5: Start and end positions of the second capture group.
+/// - And so on...
 struct MatchResult {
   input : @string.View
   captures : Array[Int]
@@ -152,41 +152,41 @@ struct MatchResult {
   rest : @string.View
 }
 
-///| 检查是否匹配成功
+///| Checks if the match was successful.
 /// 
-/// 判断正则表达式是否在输入文本中找到了匹配。
-/// 如果捕获组数组为空，表示没有找到任何匹配。
+/// Determines whether the regular expression found a match in the input text.
+/// An empty capture group array indicates that no match was found.
 /// 
-/// 参数:
-/// - `self`: 匹配结果对象
+/// Args:
+/// - `self`: The match result object.
 /// 
-/// 返回: 如果找到匹配则返回 true，否则返回 false
+/// Returns: `true` if a match was found, otherwise `false`.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let result = engine.execute("text")
 /// if result.matched() {
-///   println("匹配成功")
+///   println("Match successful")
 /// }
 /// ```
 pub fn MatchResult::matched(self : Self) -> Bool {
   not(self.captures is [])
 }
 
-///| 通过索引获取捕获组的内容
+///| Gets the content of a capture group by its index.
 /// 
-/// 根据捕获组的索引返回对应的匹配文本。
-/// 索引 0 表示完整匹配，索引 1 及以上表示各个捕获组。
+/// Returns the corresponding matched text based on the capture group's index.
+/// Index 0 represents the full match, while indices 1 and above represent individual capture groups.
 /// 
-/// 参数:
-/// - `self`: 匹配结果对象
-/// - `index`: 捕获组的索引（0 表示完整匹配）
+/// Args:
+/// - `self`: The match result object.
+/// - `index`: The index of the capture group (0 for the full match).
 /// 
-/// 返回: 
-/// - Some(view): 捕获组对应的文本视图
-/// - None: 索引无效或该捕获组未匹配
+/// Returns: 
+/// - `Some(view)`: The text view corresponding to the capture group.
+/// - `None`: If the index is invalid or the capture group did not match.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let full_match = result.group(0)    // Some("abc")
@@ -206,22 +206,22 @@ pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
   Some(self.input.view(start_offset=start, end_offset=end))
 }
 
-///| 通过组名获取命名捕获组的内容
+///| Gets the content of a named capture group by its name.
 /// 
-/// 根据命名捕获组的名称返回对应的匹配文本。
-/// 适用于 `(?<name>pattern)` 形式定义的命名捕获组。
+/// Returns the corresponding matched text based on the name of the capture group.
+/// Applicable to named capture groups defined in the form `(?<name>pattern)`.
 /// 
-/// 参数:
-/// - `self`: 匹配结果对象  
-/// - `name`: 捕获组的名称
+/// Args:
+/// - `self`: The match result object.
+/// - `name`: The name of the capture group.
 /// 
-/// 返回: 
-/// - Some(view): 命名捕获组对应的文本视图
-/// - None: 该命名组未匹配到内容
+/// Returns: 
+/// - `Some(view)`: The text view corresponding to the named capture group.
+/// - `None`: If the named group did not match any content.
 /// 
-/// 抛出: Error_ 当指定的组名不存在时
+/// Throws: `Error_` when the specified group name does not exist.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let word = result.group_by_name("word")  // Some("abc")
@@ -236,18 +236,18 @@ pub fn MatchResult::group_by_name(
   self.group(index)
 }
 
-///| 获取所有有效捕获组的内容迭代器
+///| Gets an iterator over the content of all valid capture groups.
 /// 
-/// 返回一个迭代器，包含所有成功匹配的捕获组内容，
-/// 包括完整匹配（索引 0）和所有捕获组。只返回有效的匹配内容，
-/// 跳过未匹配的捕获组。
+/// Returns an iterator that contains the content of all successfully matched capture groups,
+/// including the full match (index 0) and all other capture groups. Only valid matched content is returned,
+/// skipping any unmatched capture groups.
 /// 
-/// 参数:
-/// - `self`: 匹配结果对象
+/// Args:
+/// - `self`: The match result object.
 /// 
-/// 返回: 包含所有有效捕获组内容的迭代器
+/// Returns: An iterator containing the content of all valid capture groups.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let result = engine.execute("abc")
 /// let all_groups = result.results().collect()  // ["abc", "bc"]
@@ -271,17 +271,17 @@ pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
   })
 }
 
-///| 获取匹配后的剩余字符串
+///| Gets the remaining string after a match.
 /// 
-/// 返回匹配结束位置之后的剩余输入文本，用于继续进行下一次匹配。
-/// 如果匹配失败，返回原始输入文本。
+/// Returns the remaining input text after the end of the match, which can be used to continue searching for the next match.
+/// If the match fails, it returns the original input text.
 /// 
-/// 参数:
-/// - `self`: 匹配结果对象
+/// Args:
+/// - `self`: The match result object.
 /// 
-/// 返回: 从匹配结束位置开始的剩余文本视图
+/// Returns: A view of the text remaining from the end of the match.
 /// 
-/// 示例:
+/// Example:
 /// ```moonbit skip
 /// let result = engine.execute("hello world")
 /// let remaining = result.rest()  // "world" if pattern matched "hello "
