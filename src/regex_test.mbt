@@ -1182,8 +1182,18 @@ test "complex real-world patterns" {
   // HTML tag matching
   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
   let result = html_regex.execute("<div class='test'>content</div>")
-  inspect(result.group(1), content="None")
-  inspect(result.group(2), content="None")
+  inspect(
+    result.group(1),
+    content=
+      #|Some("div")
+    ,
+  )
+  inspect(
+    result.group(2),
+    content=
+      #|Some("content")
+    ,
+  )
 }
 
 ///|
@@ -1264,18 +1274,30 @@ test "edge cases and boundary conditions" {
 }
 
 ///|
-test {
-  let regex = @regexp.compile("(a*b)*")
+test "backreference" {
+  let regex = @regexp.compile("((?:a|b)*)\\1\\1")
   inspect(
     regex.execute("aaabbb").results(),
     content=
-      #|[Some("aaabbb"), Some("b")]
+      #|[Some("aaa"), Some("a")]
     ,
   )
   inspect(
-    regex.execute("aabaaaaaabbbb").results(),
+    regex.execute("aaa").results(),
     content=
-      #|[Some("aabaaaaaabbbb"), Some("b")]
+      #|[Some("aaa"), Some("a")]
+    ,
+  )
+  inspect(
+    regex.execute("aaaa").results(),
+    content=
+      #|[Some("aaa"), Some("a")]
+    ,
+  )
+  inspect(
+    regex.execute("aaaaaa").results(),
+    content=
+      #|[Some("aaaaaa"), Some("aa")]
     ,
   )
 }

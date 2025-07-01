@@ -428,6 +428,24 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           let unicode_char = self.parse_unicode_escape()
           CharClass([unicode_char, unicode_char], neg=false)
         }
+        '0' =>
+          if rest is ['0'..='9', ..] {
+            raise Error_(err=InvalidEscape, data=rest)
+          } else {
+            self.input = rest
+            CharClass(['\u{0}', '\u{0}'], neg=false) // Null character
+          }
+        '1'..='9' as ch => {
+          let mut input = self.input
+          let mut capture = ch.to_int() - '0'.to_int()
+          while input is ['0'..='9' as next_ch, .. next_rest] {
+            capture = capture * 10 + (next_ch.to_int() - '0'.to_int())
+            input = next_rest // consume the digit
+          }
+          // TODO: check overflow
+          self.input = input
+          Backreference(capture)
+        }
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -1592,4 +1610,21 @@ test "parse unmatched curly brace" {
       ["CharClass neg=false", ["'}'", "'}'"]],
     ],
   ])
+}
+
+///|
+test "parse backreference" {
+  let regex = parse("\\1").ast
+  @json.inspect(regex, content=["Backreference",1])
+
+  // Test with a valid backreference
+  let regex = parse("(a)(b)\\1").ast
+  @json.inspect(
+    regex,
+    content=[["Capture 1",["CharClass neg=false",["'a'","'a'"]]],["Capture 2",["CharClass neg=false",["'b'","'b'"]]],["Backreference",1]],
+  )
+
+  // Test with an invalid backreference (no such group)
+  let regex = try? parse("\\2").ast
+  inspect(regex, content="Ok(Backreference(2))")
 }
