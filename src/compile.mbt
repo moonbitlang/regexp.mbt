@@ -27,6 +27,7 @@ priv enum Regex {
   Repeat(Regex, greedy~ : Bool, min~ : UInt, max~ : UInt?)
   Concat(Array[Regex])
   Alternate(Regex, Regex)
+  Backreference(Int)
 } derive(Show)
 
 ///|
@@ -48,6 +49,7 @@ impl ToJson for Regex with to_json(self) {
       }
     Concat(regexs) => [..regexs.map(_.to_json())]
     Alternate(left, right) => ["Alternate", left, right]
+    Backreference(i) => ["Backreference", i]
   }
 }
 
@@ -189,6 +191,7 @@ fn Regex::compile_aux(regex : Self, instructions : Array[Instruction]) -> Unit {
       instructions[split_pos] = Split(split_pos + 1, jmp_pos + 1)
       instructions[jmp_pos] = Jump(instructions.length())
     }
+    Backreference(i) => instructions.push(Backreference(i))
   }
 }
 
@@ -394,6 +397,36 @@ test "alternate capture" {
     ["Chars", ["'b'", "'b'"]],
     ["Save", 5],
     ["Split", 4, 13],
+    ["Save", 1],
+    "Matched",
+  ])
+}
+
+///|
+test "backreference" {
+  let regex = Concat([
+    Capture(
+      ZeroOrMore(Alternate(Literal("a"), Literal("b")), greedy=true),
+      index=1,
+    ),
+    Backreference(1),
+    Backreference(1),
+  ])
+  @json.inspect(regex.compile(), content=[
+    ["Split", 3, 1],
+    ["Chars", ["'\\u{00}'", "'\\u{10ffff}'"]],
+    ["Jump", 0],
+    ["Save", 0],
+    ["Save", 2],
+    ["Split", 6, 11],
+    ["Split", 7, 9],
+    ["Chars", ["'a'", "'a'"]],
+    ["Jump", 10],
+    ["Chars", ["'b'", "'b'"]],
+    ["Split", 6, 11],
+    ["Save", 3],
+    ["Backreference", 1],
+    ["Backreference", 1],
     ["Save", 1],
     "Matched",
   ])
