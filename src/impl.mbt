@@ -52,6 +52,7 @@ priv enum Predicate {
 /// It contains the program counter (pc) and an array of captures.
 priv struct Thread {
   pc : Int
+  sp : Int
   captures : Array[Int]
 }
 
@@ -67,58 +68,54 @@ priv struct Thread {
 /// @param thread the current thread to add  
 /// @param clist the list of threads to be processed in the next iteration  
 fn add_thread(
-  sp : Int,
   content : @string.View,
   instructions : Array[Instruction],
   inst_gen : Array[Int],
   thread : Thread,
   clist : Array[Thread]
 ) -> Unit {
-  if inst_gen[thread.pc] == sp {
+  if inst_gen[thread.pc] == thread.sp {
     // already on the list
     return
   }
-  inst_gen[thread.pc] = sp
+  inst_gen[thread.pc] = thread.sp
   match instructions[thread.pc] {
     Save(i) => {
-      thread.captures[i] = sp
+      thread.captures[i] = thread.sp
       add_thread(
-        sp,
         content,
         instructions,
         inst_gen,
-        { pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures },
         clist,
       )
     }
     Jump(i) =>
       add_thread(
-        sp,
         content,
         instructions,
         inst_gen,
-        { pc: i, captures: thread.captures },
+        { ..thread, pc: i, captures: thread.captures },
         clist,
       )
     Split(i1, i2) => {
       add_thread(
-        sp,
         content,
         instructions,
         inst_gen,
-        { pc: i1, captures: thread.captures.copy() },
+        { ..thread, pc: i1, captures: thread.captures.copy() },
         clist,
       )
       add_thread(
-        sp,
         content,
         instructions,
         inst_gen,
-        { pc: i2, captures: thread.captures },
+        { ..thread, pc: i2, captures: thread.captures },
         clist,
       )
     }
     Assertion(pred) => {
+      let sp = thread.sp
       let assertion = match pred {
         BeginText => sp == 0
         EndText => sp == content.length()
@@ -132,23 +129,22 @@ fn add_thread(
       }
       if assertion {
         add_thread(
-          sp,
           content,
           instructions,
           inst_gen,
-          { pc: thread.pc + 1, captures: thread.captures },
+          { ..thread, pc: thread.pc + 1, captures: thread.captures },
           clist,
         )
       }
     }
-    Backreference(i) if thread.captures[i * 2] == -1 ||
+    Backreference(i) if i * 2 >= thread.captures.length() ||
+      thread.captures[i * 2] == -1 ||
       thread.captures[i * 2 + 1] == thread.captures[i * 2] =>
       add_thread(
-        sp,
         content,
         instructions,
         inst_gen,
-        { pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures },
         clist,
       )
     _ => clist.push(thread)
@@ -173,11 +169,10 @@ fn vm(
   let mut nlist = Array::new(capacity=instructions.length())
   let mut matched : Array[Int] = []
   add_thread(
-    0,
     input,
     instructions,
     inst_gen,
-    { pc: 0, captures: Array::make(captures * 2, -1) },
+    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1) },
     clist,
   )
   for sp = 0; sp <= input.length(); {
@@ -191,7 +186,13 @@ fn vm(
     }
     let next_sp = if actual_char.to_int() > 0xFFFF { sp + 2 } else { sp + 1 }
     for thread in clist {
-      let { pc, captures } = thread
+      let { pc, captures, sp: thread_sp } = thread
+      if thread_sp > sp {
+        // this thread is in the future state
+        nlist.push(thread)
+        continue
+      }
+      guard thread_sp == sp
       if instructions[pc] is Matched {
         matched = captures
         // drop everything that has lower priority
@@ -202,11 +203,10 @@ fn vm(
         Char(chars) =>
           if char_in_ranges(actual_char, chars) {
             add_thread(
-              next_sp,
               input,
               instructions,
               inst_gen,
-              { pc: pc + 1, captures },
+              { pc: pc + 1, captures, sp: next_sp },
               nlist,
             )
           }
@@ -220,11 +220,10 @@ fn vm(
             input.charcodes(start~, end~) ==
             input.charcodes(start=sp, end=next_sp) {
             add_thread(
-              next_sp,
               input,
               instructions,
-              inst_gen,
-              { pc: pc + 1, captures },
+              Array::make(instructions.length(), -1),
+              { pc: pc + 1, captures, sp: next_sp },
               nlist,
             )
           }
@@ -437,7 +436,7 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "aaaacd", 2)
-  inspect(capture, content="[]")
+  inspect(capture, content="[0, 6, 0, 2]")
   let capture = vm(instructions, "bbbbcd", 2)
-  inspect(capture, content="[]")
+  inspect(capture, content="[0, 6, 0, 2]")
 }
