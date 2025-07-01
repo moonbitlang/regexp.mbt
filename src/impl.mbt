@@ -157,11 +157,13 @@ fn add_thread(
 /// @param instructions the list of instructions to execute
 /// @param input the input string to match against
 /// @param captures the number of capture groups
+/// @param allow_exponentiaion whether to allow exponential backtracking (default: false)
 /// @return an array of integers representing the start and end indices of the matches, or an empty array if no match is found
 fn vm(
   instructions : Array[Instruction],
   input : @string.View,
-  captures : Int
+  captures : Int,
+  allow_exponentiaion~ : Bool = false
 ) -> Array[Int] {
   guard instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
@@ -205,7 +207,11 @@ fn vm(
             add_thread(
               input,
               instructions,
-              inst_gen,
+              if allow_exponentiaion {
+                Array::make(instructions.length(), -1)
+              } else {
+                inst_gen
+              },
               { pc: pc + 1, captures, sp: next_sp },
               nlist,
             )

@@ -127,7 +127,12 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
 /// }
 /// ```
 pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
-  let captures = vm(self.instructions, input, self.capture)
+  let captures = vm(
+    self.instructions,
+    input,
+    self.capture,
+    allow_exponentiaion=self.allow_exponentiaion,
+  )
   let rest = if captures.length() < 2 {
     input
   } else {

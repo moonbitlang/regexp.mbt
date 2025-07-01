@@ -1300,4 +1300,13 @@ test "backreference" {
       #|[Some("aaaaaa"), Some("aa")]
     ,
   )
+
+  // Example that needs exponential backtracking
+  let regex = @regexp.compile("(?:((?:a|b)*)\\1\\1)+")
+  inspect(
+    regex.execute("aaabbb").results(),
+    content=
+      #|[Some("aaabbb"), Some("b")]
+    ,
+  )
 }

@@ -58,6 +58,7 @@ struct Engine {
   instructions : Array[Instruction]
   map : Map[String, Int]
   capture : Int
+  allow_exponentiaion : Bool
 }
 
 ///|
@@ -214,6 +215,7 @@ fn ParseResult::compile(self : Self) -> Engine {
     instructions: self.ast.compile(),
     map: self.capture_map,
     capture: self.captures,
+    allow_exponentiaion: self.has_backreference,
   }
 }
 

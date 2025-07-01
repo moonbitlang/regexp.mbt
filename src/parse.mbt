@@ -73,6 +73,7 @@ priv struct Parser {
   mut flags : Flags
   mut captures : Int
   capture_map : Map[String, Int]
+  mut has_backreference : Bool
 }
 
 ///|
@@ -80,6 +81,7 @@ priv struct ParseResult {
   ast : Regex
   captures : Int
   capture_map : Map[String, Int]
+  has_backreference : Bool
 }
 
 ///|
@@ -120,7 +122,13 @@ pub suberror Error_ {
 ///
 /// Returns: New parser instance
 fn Parser::new(input : @string.View, flags : Flags) -> Parser {
-  Parser::{ input, flags, captures: 1, capture_map: {} }
+  Parser::{
+    input,
+    flags,
+    captures: 1,
+    capture_map: {},
+    has_backreference: false,
+  }
 }
 
 ///| Entry function for parsing regular expressions
@@ -144,7 +152,12 @@ fn parse(
   if parser.input is [')', ..] {
     raise Error_(err=UnexpectedParenthesis, data=parser.input)
   }
-  { ast: result, capture_map: parser.capture_map, captures: parser.captures }
+  {
+    ast: result,
+    capture_map: parser.capture_map,
+    captures: parser.captures,
+    has_backreference: parser.has_backreference,
+  }
 }
 
 ///| Parse Expression
@@ -444,6 +457,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           }
           // TODO: check overflow
           self.input = input
+          self.has_backreference = true
           Backreference(capture)
         }
         _ =>
@@ -1140,7 +1154,7 @@ test "parse non-capturing group" {
 ///|
 test "parse named capture group" {
   let regex = parse("(?<name>abc)")
-  let { instructions, capture: capture_count, map } = regex.compile()
+  let { instructions, capture: capture_count, map, .. } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
   inspect(result, content="[0, 3, 0, 3]")
 
@@ -1151,7 +1165,7 @@ test "parse named capture group" {
 ///|
 test "parse complex named capture group expression" {
   let regex = parse("(?<first>a+)(?<second>b+)")
-  let { instructions, capture: capture_count, map } = regex.compile()
+  let { instructions, capture: capture_count, map, .. } = regex.compile()
   let result = vm(instructions, "aaabbb", capture_count)
   inspect(result, content="[0, 6, 0, 3, 3, 6]")
 
@@ -1163,7 +1177,7 @@ test "parse complex named capture group expression" {
 ///|
 test "parse nested named capture groups" {
   let regex = parse("(?<outer>a(?<inner>bc)d)")
-  let { instructions, capture: capture_count, map } = regex.compile()
+  let { instructions, capture: capture_count, map, .. } = regex.compile()
   let result = vm(instructions, "abcd", capture_count)
   inspect(result, content="[0, 4, 0, 4, 1, 3]")
 
@@ -1175,7 +1189,7 @@ test "parse nested named capture groups" {
 ///|
 test "parse mixed named and regular capture groups" {
   let regex = parse("(a)(?<named>b)(c)")
-  let { instructions, capture: capture_count, map } = regex.compile()
+  let { instructions, capture: capture_count, map, .. } = regex.compile()
   let result = vm(instructions, "abc", capture_count)
   inspect(result, content="[0, 3, 0, 1, 1, 2, 2, 3]")
 
@@ -1615,14 +1629,15 @@ test "parse unmatched curly brace" {
 ///|
 test "parse backreference" {
   let regex = parse("\\1").ast
-  @json.inspect(regex, content=["Backreference",1])
+  @json.inspect(regex, content=["Backreference", 1])
 
   // Test with a valid backreference
   let regex = parse("(a)(b)\\1").ast
-  @json.inspect(
-    regex,
-    content=[["Capture 1",["CharClass neg=false",["'a'","'a'"]]],["Capture 2",["CharClass neg=false",["'b'","'b'"]]],["Backreference",1]],
-  )
+  @json.inspect(regex, content=[
+    ["Capture 1", ["CharClass neg=false", ["'a'", "'a'"]]],
+    ["Capture 2", ["CharClass neg=false", ["'b'", "'b'"]]],
+    ["Backreference", 1],
+  ])
 
   // Test with an invalid backreference (no such group)
   let regex = try? parse("\\2").ast
