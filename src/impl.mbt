@@ -418,4 +418,26 @@ test "backreference" {
   inspect(capture, content="[0, 2, 0, 1]")
   let capture = vm(instructions, "bb", 2)
   inspect(capture, content="[0, 2, 0, 1]")
+
+  // (aa|bb)\1cd
+  let instructions = [
+    Save(0),
+    Save(2),
+    Split(3, 6),
+    Char(['a', 'a']),
+    Char(['a', 'a']),
+    Jump(8),
+    Char(['b', 'b']),
+    Char(['b', 'b']),
+    Save(3),
+    Backreference(1),
+    Char(['c', 'c']),
+    Char(['d', 'd']),
+    Save(1),
+    Matched,
+  ]
+  let capture = vm(instructions, "aaaacd", 2)
+  inspect(capture, content="[]")
+  let capture = vm(instructions, "bbbbcd", 2)
+  inspect(capture, content="[]")
 }
