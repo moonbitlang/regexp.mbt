@@ -1262,3 +1262,21 @@ test "edge cases and boundary conditions" {
     ,
   )
 }
+
+///|
+test {
+  let regex = @regexp.compile("(a*b)*")
+  inspect(
+    regex.execute("aaabbb").results(),
+    content=
+      #|[Some("aaabbb"), Some("b")]
+    ,
+  )
+  inspect(
+    regex.execute("aabaaaaaabbbb").results(),
+    content=
+      #|[Some("aabaaaaaabbbb"), Some("b")]
+
+    ,
+  )
+}
