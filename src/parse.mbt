@@ -72,6 +72,7 @@ priv struct Parser {
   mut input : @string.View
   mut flags : Flags
   mut captures : Int
+  current_capture_scope : Set[Int]
   capture_map : Map[String, Int]
   mut has_backreference : Bool
 }
@@ -127,6 +128,7 @@ fn Parser::new(input : @string.View, flags : Flags) -> Parser {
     flags,
     captures: 1,
     capture_map: {},
+    current_capture_scope: @set.Set::new(),
     has_backreference: false,
   }
 }
@@ -338,7 +340,13 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
             raise Error_(err=InvalidNamedCapture, data=self.input)
           }
           self.input = rest // consume '>'
+
+          // Parse the expression inside the named capture group
+          self.current_capture_scope.add(captures)
           let expr = self.parse_expression()
+          self.current_capture_scope.remove(captures)
+
+          // Check for closing parenthesis
           guard self.input is [')', .. rest] else {
             raise Error_(err=MissingParenthesis, data=self.input)
           }
@@ -369,7 +377,13 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
       self.captures += 1
       self.input = rest // consume '('
       // Regular capture group
+
+      // Parse the expression inside the capture group
+      self.current_capture_scope.add(captures)
       let expr = self.parse_expression()
+      self.current_capture_scope.remove(captures)
+
+      // Check for closing parenthesis
       guard self.input is [')', .. rest] else {
         raise Error_(err=MissingParenthesis, data=self.input)
       }
@@ -410,7 +424,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         Assertion(EndText)
       }
     }
-    ['\\', .. rest] => {
+    ['\\', .. rest] as escape => {
       guard rest is [c, .. rest] else {
         raise Error_(err=TrailingBackslash, data=self.input)
       }
@@ -443,7 +457,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         }
         '0' =>
           if rest is ['0'..='9', ..] {
-            raise Error_(err=InvalidEscape, data=rest)
+            raise Error_(err=InvalidEscape, data=escape)
           } else {
             self.input = rest
             CharClass(['\u{0}', '\u{0}'], neg=false) // Null character
@@ -455,9 +469,15 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
             capture = capture * 10 + (next_ch.to_int() - '0'.to_int())
             input = next_rest // consume the digit
           }
-          // TODO: check overflow
           self.input = input
           self.has_backreference = true
+
+          // Ban recursive backreferences and backreferences to the non existent capture group
+          if self.current_capture_scope.contains(capture) {
+            raise Error_(err=InvalidEscape, data=escape)
+          } else if capture >= self.captures {
+            raise Error_(err=InvalidEscape, data=escape)
+          }
           Backreference(capture)
         }
         _ =>
@@ -1628,9 +1648,6 @@ test "parse unmatched curly brace" {
 
 ///|
 test "parse backreference" {
-  let regex = parse("\\1").ast
-  @json.inspect(regex, content=["Backreference", 1])
-
   // Test with a valid backreference
   let regex = parse("(a)(b)\\1").ast
   @json.inspect(regex, content=[
@@ -1640,6 +1657,27 @@ test "parse backreference" {
   ])
 
   // Test with an invalid backreference (no such group)
-  let regex = try? parse("\\2").ast
-  inspect(regex, content="Ok(Backreference(2))")
+  let regex = try? parse("\\2")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\2"))
+    ,
+  )
+  let regex = try? parse("\\1(a)\\1")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\1(a)\\1"))
+    ,
+  )
+
+  // Test with a backreference to a recursive backreference
+  let regex = try? parse("(\\1)")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\1)"))
+    ,
+  )
 }
