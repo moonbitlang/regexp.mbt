@@ -71,6 +71,15 @@
 priv struct Parser {
   mut input : @string.View
   mut flags : Flags
+  mut captures : Int
+  capture_map : Map[String, Int]
+}
+
+///|
+priv struct ParseResult {
+  ast : Regex
+  captures : Int
+  capture_map : Map[String, Int]
 }
 
 ///|
@@ -111,7 +120,7 @@ pub suberror Error_ {
 ///
 /// Returns: New parser instance
 fn Parser::new(input : @string.View, flags : Flags) -> Parser {
-  Parser::{ input, flags }
+  Parser::{ input, flags, captures: 1, capture_map: {} }
 }
 
 ///| Entry function for parsing regular expressions
@@ -127,7 +136,7 @@ fn Parser::new(input : @string.View, flags : Flags) -> Parser {
 fn parse(
   regex : @string.View,
   flags~ : Flags = Flags::default()
-) -> Regex raise Error_ {
+) -> ParseResult raise Error_ {
   let parser = Parser::new(regex, flags)
   let result = parser.parse_expression()
 
@@ -135,7 +144,7 @@ fn parse(
   if parser.input is [')', ..] {
     raise Error_(err=UnexpectedParenthesis, data=parser.input)
   }
-  result
+  { ast: result, capture_map: parser.capture_map, captures: parser.captures }
 }
 
 ///| Parse Expression
@@ -303,10 +312,12 @@ fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
 /// Throws: Error_ when invalid syntax is encountered
 fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
   match self.input {
-    [.. "(?", .. rest] =>
+    [.. "(?", .. rest] as capture =>
       // Handle various special group syntax
       match rest {
         ['<', .. rest] => {
+          let captures = self.captures
+          self.captures += 1
           // Named capture group (?<name>...)
           self.input = rest // consume '(?<'
           let name = self.parse_group_name()
@@ -319,7 +330,11 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
             raise Error_(err=MissingParenthesis, data=self.input)
           }
           self.input = rest // consume ')'
-          Capture(expr, name=Some(name))
+          if self.capture_map.contains(name) { // check for duplicate named capture
+            raise Error_(err=InvalidNamedCapture, data=capture)
+          }
+          self.capture_map.set(name, captures)
+          Capture(expr, index=captures)
         }
         _ => {
           // (?flags:...) - Scoped flags group
@@ -337,6 +352,8 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         }
       }
     ['(', .. rest] => {
+      let captures = self.captures
+      self.captures += 1
       self.input = rest // consume '('
       // Regular capture group
       let expr = self.parse_expression()
@@ -344,7 +361,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         raise Error_(err=MissingParenthesis, data=self.input)
       }
       self.input = rest // consume ')'
-      Capture(expr, name=None)
+      Capture(expr, index=captures)
     }
     ['[', .. rest] => {
       self.input = rest
@@ -960,7 +977,7 @@ test "parse character class range with escaped characters" {
   // Test invalid case: end character is less than start character
   let regex = try? parse("[a-\\]]")
   inspect(
-    regex,
+    regex.map(ignore),
     content=
       #|Err(Error_(err=InvalidCharClass, data="]"))
     ,
@@ -1066,7 +1083,7 @@ test "parse repeat quantifier error cases" {
   // Test case where {m,n} has m > n
   let regex = try? parse("a{5,2}")
   inspect(
-    regex,
+    regex.map(ignore),
     content=
       #|Err(Error_(err=InvalidRepeatSize, data=""))
     ,
@@ -1074,15 +1091,24 @@ test "parse repeat quantifier error cases" {
 
   // Test case with missing number
   let regex = try? parse("a{}")
-  inspect(regex, content="Err(Error_(err=MissingRepeatArgument, data=\"}\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=MissingRepeatArgument, data=\"}\"))",
+  )
 
   // Test case with missing right brace
   let regex = try? parse("a{2")
-  inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\"\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=InvalidRepeatOp, data=\"\"))",
+  )
 
   // Test case with invalid format
   let regex = try? parse("a{2,3,4}")
-  inspect(regex, content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))",
+  )
 }
 
 ///|
@@ -1143,67 +1169,68 @@ test "parse mixed named and regular capture groups" {
 test "parse named capture group error cases" {
   // Test empty group name
   let regex = try? parse("(?<>abc)")
-  inspect(regex, content="Err(Error_(err=InvalidNamedCapture, data=\">abc)\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=InvalidNamedCapture, data=\">abc)\"))",
+  )
 
   // Test group name starting with a digit
   let regex = try? parse("(?<1invalid>abc)")
   inspect(
-    regex,
+    regex.map(ignore),
     content="Err(Error_(err=InvalidNamedCapture, data=\"1invalid>abc)\"))",
   )
 
   // Test group name with illegal characters
   let regex = try? parse("(?<na-me>abc)")
   inspect(
-    regex,
+    regex.map(ignore),
     content="Err(Error_(err=InvalidNamedCapture, data=\"-me>abc)\"))",
   )
 
   // Test missing right angle bracket
   let regex = try? parse("(?<name abc)")
-  inspect(regex, content="Err(Error_(err=InvalidNamedCapture, data=\" abc)\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=InvalidNamedCapture, data=\" abc)\"))",
+  )
 
   // Test missing right parenthesis
   let regex = try? parse("(?<name>abc")
-  inspect(regex, content="Err(Error_(err=MissingParenthesis, data=\"\"))")
+  inspect(
+    regex.map(ignore),
+    content="Err(Error_(err=MissingParenthesis, data=\"\"))",
+  )
 }
 
 ///|
 test "parse valid group name formats" {
   // Starts with a letter
-  let regex = parse("(?<group>abc)")
+  let regex = parse("(?<group>abc)").ast
   inspect(
     (regex : Regex),
-    content=
-      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group"))
-    ,
+    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
   )
 
   // Starts with an underscore
-  let regex = parse("(?<_group>abc)")
+  let regex = parse("(?<_group>abc)").ast
   inspect(
     (regex : Regex),
-    content=
-      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("_group"))
-    ,
+    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
   )
 
   // Contains digits
-  let regex = parse("(?<group1>abc)")
+  let regex = parse("(?<group1>abc)").ast
   inspect(
     (regex : Regex),
-    content=
-      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("group1"))
-    ,
+    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
   )
 
   // Contains multiple underscores
-  let regex = parse("(?<my_group_1>abc)")
+  let regex = parse("(?<my_group_1>abc)").ast
   inspect(
     (regex : Regex),
-    content=
-      #|Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), name=Some("my_group_1"))
-    ,
+    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
   )
 }
 
@@ -1540,7 +1567,7 @@ test "parse unicode general property" {
 
 ///|
 test "parse unmatched curly brace" {
-  let regex = parse("a|b}")
+  let regex = parse("a|b}").ast
   inspect(
     regex,
     content="Alternate(CharClass(['a', 'a'], neg=false), Concat([CharClass(['b', 'b'], neg=false), CharClass(['}', '}'], neg=false)]))",

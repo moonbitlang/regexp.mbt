@@ -16,7 +16,7 @@
 test "to be discussed" {
   // In JS, this is parsed as two character classes with no characters
   // In Golang, this is parsed as one character class with `]` and `[`
-  parse("[][]")
+  parse("[][]").ast
   |> inspect(
     content="Concat([CharClass([], neg=false), CharClass([], neg=false)])",
   )

@@ -41,7 +41,7 @@ pub fn compile(
     singleline: flags.contains("s"),
     ignore_case: flags.contains("i"),
   })
-  |> Regex::compile
+  |> ParseResult::compile()
 }
 
 ///| Gets the index of a capture group by its name.
