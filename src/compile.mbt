@@ -30,6 +30,28 @@ priv enum Regex {
 } derive(Show)
 
 ///|
+impl ToJson for Regex with to_json(self) {
+  match self {
+    Empty => "Empty"
+    Literal(s) => ["Literal", s]
+    CharClass(chars, neg~) => ["CharClass neg=\{neg}", chars.map(c => repr(c))]
+    Assertion(pred) => "Assertion \{pred}"
+    Capture(inner, index~) => ["Capture \{index}", inner]
+    ZeroOrMore(inner, greedy~) => ["ZeroOrMore greedy=\{greedy}", inner]
+    OneOrMore(inner, greedy~) => ["OneOrMore greedy=\{greedy}", inner]
+    ZeroOrOne(inner, greedy~) => ["ZeroOrOne greedy=\{greedy}", inner]
+    Repeat(greedy~, min~, max~, inner) =>
+      if max is Some(max) {
+        ["Repeat {\{min}, \{max}} greedy=\{greedy}", inner]
+      } else {
+        ["Repeat {\{min},} greedy=\{greedy}", inner]
+      }
+    Concat(regexs) => [..regexs.map(_.to_json())]
+    Alternate(left, right) => ["Alternate", left, right]
+  }
+}
+
+///|
 struct Engine {
   instructions : Array[Instruction]
   map : Map[String, Int]
@@ -359,20 +381,20 @@ test "alternate capture" {
     greedy=true,
   )
   @json.inspect(regex.compile(), content=[
-    { "$tag": "Split", "0": 3, "1": 1 },
-    { "$tag": "Char", "0": ["\u0000", "\u{10FFFF}"] },
-    { "$tag": "Jump", "0": 0 },
-    { "$tag": "Save", "0": 0 },
-    { "$tag": "Split", "0": 5, "1": 9 },
-    { "$tag": "Save", "0": 2 },
-    { "$tag": "Char", "0": ["a", "a"] },
-    { "$tag": "Save", "0": 3 },
-    { "$tag": "Jump", "0": 12 },
-    { "$tag": "Save", "0": 4 },
-    { "$tag": "Char", "0": ["b", "b"] },
-    { "$tag": "Save", "0": 5 },
-    { "$tag": "Split", "0": 4, "1": 13 },
-    { "$tag": "Save", "0": 1 },
-    { "$tag": "Matched" },
+    ["Split", 3, 1],
+    ["Chars", ["'\\u{00}'", "'\\u{10ffff}'"]],
+    ["Jump", 0],
+    ["Save", 0],
+    ["Split", 5, 9],
+    ["Save", 2],
+    ["Chars", ["'a'", "'a'"]],
+    ["Save", 3],
+    ["Jump", 12],
+    ["Save", 4],
+    ["Chars", ["'b'", "'b'"]],
+    ["Save", 5],
+    ["Split", 4, 13],
+    ["Save", 1],
+    "Matched",
   ])
 }

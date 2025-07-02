@@ -1207,31 +1207,47 @@ test "parse named capture group error cases" {
 test "parse valid group name formats" {
   // Starts with a letter
   let regex = parse("(?<group>abc)").ast
-  inspect(
-    (regex : Regex),
-    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
-  )
+  @json.inspect((regex : Regex), content=[
+    "Capture 1",
+    [
+      ["CharClass neg=false", ["'a'", "'a'"]],
+      ["CharClass neg=false", ["'b'", "'b'"]],
+      ["CharClass neg=false", ["'c'", "'c'"]],
+    ],
+  ])
 
   // Starts with an underscore
   let regex = parse("(?<_group>abc)").ast
-  inspect(
-    (regex : Regex),
-    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
-  )
+  @json.inspect((regex : Regex), content=[
+    "Capture 1",
+    [
+      ["CharClass neg=false", ["'a'", "'a'"]],
+      ["CharClass neg=false", ["'b'", "'b'"]],
+      ["CharClass neg=false", ["'c'", "'c'"]],
+    ],
+  ])
 
   // Contains digits
   let regex = parse("(?<group1>abc)").ast
-  inspect(
-    (regex : Regex),
-    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
-  )
+  @json.inspect((regex : Regex), content=[
+    "Capture 1",
+    [
+      ["CharClass neg=false", ["'a'", "'a'"]],
+      ["CharClass neg=false", ["'b'", "'b'"]],
+      ["CharClass neg=false", ["'c'", "'c'"]],
+    ],
+  ])
 
   // Contains multiple underscores
   let regex = parse("(?<my_group_1>abc)").ast
-  inspect(
-    (regex : Regex),
-    content="Capture(Concat([CharClass(['a', 'a'], neg=false), CharClass(['b', 'b'], neg=false), CharClass(['c', 'c'], neg=false)]), index=1)",
-  )
+  @json.inspect((regex : Regex), content=[
+    "Capture 1",
+    [
+      ["CharClass neg=false", ["'a'", "'a'"]],
+      ["CharClass neg=false", ["'b'", "'b'"]],
+      ["CharClass neg=false", ["'c'", "'c'"]],
+    ],
+  ])
 }
 
 ///|
@@ -1568,8 +1584,12 @@ test "parse unicode general property" {
 ///|
 test "parse unmatched curly brace" {
   let regex = parse("a|b}").ast
-  inspect(
-    regex,
-    content="Alternate(CharClass(['a', 'a'], neg=false), Concat([CharClass(['b', 'b'], neg=false), CharClass(['}', '}'], neg=false)]))",
-  )
+  @json.inspect(regex, content=[
+    "Alternate",
+    ["CharClass neg=false", ["'a'", "'a'"]],
+    [
+      ["CharClass neg=false", ["'b'", "'b'"]],
+      ["CharClass neg=false", ["'}'", "'}'"]],
+    ],
+  ])
 }

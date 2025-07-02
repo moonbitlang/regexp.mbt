@@ -1276,7 +1276,6 @@ test {
     regex.execute("aabaaaaaabbbb").results(),
     content=
       #|[Some("aabaaaaaabbbb"), Some("b")]
-
     ,
   )
 }

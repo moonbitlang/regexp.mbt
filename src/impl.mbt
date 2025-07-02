@@ -21,7 +21,19 @@ priv enum Instruction {
   Split(Int, Int)
   /// Zero-width assertions
   Assertion(Predicate)
-} derive(Show, ToJson)
+} derive(Show)
+
+///|
+impl ToJson for Instruction with to_json(self) {
+  match self {
+    Matched => "Matched"
+    Save(i) => ["Save", i]
+    Char(chars) => ["Chars", chars.map(c => repr(c))]
+    Jump(i) => ["Jump", i]
+    Split(i1, i2) => ["Split", i1, i2]
+    Assertion(pred) => ["Assertion", pred]
+  }
+}
 
 ///|
 priv enum Predicate {
