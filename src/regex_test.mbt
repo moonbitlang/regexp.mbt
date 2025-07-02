@@ -1430,4 +1430,27 @@ test "char classes" {
       #|[Some("中文")]
     ,
   )
+
+  // unicode properties
+  let regex = @regexp.compile("[\\p{L}\\p{N}]+")
+  inspect(
+    regex.execute("Hello世界123\n").results(),
+    content=
+      #|[Some("Hello世界123")]
+    ,
+  )
+  let regex = @regexp.compile("[^\\p{L}\\p{N}]+")
+  inspect(
+    regex.execute("Hello世界123\n").results(),
+    content=
+      #|[Some("\n")]
+    ,
+  )
+  let regex = @regexp.compile("[\\P{L}]+")
+  inspect(
+    regex.execute("Hello世界123\n").results(),
+    content=
+      #|[Some("123\n")]
+    ,
+  )
 }

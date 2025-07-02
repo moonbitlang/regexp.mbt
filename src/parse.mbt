@@ -599,6 +599,18 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
             [unicode_char, unicode_char].each(chars.push(_))
             continue
           }
+          'p' | 'P' as flag => {
+            // Unicode property \p{property_name}
+            let property_name = self.parse_unicode_property()
+            guard self.parse_general_category(property_name, flag == 'P')
+              is CharClass(class, neg~)
+            if neg {
+              compute_char_class_complement(class).each(chars.push(_))
+            } else {
+              class.each(chars.push(_))
+            }
+            continue
+          }
           _ => ch
         }
       }
