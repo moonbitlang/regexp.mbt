@@ -52,11 +52,18 @@ test "unicode escape sequences" {
   )
 
   // Test Unicode characters beyond ASCII
-  let regex = @regexp.compile("\\u{4e16}")
+  let regex = @regexp.compile("\\u{4e16}\\u{754c}")
   inspect(
-    regex.execute("世").results().collect(),
+    regex.execute("世界").results().collect(),
     content=
-      #|[Some("世")]
+      #|[Some("世界")]
+    ,
+  )
+  let regex = @regexp.compile("\\u4e16\\u754C")
+  inspect(
+    regex.execute("世界").results().collect(),
+    content=
+      #|[Some("世界")]
     ,
   )
 
@@ -91,11 +98,11 @@ test "unicode escape sequences" {
   inspect(regex.execute("C").matched(), content="false")
 
   // Test combining with other patterns
-  let regex = @regexp.compile("\\u{48}ello \\u{4e16}")
+  let regex = @regexp.compile("\\u{48}ello \\u{4E16}\\u754C")
   inspect(
     regex.execute("Hello 世界").results().collect(),
     content=
-      #|[Some("Hello 世")]
+      #|[Some("Hello 世界")]
     ,
   )
 
@@ -948,6 +955,15 @@ test "greedy vs non-greedy matching" {
       #|[Some("axxxb")]
     ,
   )
+
+  // Test non-greedy ?
+  let regex = @regexp.compile("a??b")
+  inspect(
+    regex.execute("b").results(),
+    content=
+      #|[Some("b")]
+    ,
+  )
 }
 
 // ///|
@@ -1321,6 +1337,24 @@ test "backreference" {
 }
 
 ///|
+test "invalid backreferences" {
+  let regex = try? @regexp.compile("\\1000")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\1000"))
+    ,
+  )
+  let regex = try? @regexp.compile("\\01")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\01"))
+    ,
+  )
+}
+
+///|
 test "unicode general category properties" {
   // Test Unicode property \p{L} (letter)
   let regex = @regexp.compile("\\p{Letter}+")
@@ -1346,6 +1380,54 @@ test "unicode general category properties" {
     regex.execute("Hello 世界 ").results(),
     content=
       #|[Some(" ")]
+    ,
+  )
+}
+
+///|
+test "char classes" {
+  // negated case insensitive
+  let regex = @regexp.compile("(?i:[^a-z]+)")
+  inspect(
+    regex.execute("1234").results(),
+    content=
+      #|[Some("1234")]
+    ,
+  )
+  inspect(regex.execute("a").results(), content="[]")
+  inspect(regex.execute("A").results(), content="[]")
+  inspect(regex.execute("K").results(), content="[]")
+
+  // digits
+  let regex = @regexp.compile("[\\d]+")
+  inspect(
+    regex.execute("123abc").results(),
+    content=
+      #|[Some("123")]
+    ,
+  )
+  // non-digits
+  let regex = @regexp.compile("[\\D]+")
+  inspect(
+    regex.execute("abc123").results(),
+    content=
+      #|[Some("abc")]
+    ,
+  )
+
+  // words
+  let regex = @regexp.compile("[\\w]+")
+  inspect(
+    regex.execute("hello_world123 ").results(),
+    content=
+      #|[Some("hello_world123")]
+    ,
+  )
+  let regex = @regexp.compile("[\\W]+")
+  inspect(
+    regex.execute("中文abc").results(),
+    content=
+      #|[Some("中文")]
     ,
   )
 }
