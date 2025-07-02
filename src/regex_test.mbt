@@ -1309,4 +1309,43 @@ test "backreference" {
       #|[Some("aaabbb"), Some("b")]
     ,
   )
+
+  // Palindrome detection
+  let palindrome = @regexp.compile("^(.)(.)\\2\\1")
+  inspect(
+    palindrome.execute("abba").results(),
+    content=
+      #|[Some("abba"), Some("a"), Some("b")]
+    ,
+  )
+}
+
+///|
+test "unicode general category properties" {
+  // Test Unicode property \p{L} (letter)
+  let regex = @regexp.compile("\\p{Letter}+")
+  inspect(
+    regex.execute("Hello 世界").results(),
+    content=
+      #|[Some("Hello")]
+    ,
+  )
+
+  // Test Unicode property \p{N} (number)
+  let regex = @regexp.compile("\\p{Number}+")
+  inspect(
+    regex.execute("123 and 456").results(),
+    content=
+      #|[Some("123")]
+    ,
+  )
+
+  // Test Unicode property \p{Z} (separator)
+  let regex = @regexp.compile("\\p{Z}+")
+  inspect(
+    regex.execute("Hello 世界 ").results(),
+    content=
+      #|[Some(" ")]
+    ,
+  )
 }

@@ -54,6 +54,70 @@ test {
 | **Choice**      | `cat\|dog`         | Match either option                 |
 | **Anchors**     | `^start`, `end$`   | Line boundaries                     |
 | **Escapes**     | `\\u{41}`, `\\u0041` | Unicode escapes, standard escapes   |
+| **Unicode Props** | `\\p{L}`, `\\p{Nd}` | Unicode general categories         |
+| **Backrefs** ⚠️ | `(.)\\1`           | Reference previous captures         |
+
+## 🌍 Unicode Property Support
+
+Match characters by their Unicode general categories:
+
+```moonbit
+test "unicode properties" {
+  // Matching gc=L
+  let regex = @regexp.compile("\\p{Letter}+")
+  inspect(
+    regex.execute("Hello 世界").results(),
+    content=
+      #|[Some("Hello")]
+    ,
+  )
+
+  // Matching gc=N
+  let regex = @regexp.compile("\\p{Number}+")
+  inspect(
+    regex.execute("123 and 456").results(),
+    content=
+      #|[Some("123")]
+    ,
+  )
+}
+```
+
+**Supported Propertes:**
+- [General Category](https://www.unicode.org/reports/tr44/#General_Category_Values)
+
+## 🔄 Backreferences
+
+> ⚠️ **Performance Warning**: Backreferences can cause exponential time complexity in worst cases!
+
+```moonbit
+test "backreferences" {  
+  // Palindrome detection (simple)
+  let palindrome = @regexp.compile("^(.)(.)\\2\\1")
+  inspect(
+    palindrome.execute("abba").results(),
+    content=
+      #|[Some("abba"), Some("a"), Some("b")]
+    ,
+  )
+  
+  // HTML tag matching
+  let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
+  let result = html_regex.execute("<div class='test'>content</div>")
+  inspect(
+    result.group(1),
+    content=
+      #|Some("div")
+    ,
+  )
+  inspect(
+    result.group(2),
+    content=
+      #|Some("content")
+    ,
+  )
+}
+```
 
 ## 💡 Real Examples
 
@@ -96,10 +160,10 @@ try {
 }
 ```
 
-## ⚡ Why It's Fast
+## ⚡ Performance Characteristics
 
-- **Linear time** — No catastrophic backtracking
+- **Linear time** — No catastrophic backtracking (except backreferences), O(nm) complexity
 - **VM-based** — Predictable memory usage
-- **Unicode ready** — Full character set support
+- **Unicode ready** — Full character set and property support
 
 Built for speed, reliability, and developer happiness! 🚀
