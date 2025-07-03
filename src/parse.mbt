@@ -508,6 +508,8 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           }
           Backreference(capture)
         }
+        // reserve c
+        'c' => raise Error_(err=InvalidEscape, data=self.input)
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -564,6 +566,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
   }
   let chars = []
   while self.input is [ch, .. rest] && ch != ']' {
+    let escape = rest
     let start_char = match ch {
       '\\' => {
         guard rest is [ch, .. rest] else {
@@ -639,6 +642,8 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
             }
             continue
           }
+          // reserve c and k
+          'c' | 'k' => raise Error_(err=InvalidEscape, data=escape)
           _ => ch
         }
       }
