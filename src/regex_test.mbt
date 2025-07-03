@@ -1355,6 +1355,109 @@ test "invalid backreferences" {
 }
 
 ///|
+test "named backreferences with \\k<name>" {
+  // Basic named backreference test
+  let regex = @regexp.compile("(?<word>\\w+) \\k<word>")
+  inspect(
+    regex.execute("hello hello").results(),
+    content=
+      #|[Some("hello hello"), Some("hello")]
+    ,
+  )
+  inspect(regex.execute("hello world").matched(), content="false")
+
+  // Multiple named backreferences
+  let regex = @regexp.compile(
+    "(?<first>\\w+) (?<second>\\w+) \\k<first> \\k<second>",
+  )
+  inspect(
+    regex.execute("cat dog cat dog").results(),
+    content=
+      #|[Some("cat dog cat dog"), Some("cat"), Some("dog")]
+    ,
+  )
+
+  // Named backreference with repetition
+  let regex = @regexp.compile("(?<char>.)\\k<char>{2}")
+  inspect(
+    regex.execute("aaa").results(),
+    content=
+      #|[Some("aaa"), Some("a")]
+    ,
+  )
+  inspect(regex.execute("abb").matched(), content="false")
+
+  // Using \k<name> with alternation
+  let regex = @regexp.compile("(?<tag>\\w+)\\s*\\|\\s*\\k<tag>")
+  inspect(
+    regex.execute("div | div").results(),
+    content=
+      #|[Some("div | div"), Some("div")]
+    ,
+  )
+
+  // HTML-like tag matching
+  let regex = @regexp.compile("<(?<tag>[a-z]+)>.*?</\\k<tag>>")
+  inspect(
+    regex.execute("<div>content</div>").results(),
+    content=
+      #|[Some("<div>content</div>"), Some("div")]
+    ,
+  )
+  inspect(regex.execute("<div>content</span>").matched(), content="false")
+
+  // Case-insensitive named backreference
+  let regex = @regexp.compile("(?i:(?<word>[a-z]+) \\k<word>)")
+  inspect(regex.execute("Hello HELLO").results(), content="[]")
+}
+
+///|
+test "named backreference errors" {
+  // Undefined name
+  let regex = try? @regexp.compile("\\k<undefined>")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\k<undefined>"))
+    ,
+  )
+
+  // Recursive reference - reference to a capture group that is currently being defined
+  let regex = try? @regexp.compile("(?<recur>.\\k<recur>)")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\k<recur>)"))
+    ,
+  )
+
+  // Reference to a named group that doesn't exist yet
+  let regex = try? @regexp.compile("\\k<name> (?<name>\\w+)")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data="\\k<name> (?<name>\\w+)"))
+    ,
+  )
+
+  // Invalid syntax for named backreference
+  let regex = try? @regexp.compile("\\k<name")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data=""))
+    ,
+  )
+  let regex = try? @regexp.compile("\\k name>")
+  inspect(
+    regex.map(ignore),
+    content=
+      #|Err(Error_(err=InvalidEscape, data=" name>"))
+    ,
+  )
+}
+
+///|
 test "unicode general category properties" {
   // Test Unicode property \p{L} (letter)
   let regex = @regexp.compile("\\p{Letter}+")

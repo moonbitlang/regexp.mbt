@@ -480,6 +480,34 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           }
           Backreference(capture)
         }
+        'k' => {
+          // Named backreference \k<name>
+          guard self.input is ['<', .. rest] else {
+            raise Error_(err=InvalidEscape, data=self.input)
+          }
+          self.input = rest // consume '<'
+          let name = self.parse_group_name()
+          guard self.input is ['>', .. rest] else {
+            raise Error_(err=InvalidEscape, data=self.input)
+          }
+          self.input = rest // consume '>'
+
+          // Get the capture index for the named group
+          guard self.capture_map.get(name) is Some(capture) else {
+            raise Error_(err=InvalidEscape, data=escape)
+          }
+
+          // Set backreference flag
+          self.has_backreference = true
+
+          // Ban recursive backreferences
+          if self.current_capture_scope.contains(capture) {
+            raise Error_(err=InvalidEscape, data=escape)
+          } else if capture >= self.captures {
+            raise Error_(err=InvalidEscape, data=escape)
+          }
+          Backreference(capture)
+        }
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
