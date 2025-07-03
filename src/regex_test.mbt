@@ -118,7 +118,7 @@ test "unicode escape sequences" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="}")
+      #|Error_(err=InvalidEscape, data="1234567}")
     ,
   )
   guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
@@ -136,7 +136,7 @@ test "unicode escape sequences" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="")
+      #|Error_(err=InvalidEscape, data="110000}")
     ,
   )
 }

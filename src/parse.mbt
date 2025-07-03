@@ -870,6 +870,7 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
 fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
   match self.input {
     ['{', .. rest] => {
+      let num = rest
       self.input = rest // consume '{'
       let mut codepoint = 0
       let mut len = 0
@@ -893,11 +894,11 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
         }
         len += 1
         if len > 6 {
-          raise Error_(err=InvalidEscape, data=self.input)
+          raise Error_(err=InvalidEscape, data=num)
         }
       }
       if len == 0 {
-        raise Error_(err=InvalidEscape, data=self.input)
+        raise Error_(err=InvalidEscape, data=num)
       }
 
       // Check for closing brace
@@ -906,7 +907,7 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
 
       // Validate Unicode range (0x0 to 0x10FFFF)
       if codepoint < 0 || codepoint > 0x10FFFF {
-        raise Error_(err=InvalidEscape, data=self.input)
+        raise Error_(err=InvalidEscape, data=num)
       }
       codepoint.unsafe_to_char()
     }
