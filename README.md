@@ -1,8 +1,8 @@
 # 🔍 regexp.mbt
 
-> ⚠️ **WARNING: WORK IN PROGRESS**  
-> This library is still under active development and may undergo breaking changes.  
-> Use with caution as functionality might be incomplete or unstable.
+> ⚠️ **API STABILITY NOTICE**  
+> This is a v0.1.0 release with a stabilizing API. While core functionality is complete and well-tested,  
+> API changes may occur in future versions as we refine the implementation.
 
 **Lightning-fast regex for MoonBit** — inspired by
 [Russ Cox's brilliant regex series](https://swtch.com/~rsc/regexp/regexp1.html).
@@ -167,3 +167,18 @@ try {
 - **Unicode ready** — Full character set and property support
 
 Built for speed, reliability, and developer happiness! 🚀
+
+## 🔍 Implementation Notes
+
+### Behavior Differences from Other Engines
+
+This implementation has some behavior differences compared to other popular regex engines:
+
+1. **Empty Character Class Handling**:
+   - In JavaScript: `[][]` is parsed as two character classes with no characters
+   - In Golang: `[][]` is parsed as one character class containing `]` and `[`
+   - In MoonBit: we follow the JavaScript interpretation
+
+2. **Empty Alternatives Behavior**:
+   - Expressions like `(|a)*` and `(|a)+` follow the Golang interpretation
+   - See [Golang issue #46123](https://github.com/golang/go/issues/46123) for details
