@@ -5,7 +5,7 @@
   "repository": "https://github.com/moonbitlang/regexp.mbt",
   "license": "Apache-2.0",
   "keywords": ["regexp"],
-  "description": "A lightning-fast regular expression engine for MoonBit based on VM execution with linear time complexity",
+  "description": "A regular expression engine for MoonBit based on VM execution designed for predictable time complexity",
   "source": "src",
   "exclude": ["prebuild"]
 }

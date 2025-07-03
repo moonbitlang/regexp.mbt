@@ -4,8 +4,8 @@
 > This is a v0.1.0 release with a stabilizing API. While core functionality is complete and well-tested,  
 > API changes may occur in future versions as we refine the implementation.
 
-**Lightning-fast regex for MoonBit** — inspired by
-[Russ Cox's brilliant regex series](https://swtch.com/~rsc/regexp/regexp1.html).
+**Regular expression engine for MoonBit** — inspired by
+[Russ Cox's regex series](https://swtch.com/~rsc/regexp/regexp1.html).
 
 ## ⚡ Quick Start
 
@@ -162,11 +162,11 @@ try {
 
 ## ⚡ Performance Characteristics
 
-- **Linear time** — No catastrophic backtracking (except backreferences), O(nm) complexity
-- **VM-based** — Predictable memory usage
-- **Unicode ready** — Full character set and property support
+- **Predictable complexity** — Designed to avoid catastrophic backtracking (except with backreferences)
+- **VM-based** — Structured interpreter design
+- **Unicode support** — Character set and property support
 
-Built for speed, reliability, and developer happiness! 🚀
+Built with reliability and correctness as primary goals.
 
 ## 🔍 Implementation Notes
 
@@ -180,5 +180,8 @@ This implementation has some behavior differences compared to other popular rege
    - In MoonBit: we follow the JavaScript interpretation
 
 2. **Empty Alternatives Behavior**:
-   - Expressions like `(|a)*` and `(|a)+` follow the Golang interpretation
-   - See [Golang issue #46123](https://github.com/golang/go/issues/46123) for details
+   - Expressions like `(|a)*` and `(|a)+` have specific behavior that may differ from other implementations
+   - See [Golang issue #46123](https://github.com/golang/go/issues/46123) for related discussion
+
+3. **Backreferences**:
+   - Backreferences are supported but may impact the complexity guarantees of the engine
