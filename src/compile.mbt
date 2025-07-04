@@ -13,24 +13,24 @@
 // limitations under the License.
 
 ///|
-priv enum Regex {
+priv enum Ast {
   Empty
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(Array[Char], neg~ : Bool)
   Assertion(Predicate)
-  Capture(Regex, index~ : Int)
-  ZeroOrMore(Regex, greedy~ : Bool)
-  OneOrMore(Regex, greedy~ : Bool)
-  ZeroOrOne(Regex, greedy~ : Bool)
+  Capture(Ast, index~ : Int)
+  ZeroOrMore(Ast, greedy~ : Bool)
+  OneOrMore(Ast, greedy~ : Bool)
+  ZeroOrOne(Ast, greedy~ : Bool)
   /// Matches a specific number of repetitions.
-  Repeat(Regex, greedy~ : Bool, min~ : UInt, max~ : UInt?)
-  Concat(Array[Regex])
-  Alternate(Regex, Regex)
+  Repeat(Ast, greedy~ : Bool, min~ : UInt, max~ : UInt?)
+  Concat(Array[Ast])
+  Alternate(Ast, Ast)
   Backreference(Int)
 } derive(Show)
 
 ///|
-struct Engine {
+struct Regexp {
   instructions : Array[Instruction]
   map : Map[String, Int]
   capture : Int
@@ -39,7 +39,7 @@ struct Engine {
 
 ///|
 /// @returns next capture
-fn Regex::compile_aux(regex : Self, instructions : Array[Instruction]) -> Unit {
+fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
   match regex {
     Empty => ()
     CharClass(chars, neg~) =>
@@ -169,7 +169,7 @@ fn Regex::compile_aux(regex : Self, instructions : Array[Instruction]) -> Unit {
 }
 
 ///|
-fn Regex::compile(self : Regex) -> Array[Instruction] {
+fn Ast::compile(self : Ast) -> Array[Instruction] {
   // for leftmost matching
   let instructions = [Split(3, 1), Char(['\u{0}', '\u{10FFFF}']), Jump(0)]
   // start matching
@@ -182,7 +182,7 @@ fn Regex::compile(self : Regex) -> Array[Instruction] {
 
 ///|
 /// Compiles a regex into a matcher.
-fn ParseResult::compile(self : Self) -> Engine {
+fn ParseResult::compile(self : Self) -> Regexp {
   {
     instructions: self.ast.compile(),
     map: self.capture_map,

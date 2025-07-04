@@ -111,32 +111,48 @@ test "unicode escape sequences" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="}")
+      #|RegexpError(err=InvalidEscape, source_fragment="}")
+
     ,
   )
   guard (try? @regexp.compile("\\u{1234567}")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="1234567}")
+      #|RegexpError(err=InvalidEscape, source_fragment="1234567}")
+
     ,
   )
   guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
-  error |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG}\")")
+  error
+  |> inspect(
+    content=
+      #|RegexpError(err=InvalidEscape, source_fragment="GGGG}")
+
+    ,
+  )
   guard (try? @regexp.compile("\\u123")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="")
+      #|RegexpError(err=InvalidEscape, source_fragment="")
+
     ,
   )
   guard (try? @regexp.compile("\\uGGGG")) is Err(error)
-  error |> inspect(content="Error_(err=InvalidEscape, data=\"GGGG\")")
+  error
+  |> inspect(
+    content=
+      #|RegexpError(err=InvalidEscape, source_fragment="GGGG")
+
+    ,
+  )
   guard (try? @regexp.compile("\\u{110000}")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="110000}")
+      #|RegexpError(err=InvalidEscape, source_fragment="110000}")
+
     ,
   )
 }
@@ -260,28 +276,32 @@ test "invalid regex test" {
   error
   |> inspect(
     content=
-      #|Error_(err=MissingParenthesis, data="")
+      #|RegexpError(err=MissingParenthesis, source_fragment="")
+
     ,
   )
   guard (try? @regexp.compile("a(b|c")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=MissingParenthesis, data="")
+      #|RegexpError(err=MissingParenthesis, source_fragment="")
+
     ,
   )
   guard (try? @regexp.compile("a|b)")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=UnexpectedParenthesis, data=")")
+      #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
+
     ,
   )
   guard (try? @regexp.compile("a|b|c)")) is Err(error)
   error
   |> inspect(
     content=
-      #|Error_(err=UnexpectedParenthesis, data=")")
+      #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
+
     ,
   )
 }
@@ -1342,14 +1362,16 @@ test "invalid backreferences" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\1000"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1000"))
+
     ,
   )
   let regex = try? @regexp.compile("\\01")
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\01"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\01"))
+
     ,
   )
 }
@@ -1418,7 +1440,8 @@ test "named backreference errors" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\k<undefined>"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<undefined>"))
+
     ,
   )
 
@@ -1427,7 +1450,8 @@ test "named backreference errors" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\k<recur>)"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<recur>)"))
+
     ,
   )
 
@@ -1436,7 +1460,8 @@ test "named backreference errors" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\k<name> (?<name>\\w+)"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<name> (?<name>\\w+)"))
+
     ,
   )
 
@@ -1445,14 +1470,16 @@ test "named backreference errors" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data=""))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment=""))
+
     ,
   )
   let regex = try? @regexp.compile("\\k name>")
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data=" name>"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment=" name>"))
+
     ,
   )
 }

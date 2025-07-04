@@ -79,7 +79,7 @@ priv struct Parser {
 
 ///|
 priv struct ParseResult {
-  ast : Regex
+  ast : Ast
   captures : Int
   capture_map : Map[String, Int]
   has_backreference : Bool
@@ -112,8 +112,8 @@ pub enum Err {
 ///| Parsing error exception type
 ///
 /// Contains error information and related string view context
-pub suberror Error_ {
-  Error_(err~ : Err, data~ : @string.View)
+pub suberror RegexpError {
+  RegexpError(err~ : Err, source_fragment~ : @string.View)
 } derive(Show)
 
 ///| Create a regular expression parser
@@ -146,13 +146,13 @@ fn Parser::new(input : @string.View, flags : Flags) -> Parser {
 fn parse(
   regex : @string.View,
   flags~ : Flags = Flags::default()
-) -> ParseResult raise Error_ {
+) -> ParseResult raise RegexpError {
   let parser = Parser::new(regex, flags)
   let result = parser.parse_expression()
 
   // Check if there's any remaining input, especially unmatched right parentheses
   if parser.input is [')', ..] {
-    raise Error_(err=UnexpectedParenthesis, data=parser.input)
+    raise RegexpError(err=UnexpectedParenthesis, source_fragment=parser.input)
   }
   {
     ast: result,
@@ -176,12 +176,12 @@ fn parse(
 /// - `a|b|c`   -> Alternation of multiple sequences: match a, b, or c
 ///
 /// Returns: Parsed Regex AST
-fn Parser::parse_expression(self : Parser) -> Regex raise Error_ {
+fn Parser::parse_expression(self : Parser) -> Ast raise RegexpError {
   let mut left = self.parse_sequence()
   while self.input is ['|', .. rest] {
     self.input = rest // consume '|'
     let right = self.parse_sequence()
-    left = Regex::Alternate(left, right)
+    left = Ast::Alternate(left, right)
   }
   left
 }
@@ -205,7 +205,7 @@ fn Parser::parse_expression(self : Parser) -> Regex raise Error_ {
 /// - End of input
 ///
 /// Returns: Parsed Regex AST
-fn Parser::parse_sequence(self : Parser) -> Regex raise Error_ {
+fn Parser::parse_sequence(self : Parser) -> Ast raise RegexpError {
   let sequence = []
   while self.input is [ch, ..] && ch != '|' && ch != ')' {
     let term = self.parse_term()
@@ -213,9 +213,9 @@ fn Parser::parse_sequence(self : Parser) -> Regex raise Error_ {
   }
   match sequence {
     // Empty sequence is considered a valid regular expression (consistent with Go's behavior)
-    [] => Regex::Empty
+    [] => Ast::Empty
     [regex] => regex
-    _ => Regex::Concat(sequence)
+    _ => Ast::Concat(sequence)
   }
 }
 
@@ -245,7 +245,7 @@ fn Parser::parse_sequence(self : Parser) -> Regex raise Error_ {
 /// - `(ab)*`  -> Quantified term: group (ab) repeated 0 or more times
 ///
 /// Returns: Parsed Regex AST
-fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
+fn Parser::parse_term(self : Parser) -> Ast raise RegexpError {
   let mut base = self.parse_factor()
 
   // Handle quantifiers
@@ -325,7 +325,7 @@ fn Parser::parse_term(self : Parser) -> Regex raise Error_ {
 /// Returns: Parsed Regex AST
 ///
 /// Throws: Error_ when invalid syntax is encountered
-fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
+fn Parser::parse_factor(self : Parser) -> Ast raise RegexpError {
   match self.input {
     [.. "(?", .. rest] as capture =>
       // Handle various special group syntax
@@ -337,7 +337,10 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           self.input = rest // consume '(?<'
           let name = self.parse_group_name()
           guard self.input is ['>', .. rest] else {
-            raise Error_(err=InvalidNamedCapture, data=self.input)
+            raise RegexpError(
+              err=InvalidNamedCapture,
+              source_fragment=self.input,
+            )
           }
           self.input = rest // consume '>'
 
@@ -348,11 +351,14 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
 
           // Check for closing parenthesis
           guard self.input is [')', .. rest] else {
-            raise Error_(err=MissingParenthesis, data=self.input)
+            raise RegexpError(
+              err=MissingParenthesis,
+              source_fragment=self.input,
+            )
           }
           self.input = rest // consume ')'
           if self.capture_map.contains(name) { // check for duplicate named capture
-            raise Error_(err=InvalidNamedCapture, data=capture)
+            raise RegexpError(err=InvalidNamedCapture, source_fragment=capture)
           }
           self.capture_map.set(name, captures)
           Capture(expr, index=captures)
@@ -365,7 +371,10 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
           self.flags = new_flags
           let expr = self.parse_expression()
           guard self.input is [')', .. rest] else {
-            raise Error_(err=MissingParenthesis, data=self.input)
+            raise RegexpError(
+              err=MissingParenthesis,
+              source_fragment=self.input,
+            )
           }
           self.input = rest // consume ')'
           self.flags = old_flags // restore original flags
@@ -385,7 +394,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
 
       // Check for closing parenthesis
       guard self.input is [')', .. rest] else {
-        raise Error_(err=MissingParenthesis, data=self.input)
+        raise RegexpError(err=MissingParenthesis, source_fragment=self.input)
       }
       self.input = rest // consume ')'
       Capture(expr, index=captures)
@@ -426,7 +435,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
     }
     ['\\', .. rest] as escape => {
       guard rest is [c, .. rest] else {
-        raise Error_(err=TrailingBackslash, data=self.input)
+        raise RegexpError(err=TrailingBackslash, source_fragment=self.input)
       }
       self.input = rest // consume '\' and the character
       match c {
@@ -457,7 +466,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         }
         '0' =>
           if rest is ['0'..='9', ..] {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           } else {
             self.input = rest
             CharClass(['\u{0}', '\u{0}'], neg=false) // Null character
@@ -474,27 +483,27 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
 
           // Ban recursive backreferences and backreferences to the non existent capture group
           if self.current_capture_scope.contains(capture) {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           } else if capture >= self.captures {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           }
           Backreference(capture)
         }
         'k' => {
           // Named backreference \k<name>
           guard self.input is ['<', .. rest] else {
-            raise Error_(err=InvalidEscape, data=self.input)
+            raise RegexpError(err=InvalidEscape, source_fragment=self.input)
           }
           self.input = rest // consume '<'
           let name = self.parse_group_name()
           guard self.input is ['>', .. rest] else {
-            raise Error_(err=InvalidEscape, data=self.input)
+            raise RegexpError(err=InvalidEscape, source_fragment=self.input)
           }
           self.input = rest // consume '>'
 
           // Get the capture index for the named group
           guard self.capture_map.get(name) is Some(capture) else {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           }
 
           // Set backreference flag
@@ -502,14 +511,14 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
 
           // Ban recursive backreferences
           if self.current_capture_scope.contains(capture) {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           } else if capture >= self.captures {
-            raise Error_(err=InvalidEscape, data=escape)
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           }
           Backreference(capture)
         }
         // reserve c
-        'c' => raise Error_(err=InvalidEscape, data=self.input)
+        'c' => raise RegexpError(err=InvalidEscape, source_fragment=self.input)
         _ =>
           if self.flags.ignore_case {
             CharClass(case_insensitive_char_class([c, c]), neg=false)
@@ -519,7 +528,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
       }
     }
     [c, ..] if Parser::is_special_char(c) =>
-      raise Error_(err=InvalidEscape, data=self.input)
+      raise RegexpError(err=InvalidEscape, source_fragment=self.input)
     [c, .. rest] => {
       self.input = rest
       if self.flags.ignore_case {
@@ -528,7 +537,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
         CharClass([c, c], neg=false)
       }
     }
-    "" => raise Error_(err=InternalError, data=self.input)
+    "" => raise RegexpError(err=InternalError, source_fragment=self.input)
   }
 }
 
@@ -557,7 +566,7 @@ fn Parser::parse_factor(self : Parser) -> Regex raise Error_ {
 /// Returns: CharClass(chars) - a character class AST containing a list of character ranges
 ///
 /// Throws: Error_ when the character class format is incorrect
-fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
+fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
   let neg = if self.input is ['^', .. rest] {
     self.input = rest // consume '^'
     true
@@ -570,7 +579,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
     let start_char = match ch {
       '\\' => {
         guard rest is [ch, .. rest] else {
-          raise Error_(err=TrailingBackslash, data=self.input)
+          raise RegexpError(err=TrailingBackslash, source_fragment=self.input)
         }
         self.input = rest
         match ch {
@@ -643,7 +652,8 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
             continue
           }
           // reserve c and k
-          'c' | 'k' => raise Error_(err=InvalidEscape, data=escape)
+          'c' | 'k' =>
+            raise RegexpError(err=InvalidEscape, source_fragment=escape)
           _ => ch
         }
       }
@@ -663,7 +673,10 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
         let end_char = match ch {
           '\\' => {
             guard rest is [ch, .. rest] else {
-              raise Error_(err=TrailingBackslash, data=self.input)
+              raise RegexpError(
+                err=TrailingBackslash,
+                source_fragment=self.input,
+              )
             }
             self.input = rest
             ch
@@ -676,7 +689,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
 
         // Check if the end character of the range is valid
         if end_char < start_char {
-          raise Error_(err=InvalidCharClass, data=self.input)
+          raise RegexpError(err=InvalidCharClass, source_fragment=self.input)
         }
 
         // Add the range: start and end characters
@@ -695,7 +708,7 @@ fn Parser::parse_char_class(self : Parser) -> Regex raise Error_ {
     }
   }
   guard self.input is [']', .. rest] else {
-    raise Error_(err=MissingBracket, data=self.input)
+    raise RegexpError(err=MissingBracket, source_fragment=self.input)
   }
   self.input = rest // consume ']'
   if self.flags.ignore_case {
@@ -738,7 +751,7 @@ fn Parser::is_special_char(c : Char) -> Bool {
 /// - max: Maximum number of repetitions (None means unlimited)
 ///
 /// Throws: Error_ when the repeat quantifier format is incorrect
-fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise Error_ {
+fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise RegexpError {
 
   // Parse the first number (minimum repetitions)
   let min = self.parse_number()
@@ -760,19 +773,19 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise Error_ {
           // {n,m} format: n to m repetitions
           let max = self.parse_number()
           guard self.input is ['}', .. rest] else {
-            raise Error_(err=InvalidRepeatOp, data=self.input)
+            raise RegexpError(err=InvalidRepeatOp, source_fragment=self.input)
           }
           self.input = rest // consume '}'
 
           // Validate the range
           if max < min {
-            raise Error_(err=InvalidRepeatSize, data=self.input)
+            raise RegexpError(err=InvalidRepeatSize, source_fragment=self.input)
           }
           (min, Some(max))
         }
       }
     }
-    _ => raise Error_(err=InvalidRepeatOp, data=self.input)
+    _ => raise RegexpError(err=InvalidRepeatOp, source_fragment=self.input)
   }
 }
 
@@ -789,7 +802,7 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise Error_ {
 /// Returns: The parsed integer value
 ///
 /// Throws: Error_ when no valid number is found
-fn Parser::parse_number(self : Parser) -> UInt raise Error_ {
+fn Parser::parse_number(self : Parser) -> UInt raise RegexpError {
   let mut result = 0U
   let mut has_digits = false
   while self.input is [ch, .. rest] && ch >= '0' && ch <= '9' {
@@ -798,7 +811,7 @@ fn Parser::parse_number(self : Parser) -> UInt raise Error_ {
     self.input = rest
   }
   if not(has_digits) {
-    raise Error_(err=MissingRepeatArgument, data=self.input)
+    raise RegexpError(err=MissingRepeatArgument, source_fragment=self.input)
   }
   result
 }
@@ -817,7 +830,7 @@ fn Parser::parse_number(self : Parser) -> UInt raise Error_ {
 /// Returns: The parsed group name string
 ///
 /// Throws: Error_ when the group name format is incorrect
-fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
+fn Parser::parse_group_name(self : Parser) -> String raise RegexpError {
   let mut name = ""
   let mut first = true
   while self.input is [ch, .. rest] && ch != '>' {
@@ -828,20 +841,20 @@ fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
         self.input = rest
         first = false
       } else {
-        raise Error_(err=InvalidNamedCapture, data=self.input)
+        raise RegexpError(err=InvalidNamedCapture, source_fragment=self.input)
       }
     } else if ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | '_') {
       // Subsequent characters can be letters, numbers, or underscores
       name += ch.to_string()
       self.input = rest
     } else {
-      raise Error_(err=InvalidNamedCapture, data=self.input)
+      raise RegexpError(err=InvalidNamedCapture, source_fragment=self.input)
     }
   }
 
   // Check if the group name is empty
   if name == "" {
-    raise Error_(err=InvalidNamedCapture, data=self.input)
+    raise RegexpError(err=InvalidNamedCapture, source_fragment=self.input)
   }
   name
 }
@@ -856,7 +869,7 @@ fn Parser::parse_group_name(self : Parser) -> String raise Error_ {
 /// Returns: The new flag settings
 ///
 /// Throws: Error_ when an invalid flag is encountered
-fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
+fn Parser::parse_flags(self : Parser) -> Flags raise RegexpError {
   let mut flag = { ..self.flags }
   let mut positive = true
   loop self.input {
@@ -882,7 +895,7 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
     }
     [_, ..] | [] =>
       // Unknown flag character or unexpected end
-      raise Error_(err=InvalidRepeatOp, data=self.input)
+      raise RegexpError(err=InvalidRepeatOp, source_fragment=self.input)
   }
 }
 
@@ -900,7 +913,7 @@ fn Parser::parse_flags(self : Parser) -> Flags raise Error_ {
 /// Returns: Unicode character corresponding to the hex codepoint
 ///
 /// Throws: Error_ when invalid Unicode escape format is encountered
-fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
+fn Parser::parse_unicode_escape(self : Parser) -> Char raise RegexpError {
   match self.input {
     ['{', .. rest] => {
       let num = rest
@@ -923,15 +936,15 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
             codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
             self.input = rest
           }
-          _ => raise Error_(err=InvalidEscape, data=self.input)
+          _ => raise RegexpError(err=InvalidEscape, source_fragment=self.input)
         }
         len += 1
         if len > 6 {
-          raise Error_(err=InvalidEscape, data=num)
+          raise RegexpError(err=InvalidEscape, source_fragment=num)
         }
       }
       if len == 0 {
-        raise Error_(err=InvalidEscape, data=num)
+        raise RegexpError(err=InvalidEscape, source_fragment=num)
       }
 
       // Check for closing brace
@@ -940,7 +953,7 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
 
       // Validate Unicode range (0x0 to 0x10FFFF)
       if codepoint < 0 || codepoint > 0x10FFFF {
-        raise Error_(err=InvalidEscape, data=num)
+        raise RegexpError(err=InvalidEscape, source_fragment=num)
       }
       codepoint.unsafe_to_char()
     }
@@ -961,7 +974,7 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
             codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
             self.input = rest
           }
-          _ => raise Error_(err=InvalidEscape, data=self.input)
+          _ => raise RegexpError(err=InvalidEscape, source_fragment=self.input)
         }
       }
       codepoint.unsafe_to_char()
@@ -970,9 +983,9 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise Error_ {
 }
 
 ///|
-fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
+fn Parser::parse_unicode_property(self : Parser) -> String raise RegexpError {
   guard self.input is ['{', .. rest] else {
-    raise Error_(err=InvalidCharClass, data=self.input)
+    raise RegexpError(err=InvalidCharClass, source_fragment=self.input)
   }
   self.input = rest // consume '{'
   let chars = []
@@ -981,7 +994,7 @@ fn Parser::parse_unicode_property(self : Parser) -> String raise Error_ {
     self.input = rest
   }
   guard self.input is ['}', .. rest] else {
-    raise Error_(err=InvalidCharClass, data=self.input)
+    raise RegexpError(err=InvalidCharClass, source_fragment=self.input)
   }
   self.input = rest // consume '}'
   String::from_iter(chars.iter())
@@ -992,12 +1005,12 @@ fn Parser::parse_general_category(
   self : Parser,
   property_name : String,
   neg : Bool
-) -> Regex raise Error_ {
+) -> Ast raise RegexpError {
   // First, normalize the property name using aliases
   let normalized_name = match
     @unicode.general_category_property_value_alises.get(property_name) {
     Some(name) => name
-    None => raise Error_(err=InvalidCharClass, data=self.input)
+    None => raise RegexpError(err=InvalidCharClass, source_fragment=self.input)
   }
 
   // Get the character ranges for the normalized property name

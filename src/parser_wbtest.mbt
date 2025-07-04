@@ -84,7 +84,8 @@ test "parse character class range with escaped characters" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidCharClass, data="]"))
+      #|Err(RegexpError(err=InvalidCharClass, source_fragment="]"))
+
     ,
   )
 }
@@ -190,7 +191,8 @@ test "parse repeat quantifier error cases" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidRepeatSize, data=""))
+      #|Err(RegexpError(err=InvalidRepeatSize, source_fragment=""))
+
     ,
   )
 
@@ -198,21 +200,30 @@ test "parse repeat quantifier error cases" {
   let regex = try? parse("a{}")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=MissingRepeatArgument, data=\"}\"))",
+    content=
+      #|Err(RegexpError(err=MissingRepeatArgument, source_fragment="}"))
+
+    ,
   )
 
   // Test case with missing right brace
   let regex = try? parse("a{2")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidRepeatOp, data=\"\"))",
+    content=
+      #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=""))
+
+    ,
   )
 
   // Test case with invalid format
   let regex = try? parse("a{2,3,4}")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidRepeatOp, data=\",4}\"))",
+    content=
+      #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=",4}"))
+
+    ,
   )
 }
 
@@ -276,35 +287,50 @@ test "parse named capture group error cases" {
   let regex = try? parse("(?<>abc)")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidNamedCapture, data=\">abc)\"))",
+    content=
+      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=">abc)"))
+
+    ,
   )
 
   // Test group name starting with a digit
   let regex = try? parse("(?<1invalid>abc)")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidNamedCapture, data=\"1invalid>abc)\"))",
+    content=
+      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="1invalid>abc)"))
+
+    ,
   )
 
   // Test group name with illegal characters
   let regex = try? parse("(?<na-me>abc)")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidNamedCapture, data=\"-me>abc)\"))",
+    content=
+      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="-me>abc)"))
+
+    ,
   )
 
   // Test missing right angle bracket
   let regex = try? parse("(?<name abc)")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=InvalidNamedCapture, data=\" abc)\"))",
+    content=
+      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=" abc)"))
+
+    ,
   )
 
   // Test missing right parenthesis
   let regex = try? parse("(?<name>abc")
   inspect(
     regex.map(ignore),
-    content="Err(Error_(err=MissingParenthesis, data=\"\"))",
+    content=
+      #|Err(RegexpError(err=MissingParenthesis, source_fragment=""))
+
+    ,
   )
 }
 
@@ -312,7 +338,7 @@ test "parse named capture group error cases" {
 test "parse valid group name formats" {
   // Starts with a letter
   let regex = parse("(?<group>abc)").ast
-  @json.inspect((regex : Regex), content=[
+  @json.inspect((regex : Ast), content=[
     "Capture 1",
     [
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -323,7 +349,7 @@ test "parse valid group name formats" {
 
   // Starts with an underscore
   let regex = parse("(?<_group>abc)").ast
-  @json.inspect((regex : Regex), content=[
+  @json.inspect((regex : Ast), content=[
     "Capture 1",
     [
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -334,7 +360,7 @@ test "parse valid group name formats" {
 
   // Contains digits
   let regex = parse("(?<group1>abc)").ast
-  @json.inspect((regex : Regex), content=[
+  @json.inspect((regex : Ast), content=[
     "Capture 1",
     [
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -345,7 +371,7 @@ test "parse valid group name formats" {
 
   // Contains multiple underscores
   let regex = parse("(?<my_group_1>abc)").ast
-  @json.inspect((regex : Regex), content=[
+  @json.inspect((regex : Ast), content=[
     "Capture 1",
     [
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -714,14 +740,16 @@ test "parse backreference" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\2"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\2"))
+
     ,
   )
   let regex = try? parse("\\1(a)\\1")
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\1(a)\\1"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1(a)\\1"))
+
     ,
   )
 
@@ -730,7 +758,8 @@ test "parse backreference" {
   inspect(
     regex.map(ignore),
     content=
-      #|Err(Error_(err=InvalidEscape, data="\\1)"))
+      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1)"))
+
     ,
   )
 }

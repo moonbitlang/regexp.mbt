@@ -19,7 +19,8 @@ test "to be discussed" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidRepeatOp, data="")
+      #|RegexpError(err=InvalidRepeatOp, source_fragment="")
+
     ,
   )
   // This should raise InvalidRepeatOp to align with golang
@@ -27,7 +28,8 @@ test "to be discussed" {
   error
   |> inspect(
     content=
-      #|Error_(err=InvalidEscape, data="+")
+      #|RegexpError(err=InvalidEscape, source_fragment="+")
+
     ,
   )
   // Behavior difference between Golang and JS

@@ -5,15 +5,9 @@ import(
 )
 
 // Values
-fn compile(@string.StringView, flags~ : @string.StringView = ..) -> Engine raise Error_
+fn compile(@string.StringView, flags~ : @string.StringView = ..) -> Regexp raise RegexpError
 
 // Types and methods
-type Engine
-fn Engine::execute(Self, @string.StringView) -> MatchResult
-fn Engine::group_by_name(Self, String) -> Int?
-fn Engine::group_count(Self) -> Int
-fn Engine::group_names(Self) -> Iter[String]
-
 pub enum Err {
   InternalError
   InvalidCharClass
@@ -29,17 +23,23 @@ pub enum Err {
 }
 impl Show for Err
 
-pub suberror Error_ {
-  Error_(err~ : Err, data~ : @string.StringView)
-}
-impl Show for Error_
-
 type MatchResult
 fn MatchResult::group(Self, Int) -> @string.StringView?
 fn MatchResult::group_by_name(Self, String) -> @string.StringView? raise
 fn MatchResult::matched(Self) -> Bool
 fn MatchResult::rest(Self) -> @string.StringView
 fn MatchResult::results(Self) -> Iter[@string.StringView?]
+
+type Regexp
+fn Regexp::execute(Self, @string.StringView) -> MatchResult
+fn Regexp::group_by_name(Self, String) -> Int?
+fn Regexp::group_count(Self) -> Int
+fn Regexp::group_names(Self) -> Iter[String]
+
+pub suberror RegexpError {
+  RegexpError(err~ : Err, source_fragment~ : @string.StringView)
+}
+impl Show for RegexpError
 
 // Type aliases
 

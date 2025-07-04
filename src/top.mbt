@@ -34,7 +34,7 @@
 pub fn compile(
   regexp : @string.View,
   flags~ : @string.View = ""
-) -> Engine raise Error_ {
+) -> Regexp raise RegexpError {
   regexp
   |> parse(flags={
     multiline: flags.contains("m"),
@@ -60,7 +60,7 @@ pub fn compile(
 /// let engine = compile("(?<word>\\w+)")
 /// inspect(engine.group_by_name("word"), content="Some(1)")
 /// ```
-pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
+pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int? {
   self.map.get(name)
 }
 
@@ -79,7 +79,7 @@ pub fn Engine::group_by_name(self : Engine, name : String) -> Int? {
 /// let engine = compile("(a)(b|c)")
 /// inspect(engine.group_count(), content="3")
 /// ```
-pub fn Engine::group_count(self : Self) -> Int {
+pub fn Regexp::group_count(self : Regexp) -> Int {
   self.capture
 }
 
@@ -100,7 +100,7 @@ pub fn Engine::group_count(self : Self) -> Int {
 ///   #|["first", "second"]
 /// )
 /// ```
-pub fn Engine::group_names(self : Self) -> Iter[String] {
+pub fn Regexp::group_names(self : Regexp) -> Iter[String] {
   self.map.keys()
 }
 
@@ -126,7 +126,7 @@ pub fn Engine::group_names(self : Self) -> Iter[String] {
 ///   ))
 /// }
 /// ```
-pub fn Engine::execute(self : Engine, input : @string.View) -> MatchResult {
+pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
   let captures = vm(
     self.instructions,
     input,
