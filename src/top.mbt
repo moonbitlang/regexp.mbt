@@ -133,6 +133,41 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
+  { input, captures, names: self.map }
+}
+
+///| Executes a regular expression match on the input text.
+/// 
+/// Uses the compiled regular expression engine to perform a match on the specified input text,
+/// returning a `MatchResult` object containing the match results and capture group information.
+/// It uses a leftmost-first matching strategy, returning the first match found.
+/// 
+/// Args:
+/// - `self`: The regular expression execution engine.
+/// - `input`: The input text to match against.
+/// 
+/// Returns: A tuple of 
+/// - `MatchResult` object containing the match status and capture group information.
+/// - `@string.View` representing the remaining text after the match.
+/// 
+/// Example:
+/// ```moonbit
+/// let engine = compile("a(bc|de)f")
+/// let (result, rest) = engine.execute_with_remainder("abcfxx")
+/// if result.matched() { 
+///   inspect(rest, content=("xx"))
+/// }
+/// ```
+pub fn Regexp::execute_with_remainder(
+  self : Regexp,
+  input : @string.View
+) -> (MatchResult, @string.View) {
+  let captures = vm(
+    self.instructions,
+    input,
+    self.capture,
+    allow_exponentiaion=self.allow_exponentiaion,
+  )
   let rest = if captures.length() < 2 {
     input
   } else {
@@ -143,7 +178,7 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
       input
     }
   }
-  { input, captures, names: self.map, rest }
+  ({ input, captures, names: self.map }, rest)
 }
 
 ///| Regular expression match result.
@@ -162,7 +197,6 @@ struct MatchResult {
   input : @string.View
   captures : Array[Int]
   names : Map[String, Int]
-  rest : @string.View
 }
 
 ///| Checks if the match was successful.
@@ -287,46 +321,25 @@ pub fn MatchResult::results(self : Self) -> Array[@string.View?] {
   results
 }
 
-///| Gets the remaining string after a match.
-/// 
-/// Returns the remaining input text after the end of the match, which can be used to continue searching for the next match.
-/// If the match fails, it returns the original input text.
-/// 
-/// Args:
-/// - `self`: The match result object.
-/// 
-/// Returns: A view of the text remaining from the end of the match.
-/// 
-/// Example:
-/// ```moonbit
-/// let result = compile("hello ").execute("hello world")
-/// inspect(result.rest(), content="world")
-/// let result = compile("hello ").execute("what?")
-/// inspect(result.rest(), content="what?")
-/// ```
-pub fn MatchResult::rest(self : Self) -> @string.View {
-  self.rest
-}
-
 ///|
 test "rest method" {
   let engine = compile("hello")
-  let result = engine.execute("hello world")
+  let (result, rest) = engine.execute_with_remainder("hello world")
   inspect(result.matched(), content="true")
-  inspect(result.rest(), content=" world")
-  let result2 = engine.execute("say hello")
+  inspect(rest, content=" world")
+  let (result2, rest2) = engine.execute_with_remainder("say hello")
   inspect(result2.matched(), content="true")
-  inspect(result2.rest(), content="")
-  let result3 = engine.execute("hi there")
+  inspect(rest2, content="")
+  let (result3, rest3) = engine.execute_with_remainder("hi there")
   inspect(result3.matched(), content="false")
-  inspect(result3.rest(), content="hi there")
+  inspect(rest3, content="hi there")
   inspect("Test rest method completed", content="Test rest method completed")
 }
 
 ///|
 test "rest method with capture groups" {
   let engine = compile("(\\w+)\\s+")
-  let result = engine.execute("hello world test")
+  let (result, rest) = engine.execute_with_remainder("hello world test")
   inspect(result.matched(), content="true")
   inspect(
     result.get(0),
@@ -340,9 +353,9 @@ test "rest method with capture groups" {
       #|Some("hello")
     ,
   )
-  inspect(result.rest(), content="world test")
+  inspect(rest, content="world test")
   let engine2 = compile(".*")
-  let result2 = engine2.execute("everything")
+  let (result2, rest2) = engine2.execute_with_remainder("everything")
   inspect(result2.matched(), content="true")
   inspect(
     result2.get(0),
@@ -350,27 +363,27 @@ test "rest method with capture groups" {
       #|Some("everything")
     ,
   )
-  inspect(result2.rest(), content="")
+  inspect(rest2, content="")
 }
 
 ///|
 test "rest method usage example" {
   let engine = compile("\\b\\w+\\b")
   let mut input : @string.View = "word1 word2 word3"
-  let result1 = engine.execute(input)
+  let (result1, rest1) = engine.execute_with_remainder(input)
   inspect(
     result1.get(0),
     content=
       #|Some("word1")
     ,
   )
-  input = result1.rest()
-  let result2 = engine.execute(input)
+  input = rest1
+  let (result2, rest2) = engine.execute_with_remainder(input)
   inspect(
     result2.get(0),
     content=
       #|Some("word2")
     ,
   )
-  inspect(result2.rest(), content=" word3")
+  inspect(rest2, content=" word3")
 }
