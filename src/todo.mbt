@@ -27,14 +27,14 @@ test "to be discussed" {
 test "to be fixed" {
   let result = parse("(|a)*").compile().execute("aaa")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("")
     ,
   )
   let result = parse("(|a)+").compile().execute("aaa")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("")
     ,

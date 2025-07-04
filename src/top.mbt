@@ -100,8 +100,8 @@ pub fn Regexp::group_count(self : Regexp) -> Int {
 ///   #|["first", "second"]
 /// )
 /// ```
-pub fn Regexp::group_names(self : Regexp) -> Iter[String] {
-  self.map.keys()
+pub fn Regexp::group_names(self : Regexp) -> Array[String] {
+  self.map.keys().collect()
 }
 
 ///| Executes a regular expression match on the input text.
@@ -121,7 +121,7 @@ pub fn Regexp::group_names(self : Regexp) -> Iter[String] {
 /// let engine = compile("a(bc|de)f")
 /// let result = engine.execute("xxabcf")
 /// if result.matched() { 
-///   inspect(result.group(0), content=(
+///   inspect(result.get(0), content=(
 ///     #|Some("abcf")
 ///   ))
 /// }
@@ -200,15 +200,15 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 /// Example:
 /// ```moonbit
 /// let result = compile(".(bc)").execute("abc")
-/// inspect(result.group(0), content=(
+/// inspect(result.get(0), content=(
 ///   #|Some("abc")
 /// ))
-/// let first_group = result.group(1)
+/// let first_group = result.get(1)
 /// inspect(first_group, content=(
 ///   #|Some("bc")
 /// ))
 /// ```
-pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
+pub fn MatchResult::get(self : Self, index : Int) -> @string.View? {
   if self.captures.is_empty() ||
     index < 0 ||
     index >= self.captures.length() / 2 {
@@ -222,36 +222,37 @@ pub fn MatchResult::group(self : Self, index : Int) -> @string.View? {
   Some(self.input.view(start_offset=start, end_offset=end))
 }
 
-///| Gets the content of a named capture group by its name.
-/// 
-/// Returns the corresponding matched text based on the name of the capture group.
-/// Applicable to named capture groups defined in the form `(?<name>pattern)`.
-/// 
-/// Args:
-/// - `self`: The match result object.
-/// - `name`: The name of the capture group.
-/// 
-/// Returns: 
-/// - `Some(view)`: The text view corresponding to the named capture group.
-/// - `None`: If the named group did not match any content.
-/// 
-/// Throws: `Error_` when the specified group name does not exist.
-/// 
+///|
+/// Returns a map containing all named capture groups and their matched
+/// contents.
+///
+/// Parameters:
+///
+/// * `self` : The match result object containing named capture group
+///   information.
+///
+/// Returns a map where keys are the names of capture groups and values are
+/// their corresponding matched content. If a named group did not participate in
+/// the match, its value will be `None`.
+///
 /// Example:
+///
 /// ```moonbit
-/// let result = compile("(?<word>\\p{Letter}+)").execute("abc")
-/// inspect(result.group_by_name("word"), content=(
-///   #|Some("abc")
+/// let engine = compile("(?<word>\\w+)\\s+(?<num>\\d+)")
+/// let result = engine.execute("hello 123")
+/// inspect(result.groups(), content=(
+///   #|{"word": Some("hello"), "num": Some("123")}
 /// ))
 /// ```
-pub fn MatchResult::group_by_name(
-  self : Self,
-  name : String
-) -> @string.View? raise {
-  guard self.names.get(name) is Some(index) else {
-    fail("Group name '\{name}' does not exist")
-  }
-  self.group(index)
+///
+pub fn MatchResult::groups(self : Self) -> Map[String, @string.View?] {
+  self.names
+  .iter()
+  .map(p => {
+    let content = self.get(p.1)
+    (p.0, content)
+  })
+  |> Map::from_iter
 }
 
 ///| Gets an iterator over the content of all valid capture groups.
@@ -272,23 +273,18 @@ pub fn MatchResult::group_by_name(
 ///   #|[Some("abc"), Some("c")]
 /// ))
 /// ```
-pub fn MatchResult::results(self : Self) -> Iter[@string.View?] {
-  Iter::new(fn(yield_) {
-    for i = 0; i < self.captures.length() / 2; i = i + 1 {
-      let start = self.captures[i * 2]
-      let end = self.captures[i * 2 + 1]
-      if start == -1 && end == -1 {
-        guard yield_(None) is IterContinue else { return IterEnd }
-      } else {
-        guard yield_(Some(self.input.view(start_offset=start, end_offset=end)))
-          is IterContinue else {
-          return IterEnd
-        }
-      }
+pub fn MatchResult::results(self : Self) -> Array[@string.View?] {
+  let results = []
+  for i = 0; i < self.captures.length() / 2; i = i + 1 {
+    let start = self.captures[i * 2]
+    let end = self.captures[i * 2 + 1]
+    if start == -1 && end == -1 {
+      results.push(None)
     } else {
-      IterContinue
+      results.push(Some(self.input.view(start_offset=start, end_offset=end)))
     }
-  })
+  }
+  results
 }
 
 ///| Gets the remaining string after a match.
@@ -333,13 +329,13 @@ test "rest method with capture groups" {
   let result = engine.execute("hello world test")
   inspect(result.matched(), content="true")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("hello ")
     ,
   )
   inspect(
-    result.group(1),
+    result.get(1),
     content=
       #|Some("hello")
     ,
@@ -349,7 +345,7 @@ test "rest method with capture groups" {
   let result2 = engine2.execute("everything")
   inspect(result2.matched(), content="true")
   inspect(
-    result2.group(0),
+    result2.get(0),
     content=
       #|Some("everything")
     ,
@@ -363,7 +359,7 @@ test "rest method usage example" {
   let mut input : @string.View = "word1 word2 word3"
   let result1 = engine.execute(input)
   inspect(
-    result1.group(0),
+    result1.get(0),
     content=
       #|Some("word1")
     ,
@@ -371,7 +367,7 @@ test "rest method usage example" {
   input = result1.rest()
   let result2 = engine.execute(input)
   inspect(
-    result2.group(0),
+    result2.get(0),
     content=
       #|Some("word2")
     ,

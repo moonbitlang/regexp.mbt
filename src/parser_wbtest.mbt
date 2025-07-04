@@ -85,7 +85,6 @@ test "parse character class range with escaped characters" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidCharClass, source_fragment="]"))
-
     ,
   )
 }
@@ -192,7 +191,6 @@ test "parse repeat quantifier error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidRepeatSize, source_fragment=""))
-
     ,
   )
 
@@ -202,7 +200,6 @@ test "parse repeat quantifier error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=MissingRepeatArgument, source_fragment="}"))
-
     ,
   )
 
@@ -212,7 +209,6 @@ test "parse repeat quantifier error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=""))
-
     ,
   )
 
@@ -222,7 +218,6 @@ test "parse repeat quantifier error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=",4}"))
-
     ,
   )
 }
@@ -289,7 +284,6 @@ test "parse named capture group error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=">abc)"))
-
     ,
   )
 
@@ -299,7 +293,6 @@ test "parse named capture group error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="1invalid>abc)"))
-
     ,
   )
 
@@ -309,7 +302,6 @@ test "parse named capture group error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="-me>abc)"))
-
     ,
   )
 
@@ -319,7 +311,6 @@ test "parse named capture group error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=" abc)"))
-
     ,
   )
 
@@ -329,7 +320,6 @@ test "parse named capture group error cases" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=MissingParenthesis, source_fragment=""))
-
     ,
   )
 }
@@ -741,7 +731,6 @@ test "parse backreference" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\2"))
-
     ,
   )
   let regex = try? parse("\\1(a)\\1")
@@ -749,7 +738,6 @@ test "parse backreference" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1(a)\\1"))
-
     ,
   )
 
@@ -759,7 +747,6 @@ test "parse backreference" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1)"))
-
     ,
   )
 }

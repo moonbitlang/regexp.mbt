@@ -20,7 +20,6 @@ test "to be discussed" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidRepeatOp, source_fragment="")
-
     ,
   )
   // This should raise InvalidRepeatOp to align with golang
@@ -29,7 +28,6 @@ test "to be discussed" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="+")
-
     ,
   )
   // Behavior difference between Golang and JS
@@ -38,24 +36,19 @@ test "to be discussed" {
   let regex = @regexp.compile("((?<a>a)|(?<b>b))+")
   let result = regex.execute("ab")
   inspect(
-    result.group_by_name("a"),
+    result.groups(),
     content=
-      #|Some("a")
+      #|{"a": Some("a"), "b": Some("b")}
     ,
   )
-  inspect(
-    result.group_by_name("b"),
-    content=
-      #|Some("b")
-    ,
-  )
+
   // Behavior difference between Golang and JS
   // The current behavior aligns with Golang
   // reference https://github.com/golang/go/issues/46123
   let regex = @regexp.compile("(|a)+")
   let result = regex.execute("aaa")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("")
     ,
@@ -63,7 +56,7 @@ test "to be discussed" {
   let regex = @regexp.compile("(|a)*")
   let result = regex.execute("aaa")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("")
     ,

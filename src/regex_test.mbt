@@ -35,7 +35,7 @@ test "unicode escape sequences" {
   // Test basic \u{aaaa} format
   let regex = @regexp.compile("\\u{41}")
   inspect(
-    regex.execute("A").results().collect(),
+    regex.execute("A").results(),
     content=
       #|[Some("A")]
     ,
@@ -45,7 +45,7 @@ test "unicode escape sequences" {
   // Test \uaaaa format (exactly 4 digits)
   let regex = @regexp.compile("\\u0041")
   inspect(
-    regex.execute("A").results().collect(),
+    regex.execute("A").results(),
     content=
       #|[Some("A")]
     ,
@@ -54,14 +54,14 @@ test "unicode escape sequences" {
   // Test Unicode characters beyond ASCII
   let regex = @regexp.compile("\\u{4e16}\\u{754c}")
   inspect(
-    regex.execute("世界").results().collect(),
+    regex.execute("世界").results(),
     content=
       #|[Some("世界")]
     ,
   )
   let regex = @regexp.compile("\\u4e16\\u754C")
   inspect(
-    regex.execute("世界").results().collect(),
+    regex.execute("世界").results(),
     content=
       #|[Some("世界")]
     ,
@@ -70,7 +70,7 @@ test "unicode escape sequences" {
   // Test large Unicode escape
   let regex = @regexp.compile("\\u{10348}")
   inspect(
-    regex.execute("𐍈").results().collect(),
+    regex.execute("𐍈").results(),
     content=
       #|[Some("𐍈")]
     ,
@@ -78,19 +78,19 @@ test "unicode escape sequences" {
 
   // Test in character classes
   let regex = @regexp.compile("[\\u{41}-\\u{43}]")
-  inspect(regex.execute("B").results().collect(), content="[]")
+  inspect(regex.execute("B").results(), content="[]")
   inspect(regex.execute("D").matched(), content="false")
 
   // Test with \uaaaa format in character classes
   let regex = @regexp.compile("[\\u0041\\u0042]")
   inspect(
-    regex.execute("A").results().collect(),
+    regex.execute("A").results(),
     content=
       #|[Some("A")]
     ,
   )
   inspect(
-    regex.execute("B").results().collect(),
+    regex.execute("B").results(),
     content=
       #|[Some("B")]
     ,
@@ -100,7 +100,7 @@ test "unicode escape sequences" {
   // Test combining with other patterns
   let regex = @regexp.compile("\\u{48}ello \\u{4E16}\\u754C")
   inspect(
-    regex.execute("Hello 世界").results().collect(),
+    regex.execute("Hello 世界").results(),
     content=
       #|[Some("Hello 世界")]
     ,
@@ -112,7 +112,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="}")
-
     ,
   )
   guard (try? @regexp.compile("\\u{1234567}")) is Err(error)
@@ -120,7 +119,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="1234567}")
-
     ,
   )
   guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
@@ -128,7 +126,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="GGGG}")
-
     ,
   )
   guard (try? @regexp.compile("\\u123")) is Err(error)
@@ -136,7 +133,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="")
-
     ,
   )
   guard (try? @regexp.compile("\\uGGGG")) is Err(error)
@@ -144,7 +140,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="GGGG")
-
     ,
   )
   guard (try? @regexp.compile("\\u{110000}")) is Err(error)
@@ -152,7 +147,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=
       #|RegexpError(err=InvalidEscape, source_fragment="110000}")
-
     ,
   )
 }
@@ -213,21 +207,9 @@ test "character classes" {
   )
   let date_result = parser.execute("2024-03-15")
   inspect(
-    date_result.group_by_name("year"),
+    date_result.groups(),
     content=
-      #|Some("2024")
-    ,
-  )
-  inspect(
-    date_result.group_by_name("month"),
-    content=
-      #|Some("03")
-    ,
-  )
-  inspect(
-    date_result.group_by_name("day"),
-    content=
-      #|Some("15")
+      #|{"year": Some("2024"), "month": Some("03"), "day": Some("15")}
     ,
   )
 }
@@ -245,7 +227,7 @@ test "regexp with flags" {
   // multiline flag
   let regexp = compile("$")
   inspect(regexp.execute("\n").matched(), content="true")
-  inspect(regexp.execute("\n").results().count(), content="1")
+  inspect(regexp.execute("\n").results().length(), content="1")
   inspect(
     regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[1]",
@@ -277,7 +259,6 @@ test "invalid regex test" {
   |> inspect(
     content=
       #|RegexpError(err=MissingParenthesis, source_fragment="")
-
     ,
   )
   guard (try? @regexp.compile("a(b|c")) is Err(error)
@@ -285,7 +266,6 @@ test "invalid regex test" {
   |> inspect(
     content=
       #|RegexpError(err=MissingParenthesis, source_fragment="")
-
     ,
   )
   guard (try? @regexp.compile("a|b)")) is Err(error)
@@ -293,7 +273,6 @@ test "invalid regex test" {
   |> inspect(
     content=
       #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
-
     ,
   )
   guard (try? @regexp.compile("a|b|c)")) is Err(error)
@@ -301,7 +280,6 @@ test "invalid regex test" {
   |> inspect(
     content=
       #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
-
     ,
   )
 }
@@ -700,48 +678,48 @@ test "advanced capture groups" {
   let regex = @regexp.compile("([a-z]+) ([0-9]+)")
   let result = regex.execute("hello 123")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("hello 123")
     ,
   )
   inspect(
-    result.group(1),
+    result.get(1),
     content=
       #|Some("hello")
     ,
   )
   inspect(
-    result.group(2),
+    result.get(2),
     content=
       #|Some("123")
     ,
   )
-  inspect(result.group(3), content="None")
+  inspect(result.get(3), content="None")
 
   // Test nested groups
   let regex = @regexp.compile("((\\w+)-(\\w+))")
   let result = regex.execute("first-second")
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("first-second")
     ,
   )
   inspect(
-    result.group(1),
+    result.get(1),
     content=
       #|Some("first-second")
     ,
   )
   inspect(
-    result.group(2),
+    result.get(2),
     content=
       #|Some("first")
     ,
   )
   inspect(
-    result.group(3),
+    result.get(3),
     content=
       #|Some("second")
     ,
@@ -751,26 +729,26 @@ test "advanced capture groups" {
   let regex = @regexp.compile("(\\w+)(-\\w+)?")
   let result1 = regex.execute("hello-world")
   inspect(
-    result1.group(1),
+    result1.get(1),
     content=
       #|Some("hello")
     ,
   )
   inspect(
-    result1.group(2),
+    result1.get(2),
     content=
       #|Some("-world")
     ,
   )
   let result2 = regex.execute("hello")
   inspect(
-    result2.group(1),
+    result2.get(1),
     content=
       #|Some("hello")
     ,
   )
   // Optional group that didn't match should still be accessible but empty
-  inspect(result2.group(2), content="None")
+  inspect(result2.get(2), content="None")
 }
 
 ///|
@@ -779,20 +757,14 @@ test "complex named capture groups" {
   let regex = @regexp.compile("(?<first>\\w+)\\s+(?<last>\\w+)")
   let result = regex.execute("John Doe")
   inspect(
-    result.group_by_name("first"),
+    result.groups(),
     content=
-      #|Some("John")
-    ,
-  )
-  inspect(
-    result.group_by_name("last"),
-    content=
-      #|Some("Doe")
+      #|{"first": Some("John"), "last": Some("Doe")}
     ,
   )
 
   // Test group names iteration
-  let names = regex.group_names().collect()
+  let names = regex.group_names()
   inspect(names.contains("first"), content="true")
   inspect(names.contains("last"), content="true")
 
@@ -802,21 +774,9 @@ test "complex named capture groups" {
   )
   let result = url_regex.execute("https://example.com/path/to/page")
   inspect(
-    result.group_by_name("protocol"),
+    result.groups(),
     content=
-      #|Some("https")
-    ,
-  )
-  inspect(
-    result.group_by_name("domain"),
-    content=
-      #|Some("example.com")
-    ,
-  )
-  inspect(
-    result.group_by_name("path"),
-    content=
-      #|Some("/path/to/page")
+      #|{"protocol": Some("https"), "domain": Some("example.com"), "path": Some("/path/to/page")}
     ,
   )
 
@@ -824,15 +784,15 @@ test "complex named capture groups" {
   let regex = @regexp.compile("(\\w+)@(?<domain>\\w+\\.\\w+)")
   let result = regex.execute("user@example.com")
   inspect(
-    result.group(1),
+    result.get(1),
     content=
       #|Some("user")
     ,
   )
   inspect(
-    result.group_by_name("domain"),
+    result.groups(),
     content=
-      #|Some("example.com")
+      #|{"domain": Some("example.com")}
     ,
   )
 }
@@ -1124,7 +1084,7 @@ test "unicode and international characters" {
   let result = regex.execute("Happy 😀 face")
   guard result.matched()
   inspect(
-    result.group(0),
+    result.get(0),
     content=
       #|Some("😀")
     ,
@@ -1219,13 +1179,13 @@ test "complex real-world patterns" {
   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
   let result = html_regex.execute("<div class='test'>content</div>")
   inspect(
-    result.group(1),
+    result.get(1),
     content=
       #|Some("div")
     ,
   )
   inspect(
-    result.group(2),
+    result.get(2),
     content=
       #|Some("content")
     ,
@@ -1287,7 +1247,7 @@ test "edge cases and boundary conditions" {
   inspect(result.matched(), content="true")
   // Word boundaries are zero-width, so match should be empty string
   if result.matched() {
-    inspect(result.group(0), content="Some(\"\")")
+    inspect(result.get(0), content="Some(\"\")")
   }
 
   // Overlapping matches (should get first/leftmost)
@@ -1363,7 +1323,6 @@ test "invalid backreferences" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1000"))
-
     ,
   )
   let regex = try? @regexp.compile("\\01")
@@ -1371,7 +1330,6 @@ test "invalid backreferences" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\01"))
-
     ,
   )
 }
@@ -1441,7 +1399,6 @@ test "named backreference errors" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<undefined>"))
-
     ,
   )
 
@@ -1451,7 +1408,6 @@ test "named backreference errors" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<recur>)"))
-
     ,
   )
 
@@ -1461,7 +1417,6 @@ test "named backreference errors" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<name> (?<name>\\w+)"))
-
     ,
   )
 
@@ -1471,7 +1426,6 @@ test "named backreference errors" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment=""))
-
     ,
   )
   let regex = try? @regexp.compile("\\k name>")
@@ -1479,7 +1433,6 @@ test "named backreference errors" {
     regex.map(ignore),
     content=
       #|Err(RegexpError(err=InvalidEscape, source_fragment=" name>"))
-
     ,
   )
 }
