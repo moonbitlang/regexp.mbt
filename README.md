@@ -12,11 +12,16 @@
 ```moonbit
 test {
   // Compile once, use everywhere
-  let engine = @regexp.compile("a(bc|de)f")
-  let result = engine.execute("xxabcf")
+  let regexp = @regexp.compile("a(bc|de)f")
+  let result = regexp.execute("xxabcf")
   if result.matched() {
     // ["abcf", "bc"]
-    let groups = result.results().collect()
+    inspect(
+      result.results(),
+      content=
+        #|[Some("abcf"), Some("bc")]
+      ,
+    )
   }
 }
 ```
@@ -91,7 +96,7 @@ test "unicode properties" {
 > ⚠️ **Performance Warning**: Backreferences can cause exponential time complexity in worst cases!
 
 ```moonbit
-test "backreferences" {  
+test "backreferences" {
   // Palindrome detection (simple)
   let palindrome = @regexp.compile("^(.)(.)\\2\\1")
   inspect(
@@ -100,20 +105,14 @@ test "backreferences" {
       #|[Some("abba"), Some("a"), Some("b")]
     ,
   )
-  
+
   // HTML tag matching
   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
   let result = html_regex.execute("<div class='test'>content</div>")
   inspect(
-    result.group(1),
+    result.results(),
     content=
-      #|Some("div")
-    ,
-  )
-  inspect(
-    result.group(2),
-    content=
-      #|Some("content")
+      #|[Some("<div class='test'>content</div>"), Some("div"), Some("content")]
     ,
   )
 }
@@ -128,15 +127,25 @@ test "character classes" {
     #|[\w-]+@[\w-]+\.\w+
     ,
   )
-  let email_result = email.execute("user@example.com").results().collect()
-  assert_eq(email_result, ["user@example.com"])
+  let email_result = email.execute("user@example.com").results()
+  inspect(
+    email_result,
+    content=
+      #|[Some("user@example.com")]
+    ,
+  )
   // Extract numbers
   let numbers = @regexp.compile(
     #|\d+\.\d{2}
     ,
   )
-  let result = numbers.execute("Price: $42.99").results().collect()
-  assert_eq(result, ["42.99"])
+  let result = numbers.execute("Price: $42.99").results()
+  inspect(
+    result,
+    content=
+      #|[Some("42.99")]
+    ,
+  )
 
   // Named captures for parsing
   let parser = @regexp.compile(
@@ -144,19 +153,25 @@ test "character classes" {
     ,
   )
   let date_result = parser.execute("2024-03-15")
-  assert_eq(date_result.group_by_name("year"), Some("2024"))
-  assert_eq(date_result.group_by_name("month"), Some("03"))
-  assert_eq(date_result.group_by_name("day"), Some("15"))
+  inspect(
+    date_result.groups(),
+    content=
+      #|{"year": Some("2024"), "month": Some("03"), "day": Some("15")}
+    ,
+  )
 }
 ```
 
 ## 🚨 Error Handling
 
 ```moonbit
-try {
-  @regexp.compile("a(b")  // Oops! Missing )
-} catch {
-  Error_(MissingParenthesis, _) => println("Fix your regex! 🔧")
+test {
+  try {
+    let _ = @regexp.compile("a(b")  // Oops! Missing )
+  } catch {
+    RegexpError(err=MissingParenthesis, source_fragment=_) => println("Fix your regex! 🔧")
+    _ => ()
+  }
 }
 ```
 
