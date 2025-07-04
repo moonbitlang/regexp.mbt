@@ -10,4 +10,4 @@
 - Replaced `MatchResult::group_by_name` with `MatchResult::results` that returns a whole `Map`.
 - `MatchResult::results` now returns an `Array` instead of `Iter`.
 - `Regexp::group_names` now returns an `Array` instead of `Iter`.
-- Replaced `MatchResutl::rest` with `Regex::execute_with_remainder`.
+- Replaced `MatchResult::rest` with `Regexp::execute_with_remainder`.
