@@ -4,7 +4,7 @@
 
 ### Changed
 
-- `MatchResult::results` now returns `Map[String, @string.View]` instead of
+- `MatchResult::groups` now returns `Map[String, @string.View]` instead of
   `Map[String, @string.View?]` to avoid the extra wrap.
 
 ## [0.2.1]
