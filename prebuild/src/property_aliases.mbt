@@ -46,12 +46,10 @@ async fn get_property_value_alises(
     let result = regexp.execute(next)
     if result.matched() {
       let groups = result.groups()
-      let category = groups.get("category").unwrap().unwrap().to_string()
+      let category = groups.get("category").unwrap().to_string()
       mappings.push((category, category))
-      mappings.push(
-        (groups.get("alias").unwrap().unwrap().to_string(), category),
-      )
-      if groups.get("other_alias").unwrap() is Some(other_alias) {
+      mappings.push((groups.get("alias").unwrap().to_string(), category))
+      if groups.get("other_alias") is Some(other_alias) {
         mappings.push((other_alias.to_string(), category))
       }
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0]
+
+### Changed
+
+- `MatchResult::results` now returns `Map[String, @string.View]` instead of
+  `Map[String, @string.View?]` to avoid the extra wrap.
+
 ## [0.2.1]
 
 ### Changed
@@ -14,10 +21,12 @@
 
 ### Changed
 
-- Renamed `Error_` to `RegexpError`, and renamed field `data` to `source_fragment`.
+- Renamed `Error_` to `RegexpError`, and renamed field `data` to
+  `source_fragment`.
 - Renamed `Engine` to `Regexp`.
 - Renamed `MatchResult::group` to `MatchResult::get`.
-- Replaced `MatchResult::group_by_name` with `MatchResult::results` that returns a whole `Map`.
+- Replaced `MatchResult::group_by_name` with `MatchResult::results` that returns
+  a whole `Map`.
 - `MatchResult::results` now returns an `Array` instead of `Iter`.
 - `Regexp::group_names` now returns an `Array` instead of `Iter`.
 - Replaced `MatchResult::rest` with `Regexp::execute_with_remainder`.

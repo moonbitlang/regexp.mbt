@@ -212,7 +212,7 @@ test "character classes" {
   inspect(
     date_result.groups(),
     content=(
-      #|{"year": Some("2024"), "month": Some("03"), "day": Some("15")}
+      #|{"year": "2024", "month": "03", "day": "15"}
     ),
   )
 }
@@ -762,7 +762,7 @@ test "complex named capture groups" {
   inspect(
     result.groups(),
     content=(
-      #|{"first": Some("John"), "last": Some("Doe")}
+      #|{"first": "John", "last": "Doe"}
     ),
   )
 
@@ -779,7 +779,7 @@ test "complex named capture groups" {
   inspect(
     result.groups(),
     content=(
-      #|{"protocol": Some("https"), "domain": Some("example.com"), "path": Some("/path/to/page")}
+      #|{"protocol": "https", "domain": "example.com", "path": "/path/to/page"}
     ),
   )
 
@@ -795,7 +795,7 @@ test "complex named capture groups" {
   inspect(
     result.groups(),
     content=(
-      #|{"domain": Some("example.com")}
+      #|{"domain": "example.com"}
     ),
   )
 }

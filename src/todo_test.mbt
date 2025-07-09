@@ -38,7 +38,7 @@ test "to be discussed" {
   inspect(
     result.groups(),
     content=(
-      #|{"a": Some("a"), "b": Some("b")}
+      #|{"a": "a", "b": "b"}
     ),
   )
 

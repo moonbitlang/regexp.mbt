@@ -64,13 +64,13 @@ async fn get_general_category_code_points(
     }
     let groups = result.groups()
     let charcode = @strconv.parse_int(
-      groups.get("charcode").unwrap().unwrap().to_string(),
+      groups.get("charcode").unwrap().to_string(),
       base=16,
     ).unsafe_to_char()
-    let category = groups.get("category").unwrap().unwrap().to_string()
+    let category = groups.get("category").unwrap().to_string()
     // Check for unknown category
     if charcode.to_int() - prev_code_point.to_int() != 1 &&
-      not(groups.get("indicator").unwrap().unwrap().has_suffix("Last>")) {
+      not(groups.get("indicator").unwrap().has_suffix("Last>")) {
       category_ranges
       .get(Unassigned)
       .unwrap()

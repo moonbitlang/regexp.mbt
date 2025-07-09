@@ -267,7 +267,7 @@ pub fn MatchResult::get(self : Self, index : Int) -> @string.View? {
 ///
 /// Returns a map where keys are the names of capture groups and values are
 /// their corresponding matched content. If a named group did not participate in
-/// the match, its value will be `None`.
+/// the match or was not matched, its value will be `None`.
 ///
 /// Example:
 ///
@@ -275,16 +275,17 @@ pub fn MatchResult::get(self : Self, index : Int) -> @string.View? {
 /// let engine = compile("(?<word>\\w+)\\s+(?<num>\\d+)")
 /// let result = engine.execute("hello 123")
 /// inspect(result.groups(), content=(
-///   #|{"word": Some("hello"), "num": Some("123")}
+///   #|{"word": "hello", "num": "123"}
 /// ))
 /// ```
 ///
-pub fn MatchResult::groups(self : Self) -> Map[String, @string.View?] {
+pub fn MatchResult::groups(self : Self) -> Map[String, @string.View] {
   self.names
   .iter()
-  .map(p => {
-    let content = self.get(p.1)
-    (p.0, content)
+  .filter_map(p => if self.get(p.1) is Some(content) {
+    Some((p.0, content))
+  } else {
+    None
   })
   |> Map::from_iter
 }

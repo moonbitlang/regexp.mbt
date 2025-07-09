@@ -25,7 +25,7 @@ impl Show for Err
 
 type MatchResult
 fn MatchResult::get(Self, Int) -> @string.StringView?
-fn MatchResult::groups(Self) -> Map[String, @string.StringView?]
+fn MatchResult::groups(Self) -> Map[String, @string.StringView]
 fn MatchResult::matched(Self) -> Bool
 fn MatchResult::results(Self) -> Array[@string.StringView?]
 
