@@ -152,6 +152,7 @@ fn vm(
   captures : Int,
   allow_exponentiaion~ : Bool = false
 ) -> Array[Int] {
+  guard allow_exponentiaion is false
   guard instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
   let mut clist = Array::new(capacity=instructions.length())

@@ -83,9 +83,9 @@ test "parse character class range with escaped characters" {
   let regex = try? parse("[a-\\]]")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidCharClass, source_fragment="]"))
-    ,
+    ),
   )
 }
 
@@ -189,36 +189,36 @@ test "parse repeat quantifier error cases" {
   let regex = try? parse("a{5,2}")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidRepeatSize, source_fragment=""))
-    ,
+    ),
   )
 
   // Test case with missing number
   let regex = try? parse("a{}")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=MissingRepeatArgument, source_fragment="}"))
-    ,
+    ),
   )
 
   // Test case with missing right brace
   let regex = try? parse("a{2")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=""))
-    ,
+    ),
   )
 
   // Test case with invalid format
   let regex = try? parse("a{2,3,4}")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=",4}"))
-    ,
+    ),
   )
 }
 
@@ -282,45 +282,45 @@ test "parse named capture group error cases" {
   let regex = try? parse("(?<>abc)")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=">abc)"))
-    ,
+    ),
   )
 
   // Test group name starting with a digit
   let regex = try? parse("(?<1invalid>abc)")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="1invalid>abc)"))
-    ,
+    ),
   )
 
   // Test group name with illegal characters
   let regex = try? parse("(?<na-me>abc)")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="-me>abc)"))
-    ,
+    ),
   )
 
   // Test missing right angle bracket
   let regex = try? parse("(?<name abc)")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=" abc)"))
-    ,
+    ),
   )
 
   // Test missing right parenthesis
   let regex = try? parse("(?<name>abc")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=MissingParenthesis, source_fragment=""))
-    ,
+    ),
   )
 }
 
@@ -729,24 +729,24 @@ test "parse backreference" {
   let regex = try? parse("\\2")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\2"))
-    ,
+    ),
   )
   let regex = try? parse("\\1(a)\\1")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1(a)\\1"))
-    ,
+    ),
   )
 
   // Test with a backreference to a recursive backreference
   let regex = try? parse("(\\1)")
   inspect(
     regex.map(ignore),
-    content=
+    content=(
       #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1)"))
-    ,
+    ),
   )
 }

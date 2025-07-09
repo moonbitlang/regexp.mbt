@@ -28,15 +28,15 @@ test "to be fixed" {
   let result = parse("(|a)*").compile().execute("aaa")
   inspect(
     result.get(0),
-    content=
+    content=(
       #|Some("")
-    ,
+    ),
   )
   let result = parse("(|a)+").compile().execute("aaa")
   inspect(
     result.get(0),
-    content=
+    content=(
       #|Some("")
-    ,
+    ),
   )
 }

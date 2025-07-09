@@ -96,9 +96,9 @@ pub fn Regexp::group_count(self : Regexp) -> Int {
 /// Example:
 /// ```moonbit
 /// let engine = compile("(?<first>a)(?<second>b)")
-/// inspect(engine.group_names(), content=
+/// inspect(engine.group_names(), content=(
 ///   #|["first", "second"]
-/// )
+/// ))
 /// ```
 pub fn Regexp::group_names(self : Regexp) -> Array[String] {
   self.map.keys().collect()
@@ -343,15 +343,15 @@ test "rest method with capture groups" {
   inspect(result.matched(), content="true")
   inspect(
     result.get(0),
-    content=
+    content=(
       #|Some("hello ")
-    ,
+    ),
   )
   inspect(
     result.get(1),
-    content=
+    content=(
       #|Some("hello")
-    ,
+    ),
   )
   inspect(rest, content="world test")
   let engine2 = compile(".*")
@@ -359,9 +359,9 @@ test "rest method with capture groups" {
   inspect(result2.matched(), content="true")
   inspect(
     result2.get(0),
-    content=
+    content=(
       #|Some("everything")
-    ,
+    ),
   )
   inspect(rest2, content="")
 }
@@ -373,17 +373,17 @@ test "rest method usage example" {
   let (result1, rest1) = engine.execute_with_remainder(input)
   inspect(
     result1.get(0),
-    content=
+    content=(
       #|Some("word1")
-    ,
+    ),
   )
   input = rest1
   let (result2, rest2) = engine.execute_with_remainder(input)
   inspect(
     result2.get(0),
-    content=
+    content=(
       #|Some("word2")
-    ,
+    ),
   )
   inspect(rest2, content=" word3")
 }

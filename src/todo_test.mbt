@@ -18,17 +18,17 @@ test "to be discussed" {
   guard (try? @regexp.compile("a{2")) is Err(error)
   error
   |> inspect(
-    content=
+    content=(
       #|RegexpError(err=InvalidRepeatOp, source_fragment="")
-    ,
+    ),
   )
   // This should raise InvalidRepeatOp to align with golang
   guard (try? @regexp.compile("a++")) is Err(error)
   error
   |> inspect(
-    content=
+    content=(
       #|RegexpError(err=InvalidEscape, source_fragment="+")
-    ,
+    ),
   )
   // Behavior difference between Golang and JS
   // The current behavior aligns with Golang, where the last match is returned for each submatch
@@ -37,9 +37,9 @@ test "to be discussed" {
   let result = regex.execute("ab")
   inspect(
     result.groups(),
-    content=
+    content=(
       #|{"a": Some("a"), "b": Some("b")}
-    ,
+    ),
   )
 
   // Behavior difference between Golang and JS
@@ -49,16 +49,16 @@ test "to be discussed" {
   let result = regex.execute("aaa")
   inspect(
     result.get(0),
-    content=
+    content=(
       #|Some("")
-    ,
+    ),
   )
   let regex = @regexp.compile("(|a)*")
   let result = regex.execute("aaa")
   inspect(
     result.get(0),
-    content=
+    content=(
       #|Some("")
-    ,
+    ),
   )
 }
