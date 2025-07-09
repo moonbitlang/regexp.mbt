@@ -18,9 +18,9 @@ test {
     // ["abcf", "bc"]
     inspect(
       result.results(),
-      content=
+      content=(
         #|[Some("abcf"), Some("bc")]
-      ,
+      ),
     )
   }
 }
@@ -36,14 +36,14 @@ test {
 ### Inspect Results
 
 - `result.matched()` → `Bool`
-- `result.group(index)` → Capture group content
+- `result.get(index)` → Capture group content
 - `result.results()` → Iterator over all matches
 
 ### Named Groups & Advanced
 
 - `engine.group_by_name(name)` → Find group index by name
-- `result.group_by_name(name)` → Get named group content
 - `engine.group_count()` → Total capture groups
+- `result.groups()` → Get named group content
 
 ## 🎪 Syntax Playground
 
@@ -72,18 +72,18 @@ test "unicode properties" {
   let regex = @regexp.compile("\\p{Letter}+")
   inspect(
     regex.execute("Hello 世界").results(),
-    content=
+    content=(
       #|[Some("Hello")]
-    ,
+    ),
   )
 
   // Matching gc=N
   let regex = @regexp.compile("\\p{Number}+")
   inspect(
     regex.execute("123 and 456").results(),
-    content=
+    content=(
       #|[Some("123")]
-    ,
+    ),
   )
 }
 ```
@@ -101,9 +101,9 @@ test "backreferences" {
   let palindrome = @regexp.compile("^(.)(.)\\2\\1")
   inspect(
     palindrome.execute("abba").results(),
-    content=
+    content=(
       #|[Some("abba"), Some("a"), Some("b")]
-    ,
+    ),
   )
 
   // HTML tag matching
@@ -111,9 +111,9 @@ test "backreferences" {
   let result = html_regex.execute("<div class='test'>content</div>")
   inspect(
     result.results(),
-    content=
+    content=(
       #|[Some("<div class='test'>content</div>"), Some("div"), Some("content")]
-    ,
+    ),
   )
 }
 ```
@@ -124,40 +124,44 @@ test "backreferences" {
 test "character classes" {
   // Email validation (simplified)
   let email = @regexp.compile(
-    #|[\w-]+@[\w-]+\.\w+
-    ,
+    (
+      #|[\w-]+@[\w-]+\.\w+
+    ),
   )
   let email_result = email.execute("user@example.com").results()
   inspect(
     email_result,
-    content=
+    content=(
       #|[Some("user@example.com")]
-    ,
+    ),
   )
   // Extract numbers
   let numbers = @regexp.compile(
-    #|\d+\.\d{2}
-    ,
+    (
+      #|\d+\.\d{2}
+    ),
   )
   let result = numbers.execute("Price: $42.99").results()
   inspect(
     result,
-    content=
+    content=(
       #|[Some("42.99")]
-    ,
+    ),
   )
 
   // Named captures for parsing
   let parser = @regexp.compile(
-    #|(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})
-    ,
+    (
+      #|(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})
+    ),
   )
   let date_result = parser.execute("2024-03-15")
   inspect(
     date_result.groups(),
-    content=
-      #|{"year": Some("2024"), "month": Some("03"), "day": Some("15")}
-    ,
+    content=(
+      #|{"year": "2024", "month": "03", "day": "15"}
+
+    ),
   )
 }
 ```
