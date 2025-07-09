@@ -1,7 +1,7 @@
 # 🔍 regexp.mbt
 
 > ⚠️ **API STABILITY NOTICE**  
-> This is a v0.1.0 release with a stabilizing API. While core functionality is complete and well-tested,  
+> This is a alpha release with a stabilizing API. While core functionality is complete and well-tested,  
 > API changes may occur in future versions as we refine the implementation.
 
 **Regular expression engine for MoonBit** — inspired by
