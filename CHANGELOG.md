@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1]
+
+### Changed
+
+- Updated syntax to 0.6.20
+
+### Fixed
+
+- Updated code in `prebuild` to use the updated API
+
 ## [0.2.0]
 
 ### Changed
