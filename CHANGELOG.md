@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2]
+
+### Fixed
+
+- Fixed incorrect case insensitive check
+
 ## [0.2.1]
 
 ### Changed
