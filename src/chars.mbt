@@ -23,10 +23,7 @@ const MIN_FOLD : Char = @unicode.MIN_FOLD
 const MAX_FOLD : Char = @unicode.MAX_FOLD
 
 ///|
-let simple_case_folding_data = @unicode.simple_case_folding_data
-
-///|
-let reverse_simple_case_folding_data = @unicode.reverse_simple_case_folding_data
+let case_folding = @unicode.case_folding
 
 //////////////
 /// RANGES ///
@@ -281,21 +278,13 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
     // For each character in the range, add its case-insensitive equivalents
     for c in start.to_int()..=end.to_int() {
       let char = c.unsafe_to_char()
+      let mut ch0 = char
       result..push(char)..push(char)
       // Add both lower and upper case versions of the character
-      if simple_case_folding_data.get(char) is Some(c) {
-        result.push(c)
-        result.push(c)
-        for ch in reverse_simple_case_folding_data.get(c).unwrap() {
-          result.push(ch)
-          result.push(ch)
-        }
-      } else if reverse_simple_case_folding_data.get(char) is Some(array) {
-        // If the character has a reverse mapping, add those as well
-        for ch in array {
-          result.push(ch)
-          result.push(ch)
-        }
+      while case_folding.get(ch0) is Some(ch) && ch != char {
+        result.push(ch)
+        result.push(ch)
+        ch0 = ch
       }
     }
   }

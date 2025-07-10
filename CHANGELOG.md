@@ -7,6 +7,10 @@
 - `MatchResult::groups` now returns `Map[String, @string.View]` instead of
   `Map[String, @string.View?]` to avoid the extra wrap.
 
+### Fixed
+
+- The case insensitive check for `A-Z` did not include `a-z` correctly.
+
 ## [0.2.1]
 
 ### Changed
