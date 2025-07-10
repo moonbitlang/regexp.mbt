@@ -5,13 +5,11 @@ const MAX_FOLD : Char = '𞥃'
 
 const MIN_FOLD : Char = 'A'
 
+let case_folding : Map[Char, Char]
+
 let general_category_property_value_alises : Map[String, String]
 
 let general_category_ranges : Map[String, Array[Char]]
-
-let reverse_simple_case_folding_data : Map[Char, Array[Char]]
-
-let simple_case_folding_data : Map[Char, Char]
 
 // Types and methods
 
