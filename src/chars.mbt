@@ -284,6 +284,8 @@ fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
       result..push(char)..push(char)
       // Add both lower and upper case versions of the character
       if simple_case_folding_data.get(char) is Some(c) {
+        result.push(c)
+        result.push(c)
         for ch in reverse_simple_case_folding_data.get(c).unwrap() {
           result.push(ch)
           result.push(ch)
@@ -308,7 +310,7 @@ test "case insensitive char class" {
   )
   inspect(
     case_insensitive_char_class(['A', 'Z']),
-    content="['A', 'Z', 'ſ', 'ſ', 'K', 'K']",
+    content="['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']",
   )
   inspect(
     case_insensitive_char_class(['\u{0}', '\n']),
