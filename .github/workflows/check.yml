@@ -30,6 +30,7 @@ jobs:
       - name: moon test
         run: |
           moon test --target all
+          moon test README.mbt.md --target all
 
       - name: lint
         run: |
