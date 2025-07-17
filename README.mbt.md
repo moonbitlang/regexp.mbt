@@ -4,10 +4,12 @@ moonbit:
     moonbitlang/regexp:
       path: .
 ---
+
 # 🔍 regexp.mbt
 
-> ⚠️ **API STABILITY NOTICE**  
-> This is a alpha release with a stabilizing API. While core functionality is complete and well-tested,  
+> ⚠️ **API STABILITY NOTICE**\
+> This is a alpha release with a stabilizing API. While core functionality is
+> complete and well-tested,\
 > API changes may occur in future versions as we refine the implementation.
 
 **Regular expression engine for MoonBit** — inspired by
@@ -19,16 +21,38 @@ moonbit:
 test {
   // Compile once, use everywhere
   let regexp = @regexp.compile("a(bc|de)f")
-  let result = regexp.execute("xxabcf")
-  if result.matched() {
-    // ["abcf", "bc"]
-    inspect(
-      result.results(),
-      content=(
-        #|[Some("abcf"), Some("bc")]
-      ),
-    )
+  guard regexp.match_("xxabcf") is Some(result)
+  inspect(
+    result.results(),
+    content=(
+      #|[Some("abcf"), Some("bc")]
+    ),
+  )
+
+  // Write a simple split with regexp
+  fn split(
+    regexp : @regexp.Regexp,
+    target : @string.View
+  ) -> Array[@string.View] {
+    let result = []
+    loop target {
+      "" => ()
+      str => {
+        let res = regexp.execute(str)
+        result.push(res.before())
+        continue res.after()
+      }
+    }
+    result
   }
+
+  let re = @regexp.compile("_+")
+  inspect(
+    split(re, "1_2__3__4__5_____6"),
+    content=(
+      #|["1", "2", "3", "4", "5", "6"]
+    ),
+  )
 }
 ```
 
@@ -53,20 +77,20 @@ test {
 
 ## 🎪 Syntax Playground
 
-| Feature         | Example            | What it does                        |
-| --------------- | ------------------ | ----------------------------------- |
-| **Literals**    | `abc`              | Match exact text                    |
-| **Wildcards**   | `a.c`              | `.` matches any character           |
-| **Quantifiers** | `a+`, `b*`, `c?`   | One or more, zero or more, optional |
-| **Ranges**      | `a{2,5}`           | Between 2-5 repetitions             |
-| **Classes**     | `[a-z]`, `[^0-9]`  | Character sets, negated sets        |
-| **Groups**      | `(abc)`, `(?:xyz)` | Capturing, non-capturing            |
-| **Named**       | `(?<word>abc)`     | Named capture groups                |
-| **Choice**      | `cat\|dog`         | Match either option                 |
-| **Anchors**     | `^start`, `end$`   | Line boundaries                     |
-| **Escapes**     | `\\u{41}`, `\\u0041` | Unicode escapes, standard escapes   |
-| **Unicode Props** | `\\p{L}`, `\\p{Nd}` | Unicode general categories         |
-| **Backrefs** ⚠️ | `(.)\\1`           | Reference previous captures         |
+| Feature           | Example              | What it does                        |
+| ----------------- | -------------------- | ----------------------------------- |
+| **Literals**      | `abc`                | Match exact text                    |
+| **Wildcards**     | `a.c`                | `.` matches any character           |
+| **Quantifiers**   | `a+`, `b*`, `c?`     | One or more, zero or more, optional |
+| **Ranges**        | `a{2,5}`             | Between 2-5 repetitions             |
+| **Classes**       | `[a-z]`, `[^0-9]`    | Character sets, negated sets        |
+| **Groups**        | `(abc)`, `(?:xyz)`   | Capturing, non-capturing            |
+| **Named**         | `(?<word>abc)`       | Named capture groups                |
+| **Choice**        | `cat\|dog`           | Match either option                 |
+| **Anchors**       | `^start`, `end$`     | Line boundaries                     |
+| **Escapes**       | `\\u{41}`, `\\u0041` | Unicode escapes, standard escapes   |
+| **Unicode Props** | `\\p{L}`, `\\p{Nd}`  | Unicode general categories          |
+| **Backrefs** ⚠️   | `(.)\\1`             | Reference previous captures         |
 
 ## 🌍 Unicode Property Support
 
@@ -95,11 +119,13 @@ test "unicode properties" {
 ```
 
 **Supported Propertes:**
+
 - [General Category](https://www.unicode.org/reports/tr44/#General_Category_Values)
 
 ## 🔄 Backreferences
 
-> ⚠️ **Performance Warning**: Backreferences can cause exponential time complexity in worst cases!
+> ⚠️ **Performance Warning**: Backreferences can cause exponential time
+> complexity in worst cases!
 
 ```moonbit
 test "backreferences" {
@@ -187,7 +213,8 @@ test {
 
 ## ⚡ Performance Characteristics
 
-- **Predictable complexity** — Designed to avoid catastrophic backtracking (except with backreferences)
+- **Predictable complexity** — Designed to avoid catastrophic backtracking
+  (except with backreferences)
 - **VM-based** — Structured interpreter design
 - **Unicode support** — Character set and property support
 
@@ -197,7 +224,8 @@ Built with reliability and correctness as primary goals.
 
 ### Behavior Differences from Other Engines
 
-This implementation has some behavior differences compared to other popular regex engines:
+This implementation has some behavior differences compared to other popular
+regex engines:
 
 1. **Empty Character Class Handling**:
    - In JavaScript: `[][]` is parsed as two character classes with no characters
@@ -205,8 +233,11 @@ This implementation has some behavior differences compared to other popular rege
    - In MoonBit: we follow the JavaScript interpretation
 
 2. **Empty Alternatives Behavior**:
-   - Expressions like `(|a)*` and `(|a)+` have specific behavior that may differ from other implementations
-   - See [Golang issue #46123](https://github.com/golang/go/issues/46123) for related discussion
+   - Expressions like `(|a)*` and `(|a)+` have specific behavior that may differ
+     from other implementations
+   - See [Golang issue #46123](https://github.com/golang/go/issues/46123) for
+     related discussion
 
 3. **Backreferences**:
-   - Backreferences are supported but may impact the complexity guarantees of the engine
+   - Backreferences are supported but may impact the complexity guarantees of
+     the engine

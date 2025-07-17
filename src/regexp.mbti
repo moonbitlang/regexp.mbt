@@ -24,6 +24,8 @@ pub enum Err {
 impl Show for Err
 
 type MatchResult
+fn MatchResult::after(Self) -> @string.StringView
+fn MatchResult::before(Self) -> @string.StringView
 fn MatchResult::get(Self, Int) -> @string.StringView?
 fn MatchResult::groups(Self) -> Map[String, @string.StringView]
 fn MatchResult::matched(Self) -> Bool
@@ -35,6 +37,7 @@ fn Regexp::execute_with_remainder(Self, @string.StringView) -> (MatchResult, @st
 fn Regexp::group_by_name(Self, String) -> Int?
 fn Regexp::group_count(Self) -> Int
 fn Regexp::group_names(Self) -> Array[String]
+fn Regexp::match_(Self, @string.StringView) -> MatchResult?
 
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : @string.StringView)

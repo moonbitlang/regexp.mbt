@@ -133,7 +133,12 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
-  { input, captures, names: self.map }
+  let (before, after) = if captures is [0..<_ as start, 0..<_ as end, ..] {
+    (input.view(end_offset=start), input.view(start_offset=end))
+  } else {
+    (input, input.view(start_offset=input.length()))
+  }
+  { input, captures, names: self.map, before, after }
 }
 
 ///| Executes a regular expression match on the input text.
@@ -153,11 +158,16 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
 /// Example:
 /// ```moonbit
 /// let engine = compile("a(bc|de)f")
-/// let (result, rest) = engine.execute_with_remainder("abcfxx")
-/// if result.matched() { 
-///   inspect(rest, content=("xx"))
-/// }
+/// let result = engine.execute("abcfxx")
+/// guard result.matched()
+/// inspect(result.before(), content=(""))
+/// inspect(result.after(), content=("xx"))
+/// let result = engine.execute("axxf")
+/// guard !result.matched()
+/// inspect(result.before(), content=("axxf"))
+/// inspect(result.after(), content=(""))
 /// ```
+#deprecated("Use `Regexp::execute` and `MatchResult::before`/`after` instead.")
 pub fn Regexp::execute_with_remainder(
   self : Regexp,
   input : @string.View
@@ -168,17 +178,62 @@ pub fn Regexp::execute_with_remainder(
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
-  let rest = if captures.length() < 2 {
-    input
+  if captures is [0..<_ as start, 0..<_ as end, ..] {
+    (
+      {
+        input,
+        captures,
+        names: self.map,
+        before: input.view(end_offset=start),
+        after: input.view(start_offset=end),
+      },
+      input.view(start_offset=end),
+    )
   } else {
-    let match_end = captures[1]
-    if match_end >= 0 && match_end <= input.length() {
-      input.view(start_offset=match_end)
-    } else {
-      input
-    }
+    (
+      {
+        input,
+        captures,
+        names: self.map,
+        before: input,
+        after: input.view(start_offset=input.length()),
+      },
+      input,
+    )
   }
-  ({ input, captures, names: self.map }, rest)
+}
+
+///| Executes a regular expression match on the input text.
+/// 
+/// Uses the compiled regular expression engine to perform a match on the specified input text,
+/// returning a `MatchResult` object containing the match results and capture group information.
+/// It uses a leftmost-first matching strategy, returning the first match found.
+/// 
+/// Args:
+/// - `self`: The regular expression execution engine.
+/// - `input`: The input text to match against.
+/// 
+/// Returns: A tuple of 
+/// - `MatchResult` object containing the match status and capture group information.
+/// 
+/// Example:
+/// ```moonbit
+/// let engine = compile("a(bc|de)f")
+/// guard engine.match_("abcfxx") is Some(result)
+/// inspect(result.after(), content=("xx"))
+/// assert_true(engine.match_("axxf") is None)
+/// ```
+pub fn Regexp::match_(self : Regexp, input : @string.View) -> MatchResult? {
+  let captures = vm(
+    self.instructions,
+    input,
+    self.capture,
+    allow_exponentiaion=self.allow_exponentiaion,
+  )
+  guard captures is [0..<_ as start, 0..<_ as end, ..] else { return None }
+  let before = input.view(end_offset=start)
+  let after = input.view(start_offset=end)
+  Some({ input, captures, names: self.map, before, after })
 }
 
 ///| Regular expression match result.
@@ -197,6 +252,8 @@ struct MatchResult {
   input : @string.View
   captures : Array[Int]
   names : Map[String, Int]
+  before : @string.View
+  after : @string.View
 }
 
 ///| Checks if the match was successful.
@@ -320,6 +377,38 @@ pub fn MatchResult::results(self : Self) -> Array[@string.View?] {
     }
   }
   results
+}
+
+///|
+/// Gets the text before the match.
+/// 
+/// If the match was not successful, this will return the entire input text.
+/// 
+/// ```moonbit
+/// let engine = compile("world")
+/// let result = engine.execute("hello world")
+/// inspect(result.before(), content="hello ")
+/// let result = engine.execute("say hello")
+/// inspect(result.before(), content="say hello")
+/// ```
+pub fn MatchResult::before(self : Self) -> @string.View {
+  self.before
+}
+
+///|
+/// Gets the remaining text after the match.
+/// 
+/// If the match was not successful, this will return the empty string.
+/// 
+/// ```moonbit
+/// let engine = compile("hello")
+/// let result = engine.execute("hello world")
+/// inspect(result.after(), content=" world")
+/// let result = engine.execute("say yes")
+/// inspect(result.after(), content="")
+/// ```
+pub fn MatchResult::after(self : Self) -> @string.View {
+  self.after
 }
 
 ///|

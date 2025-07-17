@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `Regexp::match_` : return a `MatchResult?` for better experience
+- `MatchResult::before` and `MatchResult::after` : getting both sides of matched
+  value, similar to partition
+
+### Changed
+
+- `Regexp::execute_with_remainder` is deprecated as the semantic is confusing.
+  Use `Regexp::execute` together with `MatchResult::before` and
+  `MatchResult::after` instead.
+
 ## [0.3.0]
 
 ### Changed
