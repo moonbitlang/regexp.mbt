@@ -39,7 +39,7 @@ test {
   ]
   let captures = vm(instructions, "aab", 1)
   inspect(captures, content="[0, 3]")
-  inspect("aab".charcodes(start=0, end=3), content="aab")
+  inspect("aab".view(start_offset=0, end_offset=3), content="aab")
 }
 
 ///|
@@ -95,7 +95,9 @@ test "priority" (t : @test.T) {
   let captures = vm(instructions, "aabbcc", 4)
   inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
-    t.writeln("aabbcc".charcodes(start=captures[i], end=captures[i + 1]))
+    t.writeln(
+      "aabbcc".view(start_offset=captures[i], end_offset=captures[i + 1]),
+    )
   }
   t.snapshot(filename="priority.txt")
 }
