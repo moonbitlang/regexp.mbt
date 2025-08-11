@@ -1,3 +1,4 @@
+// Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp/internal/unicode"
 
 // Values
@@ -10,6 +11,8 @@ let case_folding : Map[Char, Char]
 let general_category_property_value_alises : Map[String, String]
 
 let general_category_ranges : Map[String, Array[Char]]
+
+// Errors
 
 // Types and methods
 
