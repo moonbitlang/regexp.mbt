@@ -88,7 +88,7 @@ fn is_word_char_at(input : @string.View, sp : Int) -> Bool {
   if sp == -1 || sp == input.length() {
     return false
   }
-  let c = input.char_at(sp)
+  let c = input.get_char(sp).unwrap()
   is_word_char(c)
 }
 
