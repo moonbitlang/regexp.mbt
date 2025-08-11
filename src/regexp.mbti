@@ -1,3 +1,4 @@
+// Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp"
 
 import(
@@ -5,7 +6,13 @@ import(
 )
 
 // Values
-fn compile(@string.StringView, flags~ : @string.StringView = ..) -> Regexp raise RegexpError
+fn compile(@string.StringView, flags? : @string.StringView) -> Regexp raise RegexpError
+
+// Errors
+pub suberror RegexpError {
+  RegexpError(err~ : Err, source_fragment~ : @string.StringView)
+}
+impl Show for RegexpError
 
 // Types and methods
 pub enum Err {
@@ -39,11 +46,6 @@ fn Regexp::group_by_name(Self, String) -> Int?
 fn Regexp::group_count(Self) -> Int
 fn Regexp::group_names(Self) -> Array[String]
 fn Regexp::match_(Self, @string.StringView) -> MatchResult?
-
-pub suberror RegexpError {
-  RegexpError(err~ : Err, source_fragment~ : @string.StringView)
-}
-impl Show for RegexpError
 
 // Type aliases
 
