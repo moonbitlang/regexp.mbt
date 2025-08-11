@@ -22,7 +22,7 @@ priv enum Instruction {
   /// Zero-width assertions
   Assertion(Predicate)
   Backreference(Int)
-} derive(Show)
+}
 
 ///|
 priv enum Predicate {
@@ -32,7 +32,7 @@ priv enum Predicate {
   EndLine
   WordBoundary
   NoWordBoundary
-} derive(Show, ToJson)
+} derive(Show, ToJson(style="legacy"))
 
 ///|
 /// A thread represents a point in the execution of the VM.
@@ -106,9 +106,8 @@ fn add_thread(
       let assertion = match pred {
         BeginText => sp == 0
         EndText => sp == content.length()
-        BeginLine => sp == 0 || content.charcode_at(sp - 1) == '\n'.to_int()
-        EndLine =>
-          sp == content.length() || content.charcode_at(sp) == '\n'.to_int()
+        BeginLine => sp == 0 || content[sp - 1] == '\n'.to_int()
+        EndLine => sp == content.length() || content[sp] == '\n'.to_int()
         WordBoundary =>
           is_word_char_at(content, sp - 1) != is_word_char_at(content, sp)
         NoWordBoundary =>
@@ -171,7 +170,7 @@ fn vm(
     let actual_char = if sp == input.length() {
       (-1).unsafe_to_char()
     } else {
-      input.char_at(sp)
+      input.get_char(sp).unwrap()
     }
     let next_sp = if actual_char.to_int() > 0xFFFF { sp + 2 } else { sp + 1 }
     for thread in clist {
@@ -210,8 +209,8 @@ fn vm(
           guard len != 0
           let next_sp = sp + len
           if next_sp <= input.length() &&
-            input.charcodes(start~, end~) ==
-            input.charcodes(start=sp, end=next_sp) {
+            input.view(start_offset=start, end_offset=end) ==
+            input.view(start_offset=sp, end_offset=next_sp) {
             add_thread(
               input,
               instructions,

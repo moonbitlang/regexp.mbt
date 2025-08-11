@@ -15,7 +15,7 @@
 ///| Run the program.
 pub fn run() -> Result[Unit, Unit] {
   let mut result = Ok(())
-  @promise.spawn(async fn(_defer) {
+  @promise.spawn(async fn(_defer) raise {
     top() catch {
       error => {
         result = Err(())
