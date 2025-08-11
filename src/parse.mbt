@@ -145,7 +145,7 @@ fn Parser::new(input : @string.View, flags : Flags) -> Parser {
 /// Throws: Error_ when parsing fails
 fn parse(
   regex : @string.View,
-  flags~ : Flags = Flags::default()
+  flags~ : Flags = Flags::default(),
 ) -> ParseResult raise RegexpError {
   let parser = Parser::new(regex, flags)
   let result = parser.parse_expression()
@@ -1004,7 +1004,7 @@ fn Parser::parse_unicode_property(self : Parser) -> String raise RegexpError {
 fn Parser::parse_general_category(
   self : Parser,
   property_name : String,
-  neg : Bool
+  neg : Bool,
 ) -> Ast raise RegexpError {
   // First, normalize the property name using aliases
   let normalized_name = match
