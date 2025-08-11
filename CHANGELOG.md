@@ -13,6 +13,7 @@
 - `Regexp::execute_with_remainder` is deprecated as the semantic is confusing.
   Use `Regexp::execute` together with `MatchResult::before` and
   `MatchResult::after` instead.
+- Updated syntax to v0.6.24+012953835 (#30)
 
 ## [0.3.0]
 
