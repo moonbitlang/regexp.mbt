@@ -33,7 +33,7 @@
 /// ```
 pub fn compile(
   regexp : @string.View,
-  flags~ : @string.View = ""
+  flags~ : @string.View = "",
 ) -> Regexp raise RegexpError {
   regexp
   |> parse(flags={
@@ -170,7 +170,7 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
 #deprecated("Use `Regexp::execute` and `MatchResult::before`/`after` instead.")
 pub fn Regexp::execute_with_remainder(
   self : Regexp,
-  input : @string.View
+  input : @string.View,
 ) -> (MatchResult, @string.View) {
   let captures = vm(
     self.instructions,
