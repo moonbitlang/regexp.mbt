@@ -40,7 +40,26 @@ priv enum Predicate {
 priv struct Thread {
   pc : Int
   sp : Int
-  captures : Array[Int]
+  captures : @immut/hashmap.HashMap[Int, Int]
+}
+
+///|
+/// A structure to hold the captures.
+/// 
+/// It contains the number of captures and a hashmap to store the start and end indices of each capture.
+priv struct Captures(Int, @immut/hashmap.HashMap[Int, Int])
+
+///|
+impl Show for Captures with output(self, logger) {
+  logger.write_iter(
+    (0)
+    .until(self.0)
+    .flat_map(i => [
+      self.1.get(i * 2).unwrap_or(-1),
+      self.1.get(i * 2 + 1).unwrap_or(-1),
+    ].iter())
+    .take_while(i => i != -1),
+  )
 }
 
 ///|
@@ -67,16 +86,18 @@ fn add_thread(
   }
   inst_gen[thread.pc] = thread.sp
   match instructions[thread.pc] {
-    Save(i) => {
-      thread.captures[i] = thread.sp
+    Save(i) =>
       add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        {
+          ..thread,
+          pc: thread.pc + 1,
+          captures: thread.captures.add(i, thread.sp),
+        },
         clist,
       )
-    }
     Jump(i) =>
       add_thread(
         content,
@@ -90,7 +111,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i1, captures: thread.captures.copy() },
+        { ..thread, pc: i1, captures: thread.captures },
         clist,
       )
       add_thread(
@@ -123,9 +144,12 @@ fn add_thread(
         )
       }
     }
-    Backreference(i) if i * 2 >= thread.captures.length() ||
-      thread.captures[i * 2] == -1 ||
-      thread.captures[i * 2 + 1] == thread.captures[i * 2] =>
+    Backreference(i) if (
+        thread.captures.get(i * 2) is Some(start) &&
+        thread.captures.get(i * 2 + 1) is Some(end) &&
+        start == end
+      ) ||
+      thread.captures.get(i * 2) is None =>
       add_thread(
         content,
         instructions,
@@ -148,19 +172,19 @@ fn add_thread(
 fn vm(
   instructions : Array[Instruction],
   input : @string.View,
-  captures : Int,
+  nb_captures : Int,
   allow_exponentiaion? : Bool = false,
-) -> Array[Int] {
+) -> Captures {
   guard instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
-  let mut matched : Array[Int] = []
+  let mut matched : Captures = Captures(nb_captures, @immut/hashmap.new())
   add_thread(
     input,
     instructions,
     inst_gen,
-    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1) },
+    { sp: 0, pc: 0, captures: @immut/hashmap.new() },
     clist,
   )
   for sp = 0; sp <= input.length(); {
@@ -182,7 +206,7 @@ fn vm(
       }
       guard thread_sp == sp
       if instructions[pc] is Matched {
-        matched = captures
+        matched = Captures(nb_captures, captures)
         // drop everything that has lower priority
         break
       }
@@ -203,8 +227,8 @@ fn vm(
             )
           }
         Backreference(i) => {
-          let start = captures[i * 2]
-          let end = captures[i * 2 + 1]
+          let start = captures.get(i * 2).unwrap_or(-1)
+          let end = captures.get(i * 2 + 1).unwrap_or(-1)
           let len = end - start
           guard len != 0
           let next_sp = sp + len

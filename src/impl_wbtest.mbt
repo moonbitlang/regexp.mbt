@@ -94,9 +94,12 @@ test "priority" (t : @test.T) {
   ]
   let captures = vm(instructions, "aabbcc", 4)
   inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
-  for i = 0; i < captures.length(); i = i + 2 {
+  for i = 0; i < captures.0; i = i + 1 {
     t.writeln(
-      "aabbcc".view(start_offset=captures[i], end_offset=captures[i + 1]),
+      "aabbcc".view(
+        start_offset=captures.1.get(i * 2).unwrap(),
+        end_offset=captures.1.get(i * 2 + 1).unwrap(),
+      ),
     )
   }
   t.snapshot(filename="priority.txt")

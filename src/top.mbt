@@ -138,7 +138,8 @@ pub fn Regexp::execute(self : Regexp, input : @string.View) -> MatchResult {
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
-  let (before, after) = if captures is [0..<_ as start, 0..<_ as end, ..] {
+  let (before, after) = if captures.1
+    is { 0: 0..<_ as start, 1: 0..<_ as end, .. } {
     (input.view(end_offset=start), input.view(start_offset=end))
   } else {
     (input, input.view(start_offset=input.length()))
@@ -184,7 +185,7 @@ pub fn Regexp::execute_with_remainder(
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
-  if captures is [0..<_ as start, 0..<_ as end, ..] {
+  if captures.1 is { 0: 0..<_ as start, 1: 0..<_ as end, .. } {
     (
       {
         input,
@@ -237,7 +238,9 @@ pub fn Regexp::match_(self : Regexp, input : @string.View) -> MatchResult? {
     self.capture,
     allow_exponentiaion=self.allow_exponentiaion,
   )
-  guard captures is [0..<_ as start, 0..<_ as end, ..] else { return None }
+  guard captures.1 is { 0: 0..<_ as start, 1: 0..<_ as end, .. } else {
+    return None
+  }
   let before = input.view(end_offset=start)
   let after = input.view(start_offset=end)
   Some({ input, captures, names: self.map, before, after })
@@ -258,7 +261,7 @@ pub fn Regexp::match_(self : Regexp, input : @string.View) -> MatchResult? {
 /// - And so on...
 struct MatchResult {
   input : @string.View
-  captures : Array[Int]
+  captures : Captures
   names : Map[String, Int]
   before : @string.View
   after : @string.View
@@ -281,7 +284,7 @@ struct MatchResult {
 /// inspect(result.matched(), content="true")
 /// ```
 pub fn MatchResult::matched(self : Self) -> Bool {
-  not(self.captures is [])
+  not(self.captures.1.get(0) is None)
 }
 
 ///|
@@ -310,13 +313,10 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 /// ))
 /// ```
 pub fn MatchResult::get(self : Self, index : Int) -> @string.View? {
-  if self.captures.is_empty() ||
-    index < 0 ||
-    index >= self.captures.length() / 2 {
+  guard self.captures.1.get(index * 2) is Some(start) &&
+    self.captures.1.get(index * 2 + 1) is Some(end) else {
     return None
   }
-  let start = self.captures[index * 2]
-  let end = self.captures[index * 2 + 1]
   if start < 0 || end < start || end > self.input.length() {
     return None
   }
@@ -378,13 +378,15 @@ pub fn MatchResult::groups(self : Self) -> Map[String, @string.View] {
 /// ```
 pub fn MatchResult::results(self : Self) -> Array[@string.View?] {
   let results = []
-  for i = 0; i < self.captures.length() / 2; i = i + 1 {
-    let start = self.captures[i * 2]
-    let end = self.captures[i * 2 + 1]
-    if start == -1 && end == -1 {
-      results.push(None)
-    } else {
+  if self.captures.1.get(0) is None && self.captures.1.get(1) is None {
+    return results
+  }
+  for i = 0; i < self.captures.0; i = i + 1 {
+    if self.captures.1.get(i * 2) is Some(start) &&
+      self.captures.1.get(i * 2 + 1) is Some(end) {
       results.push(Some(self.input.view(start_offset=start, end_offset=end)))
+    } else {
+      results.push(None)
     }
   }
   results

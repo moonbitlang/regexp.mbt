@@ -83,7 +83,10 @@ test "capture" {
   let result = vm(instructions, "abc", 2)
   inspect(result, content="[0, 3, 0, 3]")
   inspect(
-    "abc".view(start_offset=result[1 * 2], end_offset=result[1 * 2 + 1]),
+    "abc".view(
+      start_offset=result.1.get(1 * 2).unwrap(),
+      end_offset=result.1.get(1 * 2 + 1).unwrap(),
+    ),
     content="abc",
   )
 }
