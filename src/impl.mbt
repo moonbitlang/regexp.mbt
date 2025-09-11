@@ -40,7 +40,7 @@ priv enum Predicate {
 priv struct Thread {
   pc : Int
   sp : Int
-  captures : Array[Int]
+  captures : @list.List[(Int, Int)]
 }
 
 ///|
@@ -67,16 +67,18 @@ fn add_thread(
   }
   inst_gen[thread.pc] = thread.sp
   match instructions[thread.pc] {
-    Save(i) => {
-      thread.captures[i] = thread.sp
+    Save(i) =>
       add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        {
+          ..thread,
+          pc: thread.pc + 1,
+          captures: thread.captures.add((i, thread.sp)),
+        },
         clist,
       )
-    }
     Jump(i) =>
       add_thread(
         content,
@@ -90,7 +92,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i1, captures: thread.captures.copy() },
+        { ..thread, pc: i1, captures: thread.captures },
         clist,
       )
       add_thread(
@@ -123,9 +125,12 @@ fn add_thread(
         )
       }
     }
-    Backreference(i) if i * 2 >= thread.captures.length() ||
-      thread.captures[i * 2] == -1 ||
-      thread.captures[i * 2 + 1] == thread.captures[i * 2] =>
+    Backreference(i) if (
+        thread.captures.find(p => p.0 == i * 2) is Some((_, start)) &&
+        thread.captures.find(p => p.0 == i * 2 + 1) is Some((_, end)) &&
+        start == end
+      ) ||
+      thread.captures.find(p => p.0 == i * 2) is None =>
       add_thread(
         content,
         instructions,
@@ -155,12 +160,12 @@ fn vm(
   let inst_gen = Array::make(instructions.length(), -1)
   let mut clist = Array::new(capacity=instructions.length())
   let mut nlist = Array::new(capacity=instructions.length())
-  let mut matched : Array[Int] = []
+  let mut matched : @list.List[(Int, Int)] = @list.new()
   add_thread(
     input,
     instructions,
     inst_gen,
-    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1) },
+    { sp: 0, pc: 0, captures: @list.new() },
     clist,
   )
   for sp = 0; sp <= input.length(); {
@@ -203,8 +208,14 @@ fn vm(
             )
           }
         Backreference(i) => {
-          let start = captures[i * 2]
-          let end = captures[i * 2 + 1]
+          let start = captures
+            .find(j => j.0 == i * 2)
+            .map(i => i.1)
+            .unwrap_or(-1)
+          let end = captures
+            .find(j => j.0 == i * 2 + 1)
+            .map(i => i.1)
+            .unwrap_or(-1)
           let len = end - start
           guard len != 0
           let next_sp = sp + len
@@ -229,5 +240,14 @@ fn vm(
     nlist.clear()
     continue next_sp
   }
-  return matched
+  let result = Array::make(captures * 2, -1)
+  for p in matched {
+    if p.1 != -1 && result[p.0] == -1 {
+      result[p.0] = p.1
+    }
+  }
+  if result is [-1, -1, ..] {
+    return []
+  }
+  return result
 }
