@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The unicode data are now stored as `String` to improve the native build time. (#6)
+
 ## [0.3.1]
 
 ### Added
@@ -13,7 +19,7 @@
 - `Regexp::execute_with_remainder` is deprecated as the semantic is confusing.
   Use `Regexp::execute` together with `MatchResult::before` and
   `MatchResult::after` instead.
-- Updated syntax to v0.6.24+012953835 (#30)
+- Updated syntax to v0.6.24+012953835 (#4)
 
 ## [0.3.0]
 
