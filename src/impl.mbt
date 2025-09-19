@@ -32,7 +32,7 @@ priv enum Predicate {
   EndLine
   WordBoundary
   NoWordBoundary
-} derive(Show, ToJson(style="flat"))
+} derive(Show, ToJson)
 
 ///|
 /// A thread represents a point in the execution of the VM.
@@ -149,7 +149,7 @@ fn vm(
   instructions : Array[Instruction],
   input : @string.View,
   captures : Int,
-  allow_exponentiaion~ : Bool = false,
+  allow_exponentiaion? : Bool = false,
 ) -> Array[Int] {
   guard instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
