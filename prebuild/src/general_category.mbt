@@ -17,8 +17,8 @@ const Unassigned = "Cn"
 
 ///|
 async fn get_general_category_code_points(
-  defer_ : (() -> Unit) -> Unit
-) -> Map[String, Array[Char]] raise {
+  defer_ : (() -> Unit) -> Unit,
+) -> Map[String, Array[Char]] {
   // Get the Unicode data from Unicode.org for general categories
   let request = @http.request(
     UNICODE_ADDRESS,
@@ -167,7 +167,7 @@ async fn get_general_category_code_points(
 }
 
 ///|
-async fn handle_general_category(defer_ : (() -> Unit) -> Unit) -> Unit raise {
+async fn handle_general_category(defer_ : (() -> Unit) -> Unit) -> Unit {
   let category_ranges = @promise.spawn(get_general_category_code_points).await()
 
   // Prepare file. Assume preopen is where the file needs to be written
@@ -196,43 +196,72 @@ async fn handle_general_category(defer_ : (() -> Unit) -> Unit) -> Unit raise {
     ),
     stream=output_stream,
   )
+  for category_entry in category_ranges.to_array() {
+    let (cat, _) = category_entry
+    if cat != "Cs" {
+      @io.print(
+        (
+          $|  "\{cat}": \{cat}.iter().collect(),
+        ),
+        stream=output_stream,
+      )
+    } else {
+      @io.print(
+        (
+          $|  "\{cat}": \{cat.to_lower()},
+        ),
+        stream=output_stream,
+      )
+    }
+  } else {
+    @io.println(
+      (
+        #|}
+      ),
+      stream=output_stream,
+    )
+  }
 
   // Write the category ranges
   for category_entry in category_ranges.to_array() {
     let (cat, ranges) = category_entry
-    @io.print(
-      (
-        $|  "\{cat}": [
-      ),
-      stream=output_stream,
-    )
     if cat != "Cs" {
+      @io.print(
+        (
+          #|
+          #|///|
+          $|const \{cat}: String = $|
+        ),
+        stream=output_stream,
+      )
       for ch in ranges {
         @io.print(
-          "'\\u{\{ch.to_int().to_string(radix=16)}}', ",
+          "\\u{\{ch.to_int().to_string(radix=16)}}",
           stream=output_stream,
         )
       }
     } else {
+      @io.print(
+        (
+          #|
+          #|///|
+          $|let \{cat.to_lower()}: Array[Char] = [
+        ),
+        stream=output_stream,
+      )
       for ch in ranges {
         @io.print(
           "(0x\{ch.to_int().to_string(radix=16)}).unsafe_to_char(), ",
           stream=output_stream,
         )
       }
+      @io.println(
+        (
+          #|]
+        ),
+        stream=output_stream,
+      )
     }
-    @io.println(
-      (
-        #|],
-      ),
-      stream=output_stream,
-    )
   }
-  @io.println(
-    (
-      #|}
-    ),
-    stream=output_stream,
-  )
   output_stream.blocking_flush().unwrap()
 }
