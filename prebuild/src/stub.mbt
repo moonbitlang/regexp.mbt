@@ -32,7 +32,7 @@ pub fn run() -> Result[Unit, Unit] {
 const UNICODE_ADDRESS = "www.unicode.org"
 
 ///|
-const UNICODE_DATABASE_PATH = "/Public/UCD/latest/ucd"
+const UNICODE_DATABASE_PATH = "/Public/16.0.0/ucd"
 
 ///|
 /// User should change this function to do what they want
