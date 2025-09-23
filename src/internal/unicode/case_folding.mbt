@@ -6,7 +6,7 @@ const DATA : String =
 
 ///|
 pub let case_folding : Map[Char, Char] = {
-  let map = {}
+  let map = Map::new(capacity=3000)
   loop DATA[:] {
     [ch1, ch2, .. rest] => {
       map[ch1] = ch2
