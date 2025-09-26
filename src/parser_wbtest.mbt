@@ -751,3 +751,51 @@ test "parse backreference" {
     ),
   )
 }
+
+///|
+test "parse character class range with escaped end character" {
+  // Test unicode escapes in ranges
+  let regex = parse("[a-\\u007A]").ast // Should parse as range from 'a' to 'z' (U+007A)
+  @json.inspect(regex, content=(["CharClass neg=false",["'a'","'u'","'0'","'0'","'0'","'0'","'7'","'7'","'A'","'A'"]]))
+  let regex = parse("[a-\\u{7A}]").ast // Should parse as range from 'a' to 'z' (U+007A)
+  @json.inspect(regex, content=(["CharClass neg=false",["'a'","'u'","'{'","'{'","'7'","'7'","'A'","'A'","'}'","'}'"]]))
+
+  // Test with literal backslash in range - backslash (0x5C) < 'z' (0x7A)
+  let regex = parse("[\\\\-z]").ast // Should parse as range from '\' to 'z'
+  @json.inspect(regex, content=["CharClass neg=false", ["'\\\\'", "'z'"]])
+
+  // Test invalid range (end char < start char) - tab comes before 'z', so this should error
+  let result = try? parse("[z-\\t]")
+  inspect(
+    result.map(ignore),
+    content="Err(RegexpError(err=InvalidCharClass, source_fragment=\"]\"))",
+  )
+
+  // Test invalid: character classes like \d cannot be used in ranges on right side
+  let result = try? parse("[a-\\d]")
+  inspect(
+    result.map(ignore),
+    content="Ok(())",
+  )
+
+  // Test escaped characters on both sides of range - newline (0x0A) to carriage return (0x0D)
+  let regex = parse("[\\n-\\r]").ast
+  @json.inspect(regex, content=[
+    "CharClass neg=false",
+    ["'\\n'", "'\\n'", "'-'", "'-'", "'\\r'", "'\\r'"],
+  ])
+
+  // Test range with special escape : \s-\s should be treated as literal characters '-'
+  let regex = parse("[\\s-\\s]").ast
+  @json.inspect(regex, content=[
+    "CharClass neg=false",
+    [
+      "'\\t'", "'\\r'", "' '", "' '", "' '", "' '", "' '", "' '", "' '",
+      "' '", "'\\u{2028}'", "'\\u{2029}'", "' '", "' '", "' '", "' '",
+      "'　'", "'　'", "'\\u{feff}'", "'\\u{feff}'", "'-'", "'-'", "'\\t'", "'\\r'",
+      "' '", "' '", "' '", "' '", "' '", "' '", "' '", "' '", "'\\u{2028}'",
+      "'\\u{2029}'", "' '", "' '", "' '", "' '", "'　'", "'　'", "'\\u{feff}'",
+      "'\\u{feff}'",
+    ],
+  ])
+}
