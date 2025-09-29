@@ -756,9 +756,9 @@ test "parse backreference" {
 test "parse character class range with escaped end character" {
   // Test unicode escapes in ranges
   let regex = parse("[a-\\u007A]").ast // Should parse as range from 'a' to 'z' (U+007A)
-  @json.inspect(regex, content=(["CharClass neg=false",["'a'","'z'"]]))
+  @json.inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
   let regex = parse("[a-\\u{7A}]").ast // Should parse as range from 'a' to 'z' (U+007A)
-  @json.inspect(regex, content=(["CharClass neg=false",["'a'","'z'"]]))
+  @json.inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
 
   // Test with literal backslash in range - backslash (0x5C) < 'z' (0x7A)
   let regex = parse("[\\\\-z]").ast // Should parse as range from '\' to 'z'
@@ -782,7 +782,7 @@ test "parse character class range with escaped end character" {
 
   // Test escaped characters on both sides of range - newline (0x0A) to carriage return (0x0D)
   let regex = parse("[\\n-\\r]").ast
-  @json.inspect(regex, content=(["CharClass neg=false",["'\\n'","'\\r'"]]))
+  @json.inspect(regex, content=["CharClass neg=false", ["'\\n'", "'\\r'"]])
 
   // Test range with special escape : \s-\s should be treated as literal characters '-'
   let regex = parse("[\\s-\\s]").ast

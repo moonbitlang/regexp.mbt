@@ -4,7 +4,13 @@
 
 ### Changed
 
-- The unicode data are now stored as `String` to improve the native build time. (#6)
+- The unicode data are now stored as `String` to improve the native build time.
+  (#6)
+
+### Fixed
+
+- The escaped chars in char class ranges were incorrectly handled as single
+  characters. (#7)
 
 ## [0.3.1]
 
