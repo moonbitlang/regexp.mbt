@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.2]
+
 ### Changed
 
 - The unicode data are now stored as `String` to improve the native build time.
