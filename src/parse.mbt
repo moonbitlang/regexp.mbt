@@ -69,7 +69,7 @@
 
 ///|
 priv struct Parser {
-  mut input : @string.View
+  mut input : StringView
   mut flags : Flags
   mut captures : Int
   current_capture_scope : Set[Int]
@@ -115,7 +115,7 @@ pub enum Err {
 ///
 /// Contains error information and related string view context
 pub suberror RegexpError {
-  RegexpError(err~ : Err, source_fragment~ : @string.View)
+  RegexpError(err~ : Err, source_fragment~ : StringView)
 } derive(Show)
 
 ///|
@@ -125,7 +125,7 @@ pub suberror RegexpError {
 /// - `input`: String view of the regular expression to parse
 ///
 /// Returns: New parser instance
-fn Parser::new(input : @string.View, flags : Flags) -> Parser {
+fn Parser::new(input : StringView, flags : Flags) -> Parser {
   Parser::{
     input,
     flags,
@@ -148,7 +148,7 @@ fn Parser::new(input : @string.View, flags : Flags) -> Parser {
 ///
 /// Throws: Error_ when parsing fails
 fn parse(
-  regex : @string.View,
+  regex : StringView,
   flags? : Flags = Flags::default(),
 ) -> ParseResult raise RegexpError {
   let parser = Parser::new(regex, flags)

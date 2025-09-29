@@ -55,7 +55,7 @@ priv struct Thread {
 /// @param thread the current thread to add  
 /// @param clist the list of threads to be processed in the next iteration  
 fn add_thread(
-  content : @string.View,
+  content : StringView,
   instructions : Array[Instruction],
   inst_gen : Array[Int],
   thread : Thread,
@@ -147,7 +147,7 @@ fn add_thread(
 /// @return an array of integers representing the start and end indices of the matches, or an empty array if no match is found
 fn vm(
   instructions : Array[Instruction],
-  input : @string.View,
+  input : StringView,
   captures : Int,
   allow_exponentiaion? : Bool = false,
 ) -> Array[Int] {
