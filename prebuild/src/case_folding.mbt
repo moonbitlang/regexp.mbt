@@ -41,11 +41,11 @@ async fn get_case_folding_mapping(
       mappings.push(
         (
           result.get(1).unwrap()
-          |> @string.View::to_string
+          |> StringView::to_string
           |> @strconv.parse_int(base=16)
           |> Int::unsafe_to_char(),
           result.get(2).unwrap()
-          |> @string.View::to_string
+          |> StringView::to_string
           |> @strconv.parse_int(base=16)
           |> Int::unsafe_to_char(),
         ),
