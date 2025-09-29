@@ -592,6 +592,7 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
         }
         self.input = rest
         match ch {
+          // If they are themselves character classes, expand them
           'd' => {
             ranges_is_digit.each(chars.push(_)) // digit character class
             continue
@@ -616,38 +617,6 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
             ranges_is_not_white_space_or_line_terminator.each(chars.push(_)) // non-whitespace character class
             continue
           }
-          // ControlEscape
-          't' => {
-            ['\t', '\t'].each(chars.push(_))
-            continue
-          }
-          'n' => {
-            ['\n', '\n'].each(chars.push(_))
-            continue
-          }
-          'v' => {
-            ['\u{b}', '\u{b}'].each(chars.push(_))
-            continue
-          }
-          'f' => {
-            ['\u{c}', '\u{c}'].each(chars.push(_))
-            continue
-          }
-          'r' => {
-            ['\r', '\r'].each(chars.push(_))
-            continue
-          }
-          // backspace
-          'b' => {
-            ['\u{8}', '\u{8}'].each(chars.push(_))
-            continue
-          }
-          'u' => {
-            // Unicode escape \u{aaaa} or \uaaaa  
-            let unicode_char = self.parse_unicode_escape()
-            [unicode_char, unicode_char].each(chars.push(_))
-            continue
-          }
           'p' | 'P' as flag => {
             // Unicode property \p{property_name}
             let property_name = self.parse_unicode_property()
@@ -660,6 +629,18 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
             }
             continue
           }
+          // ControlEscape
+          't' => '\t'
+          'n' => '\n'
+          'v' => '\u{b}'
+          'f' => '\u{c}'
+          'r' => '\r'
+          // backspace
+          'b' => '\u{8}'
+          'u' =>
+            // Unicode escape \u{aaaa} or \uaaaa  
+            self.parse_unicode_escape()
+
           // reserve c and k
           'c' | 'k' =>
             raise RegexpError(err=InvalidEscape, source_fragment=escape)
@@ -673,7 +654,7 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
     }
 
     // Check for character range (e.g., a-z)
-    if self.input is ['-', .. rest] {
+    if self.input is (['-', .. rest] as range_rest) {
       // Look ahead after '-', ensure it's not ']' and there are more characters
       let input_copy = self.input
       self.input = rest // consume '-'
@@ -688,7 +669,29 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
               )
             }
             self.input = rest
-            ch
+            // Handle escaped characters properly - the same logic as in the main parsing
+            match ch {
+              // ControlEscape
+              't' => '\t'
+              'n' => '\n'
+              'v' => '\u{b}'
+              'f' => '\u{c}'
+              'r' => '\r'
+              'b' => '\u{8}' // backspace
+              'u' =>
+                // Unicode escape \u{aaaa} or \uaaaa
+                self.parse_unicode_escape()
+              // For character classes like \d, \w, \s - these cannot be used in ranges
+              'd' | 'D' | 'w' | 'W' | 's' | 'S' | 'p' | 'P' =>
+                raise RegexpError(
+                  err=InvalidCharClass,
+                  source_fragment=range_rest,
+                )
+              // reserve c and k
+              'c' | 'k' =>
+                raise RegexpError(err=InvalidEscape, source_fragment=self.input)
+              _ => ch
+            }
           }
           _ => {
             self.input = rest
