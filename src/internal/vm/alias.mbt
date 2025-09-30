@@ -13,7 +13,4 @@
 // limitations under the License.
 
 ///|
-typealias @vm.(Instruction, Predicate)
-
-///|
-fnalias @unicode.(simplify_char_ranges, compute_char_class_complement)
+fnalias @unicode.(char_in_ranges, is_word_char_at)
