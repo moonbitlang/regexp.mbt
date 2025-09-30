@@ -2,15 +2,35 @@
 package "moonbitlang/regexp/internal/unicode"
 
 // Values
-const MAX_FOLD : Char = '𞥃'
+fn case_insensitive_char_class(Array[Char]) -> Array[Char]
 
-const MIN_FOLD : Char = 'A'
+fn char_in_ranges(Char, Array[Char]) -> Bool
 
-let case_folding : Map[Char, Char]
+fn compute_char_class_complement(Array[Char]) -> Array[Char]
 
 let general_category_property_value_alises : Map[String, String]
 
 let general_category_ranges : Map[String, Array[Char]]
+
+fn is_word_char_at(StringView, Int) -> Bool
+
+let ranges_any : Array[Char]
+
+let ranges_any_not_new_line : Array[Char]
+
+let ranges_is_digit : Array[Char]
+
+let ranges_is_not_digit : Array[Char]
+
+let ranges_is_not_white_space_or_line_terminator : Array[Char]
+
+let ranges_is_not_word : Array[Char]
+
+let ranges_is_white_space_or_line_terminator : Array[Char]
+
+let ranges_is_word : Array[Char]
+
+fn simplify_char_ranges(Array[Char]) -> Array[Char]
 
 // Errors
 

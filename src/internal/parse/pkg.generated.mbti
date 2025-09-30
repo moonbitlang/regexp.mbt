@@ -43,6 +43,7 @@ pub(all) struct ParseResult {
   capture_map : Map[String, Int]
   has_backreference : Bool
 }
+impl ToJson for ParseResult
 
 // Type aliases
 

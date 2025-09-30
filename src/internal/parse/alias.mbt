@@ -16,28 +16,28 @@
 typealias @ast.Ast
 
 ///|
-fnalias @vm.(case_insensitive_char_class, compute_char_class_complement)
+fnalias @unicode.(case_insensitive_char_class, compute_char_class_complement)
 
 ///|
-let ranges_is_digit = @vm.ranges_is_digit
+let ranges_is_digit = @unicode.ranges_is_digit
 
 ///|
-let ranges_is_not_digit = @vm.ranges_is_not_digit
+let ranges_is_not_digit = @unicode.ranges_is_not_digit
 
 ///|
-let ranges_is_word = @vm.ranges_is_word
+let ranges_is_word = @unicode.ranges_is_word
 
 ///|
-let ranges_is_not_word = @vm.ranges_is_not_word
+let ranges_is_not_word = @unicode.ranges_is_not_word
 
 ///|
-let ranges_is_white_space_or_line_terminator = @vm.ranges_is_white_space_or_line_terminator
+let ranges_is_white_space_or_line_terminator = @unicode.ranges_is_white_space_or_line_terminator
 
 ///|
-let ranges_is_not_white_space_or_line_terminator = @vm.ranges_is_not_white_space_or_line_terminator
+let ranges_is_not_white_space_or_line_terminator = @unicode.ranges_is_not_white_space_or_line_terminator
 
 ///|
-let ranges_any = @vm.ranges_any
+let ranges_any = @unicode.ranges_any
 
 ///|
-let ranges_any_not_new_line = @vm.ranges_any_not_new_line
+let ranges_any_not_new_line = @unicode.ranges_any_not_new_line

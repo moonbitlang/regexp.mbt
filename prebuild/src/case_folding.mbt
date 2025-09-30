@@ -123,7 +123,7 @@ async fn handle_case_folding(defer_ : (() -> Unit) -> Unit) -> Unit raise {
     (
       #|
       #|///|
-      #|pub let case_folding : Map[Char, Char] = {
+      #|let case_folding : Map[Char, Char] = {
       #|  let map = Map::new(capacity=3000)
       #|  loop DATA[:] {
       #|    [ch1, ch2, .. rest ] => {
@@ -137,10 +137,10 @@ async fn handle_case_folding(defer_ : (() -> Unit) -> Unit) -> Unit raise {
       #|}
       #|
       #|///|
-      $|pub const MIN_FOLD : Char = '\\u{\{min.to_int().to_string(radix=16)}}'
+      $|const MIN_FOLD : Char = '\\u{\{min.to_int().to_string(radix=16)}}'
       $|
       $|///|
-      $|pub const MAX_FOLD : Char = '\\u{\{max.to_int().to_string(radix=16)}}'
+      $|const MAX_FOLD : Char = '\\u{\{max.to_int().to_string(radix=16)}}'
     ),
     stream=output_stream,
   )

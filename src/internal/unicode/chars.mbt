@@ -12,19 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-////////////////////
-/// UNICODE DATA ///
-////////////////////
-
-///|
-const MIN_FOLD : Char = @unicode.MIN_FOLD
-
-///|
-const MAX_FOLD : Char = @unicode.MAX_FOLD
-
-///|
-let case_folding = @unicode.case_folding
-
 //////////////
 /// RANGES ///
 //////////////
@@ -84,7 +71,7 @@ test "ordered range" {
 
 ///|
 /// TODO: consider unicode mode
-fn is_word_char_at(input : StringView, sp : Int) -> Bool {
+pub fn is_word_char_at(input : StringView, sp : Int) -> Bool {
   if sp == -1 || sp == input.length() {
     return false
   }
@@ -111,7 +98,7 @@ test "is word char" {
 /// The chars array contains pairs of characters [start1, end1, start2, end2, ...] 
 /// representing ranges [start1-end1], [start2-end2], etc.
 /// Assumes the ranges are sorted and non-overlapping.
-fn char_in_ranges(ch : Char, chars : Array[Char]) -> Bool {
+pub fn char_in_ranges(ch : Char, chars : Array[Char]) -> Bool {
   let mut left = 0
   let mut right = chars.length() / 2 - 1
   while left <= right {
