@@ -78,7 +78,7 @@ priv struct Parser {
 }
 
 ///|
-priv struct ParseResult {
+pub(all) struct ParseResult {
   ast : Ast
   captures : Int
   capture_map : Map[String, Int]
@@ -86,7 +86,7 @@ priv struct ParseResult {
 }
 
 ///|
-priv struct Flags {
+pub(all) struct Flags {
   multiline : Bool
   singleline : Bool
   ignore_case : Bool
@@ -147,7 +147,7 @@ fn Parser::new(input : StringView, flags : Flags) -> Parser {
 /// Returns: Parsed Regex AST
 ///
 /// Throws: Error_ when parsing fails
-fn parse(
+pub fn parse(
   regex : StringView,
   flags? : Flags = Flags::default(),
 ) -> ParseResult raise RegexpError {

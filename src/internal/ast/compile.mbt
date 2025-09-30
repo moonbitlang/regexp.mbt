@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-priv enum Ast {
+pub(all) enum Ast {
   Empty
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(Array[Char], neg~ : Bool)
@@ -28,14 +28,6 @@ priv enum Ast {
   Alternate(Ast, Ast)
   Backreference(Int)
 } derive(Show)
-
-///|
-struct Regexp {
-  instructions : Array[Instruction]
-  map : Map[String, Int]
-  capture : Int
-  allow_exponentiaion : Bool
-}
 
 ///|
 /// @returns next capture
@@ -169,9 +161,13 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
 }
 
 ///|
-fn Ast::compile(self : Ast) -> Array[Instruction] {
+pub fn Ast::compile(self : Ast) -> Array[Instruction] {
   // for leftmost matching
-  let instructions = [Split(3, 1), Char(['\u{0}', '\u{10FFFF}']), Jump(0)]
+  let instructions : Array[Instruction] = [
+    Split(3, 1),
+    Char(['\u{0}', '\u{10FFFF}']),
+    Jump(0),
+  ]
   // start matching
   instructions.push(Save(0))
   self.compile_aux(instructions)
@@ -181,12 +177,23 @@ fn Ast::compile(self : Ast) -> Array[Instruction] {
 }
 
 ///|
-/// Compiles a regex into a matcher.
-fn ParseResult::compile(self : Self) -> Regexp {
-  {
-    instructions: self.ast.compile(),
-    map: self.capture_map,
-    capture: self.captures,
-    allow_exponentiaion: self.has_backreference,
+pub impl ToJson for Ast with to_json(self) {
+  match self {
+    Empty => "Empty"
+    CharClass(chars, neg~) => ["CharClass neg=\{neg}", chars.map(c => repr(c))]
+    Assertion(pred) => "Assertion \{pred}"
+    Capture(inner, index~) => ["Capture \{index}", inner]
+    ZeroOrMore(inner, greedy~) => ["ZeroOrMore greedy=\{greedy}", inner]
+    OneOrMore(inner, greedy~) => ["OneOrMore greedy=\{greedy}", inner]
+    ZeroOrOne(inner, greedy~) => ["ZeroOrOne greedy=\{greedy}", inner]
+    Repeat(greedy~, min~, max~, inner) =>
+      if max is Some(max) {
+        ["Repeat {\{min}, \{max}} greedy=\{greedy}", inner]
+      } else {
+        ["Repeat {\{min},} greedy=\{greedy}", inner]
+      }
+    Concat(regexs) => [..regexs.map(_.to_json())]
+    Alternate(left, right) => ["Alternate", left, right]
+    Backreference(i) => ["Backreference", i]
   }
 }

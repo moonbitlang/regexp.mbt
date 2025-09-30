@@ -13,6 +13,25 @@
 // limitations under the License.
 
 ///|
+struct Regexp {
+  instructions : Array[Instruction]
+  map : Map[String, Int]
+  capture : Int
+  allow_exponentiaion : Bool
+}
+
+///|
+/// Compiles a regex into a matcher.
+fn ParseResult::compile(self : Self) -> Regexp {
+  {
+    instructions: self.ast.compile(),
+    map: self.capture_map,
+    capture: self.captures,
+    allow_exponentiaion: self.has_backreference,
+  }
+}
+
+///|
 /// Compiles a regular expression into an execution engine.
 /// 
 /// Parses and compiles a regular expression string into a reusable execution engine.

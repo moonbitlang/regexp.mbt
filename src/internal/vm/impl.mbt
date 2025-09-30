@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-priv enum Instruction {
+pub(all) enum Instruction {
   Matched
   Save(Int)
   Char(Array[Char])
@@ -25,7 +25,20 @@ priv enum Instruction {
 }
 
 ///|
-priv enum Predicate {
+pub impl ToJson for Instruction with to_json(self) {
+  match self {
+    Matched => "Matched"
+    Save(i) => ["Save", i]
+    Char(chars) => ["Chars", chars.map(c => repr(c))]
+    Jump(i) => ["Jump", i]
+    Split(i1, i2) => ["Split", i1, i2]
+    Assertion(pred) => ["Assertion", pred]
+    Backreference(i) => ["Backreference", i]
+  }
+}
+
+///|
+pub(all) enum Predicate {
   BeginText
   EndText
   BeginLine
@@ -145,7 +158,7 @@ fn add_thread(
 /// @param captures the number of capture groups
 /// @param allow_exponentiaion whether to allow exponential backtracking (default: false)
 /// @return an array of integers representing the start and end indices of the matches, or an empty array if no match is found
-fn vm(
+pub fn vm(
   instructions : Array[Instruction],
   input : StringView,
   captures : Int,
