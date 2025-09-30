@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The internal structure is reorganized. (#8)
+
 ## [0.3.2]
 
 ### Changed
