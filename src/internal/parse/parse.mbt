@@ -83,7 +83,7 @@ pub(all) struct ParseResult {
   captures : Int
   capture_map : Map[String, Int]
   has_backreference : Bool
-}
+} derive(ToJson)
 
 ///|
 pub(all) struct Flags {
