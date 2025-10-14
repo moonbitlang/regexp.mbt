@@ -16,20 +16,18 @@
 const Unassigned = "Cn"
 
 ///|
-async fn get_general_category_code_points(
-  defer_ : (() -> Unit) -> Unit,
-) -> Map[String, Array[Char]] {
+async fn get_general_category_code_points() -> Map[String, Array[Char]] {
   // Get the Unicode data from Unicode.org for general categories
   let request = @http.request(
     UNICODE_ADDRESS,
     path=UNICODE_DATABASE_PATH + "/UnicodeData.txt",
   )
   let data = @http.fetch(request)
-  defer_(() => data.drop())
+  defer data.drop()
   guard data.consume() is Ok(body)
-  defer_(() => body.drop())
+  defer body.drop()
   guard body.stream() is Ok(input_stream)
-  defer_(() => input_stream.drop())
+  defer input_stream.drop()
 
   // Map to store the character ranges for each category
   let category_ranges : Map[String, Array[Char]] = {
@@ -167,7 +165,7 @@ async fn get_general_category_code_points(
 }
 
 ///|
-async fn handle_general_category(defer_ : (() -> Unit) -> Unit) -> Unit {
+async fn handle_general_category() -> Unit {
   let category_ranges = @promise.spawn(get_general_category_code_points).await()
 
   // Prepare file. Assume preopen is where the file needs to be written
@@ -182,9 +180,9 @@ async fn handle_general_category(defer_ : (() -> Unit) -> Unit) -> Unit {
       @fs.DescriptorFlags::default().set(WRITE),
     )
     .unwrap_or_error()
-  defer_(() => file.drop())
+  defer file.drop()
   let output_stream = file.write_via_stream(0).unwrap_or_error()
-  defer_(() => output_stream.drop())
+  defer output_stream.drop()
 
   // Start writing template
   @io.println(

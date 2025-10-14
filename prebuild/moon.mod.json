@@ -2,8 +2,8 @@
   "name": "moonbit-community/cli-template",
   "deps": {
     "peter-jerry-ye/wasi-imports": "0.1.3",
-    "peter-jerry-ye/io": "0.3.3",
-    "peter-jerry-ye/async": "0.1.7",
+    "peter-jerry-ye/io": "0.3.4",
+    "peter-jerry-ye/async": "0.2.0",
     "moonbitlang/regexp": {
       "path": ".."
     }

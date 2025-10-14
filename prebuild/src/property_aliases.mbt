@@ -16,20 +16,18 @@
 /// Handle the property value aliases
 /// 
 /// Reference : https://www.unicode.org/reports/tr44/#General_Category_Values
-async fn get_property_value_alises(
-  defer_ : (() -> Unit) -> Unit
-) -> Array[(String, String)] raise {
+async fn get_property_value_alises() -> Array[(String, String)] {
   // Get the case folding data from Unicode.org
   let request = @http.request(
     UNICODE_ADDRESS,
     path=UNICODE_DATABASE_PATH + "/PropertyValueAliases.txt",
   )
   let data = @http.fetch(request)
-  defer_(() => data.drop())
+  defer data.drop()
   guard data.consume() is Ok(body)
-  defer_(() => body.drop())
+  defer body.drop()
   guard body.stream() is Ok(input_stream)
-  defer_(() => input_stream.drop())
+  defer input_stream.drop()
 
   // We only handle general category
   let regexp = @regexp.compile(
@@ -61,9 +59,7 @@ async fn get_property_value_alises(
 /// Handle the property value aliases
 /// 
 /// Reference : https://www.unicode.org/reports/tr44/#General_Category_Values
-async fn handle_property_value_aliases(
-  defer_ : (() -> Unit) -> Unit
-) -> Unit raise {
+async fn handle_property_value_aliases() -> Unit {
   let mappings = @promise.spawn(get_property_value_alises).await()
   // Print the mappings for debugging
   // Prepare file. Assume preopen is where the file needs to be written
@@ -78,9 +74,9 @@ async fn handle_property_value_aliases(
       @fs.DescriptorFlags::default().set(@fs.DescriptorFlagsFlag::WRITE),
     )
     .unwrap_or_error()
-  defer_(() => file.drop())
+  defer file.drop()
   let output_stream = file.write_via_stream(0).unwrap_or_error()
-  defer_(() => output_stream.drop())
+  defer output_stream.drop()
 
   // Start writing template
   @io.println(

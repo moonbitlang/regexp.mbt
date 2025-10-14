@@ -13,20 +13,18 @@
 // limitations under the License.
 
 ///|
-async fn get_case_folding_mapping(
-  defer_ : (() -> Unit) -> Unit
-) -> Array[(Char, Char)] raise {
+async fn get_case_folding_mapping() -> Array[(Char, Char)] {
   // Get the case folding data from Unicode.org
   let request = @http.request(
     UNICODE_ADDRESS,
     path=UNICODE_DATABASE_PATH + "/CaseFolding.txt",
   )
   let data = @http.fetch(request)
-  defer_(() => data.drop())
+  defer data.drop()
   guard data.consume() is Ok(body)
-  defer_(() => body.drop())
+  defer body.drop()
   guard body.stream() is Ok(input_stream)
-  defer_(() => input_stream.drop())
+  defer input_stream.drop()
 
   // We only do simple case folding
   let regexp = @regexp.compile("^([0-9A-F]+);\\s+[CS];\\s+([0-9A-F]+);")
@@ -56,7 +54,7 @@ async fn get_case_folding_mapping(
 }
 
 ///|
-async fn handle_case_folding(defer_ : (() -> Unit) -> Unit) -> Unit raise {
+async fn handle_case_folding() -> Unit {
   let mappings = @promise.spawn(get_case_folding_mapping).await()
 
   // Compute reverse mapping
@@ -86,9 +84,9 @@ async fn handle_case_folding(defer_ : (() -> Unit) -> Unit) -> Unit raise {
       @fs.DescriptorFlags::default().set(@fs.DescriptorFlagsFlag::WRITE),
     )
     .unwrap_or_error()
-  defer_(() => file.drop())
+  defer file.drop()
   let output_stream = file.write_via_stream(0).unwrap_or_error()
-  defer_(() => output_stream.drop())
+  defer output_stream.drop()
 
   // Start writing template
   @io.print(

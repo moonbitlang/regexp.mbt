@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-///| Run the program.
+///|
+/// Run the program.
 pub fn run() -> Result[Unit, Unit] {
   let mut result = Ok(())
-  @promise.spawn(async fn(_defer) raise {
+  @promise.spawn(async fn() {
     top() catch {
       error => {
         result = Err(())
@@ -36,7 +37,7 @@ const UNICODE_DATABASE_PATH = "/Public/16.0.0/ucd"
 
 ///|
 /// User should change this function to do what they want
-async fn top() -> Unit raise {
+async fn top() -> Unit {
   @promise.spawn(handle_case_folding).await()
   @promise.spawn(handle_property_value_aliases).await()
   @promise.spawn(handle_general_category).await()
