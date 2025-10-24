@@ -154,6 +154,21 @@ test "unicode escape sequences" {
       #|RegexpError(err=InvalidEscape, source_fragment="110000}")
     ),
   )
+  guard (try? @regexp.compile("\\u{dfff}")) is Err(error)
+  error
+  |> inspect(
+    content=(
+      #|RegexpError(err=InvalidEscape, source_fragment="dfff}")
+
+    ),
+  )
+  guard (try? @regexp.compile("\\u{")) is Err(error)
+  error
+  |> inspect(
+    content=(
+      #|RegexpError(err=InvalidEscape, source_fragment="")
+    ),
+  )
 }
 
 ///|

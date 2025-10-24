@@ -187,8 +187,12 @@ const Zp : String =
   $|\u{2029}\u{2029}
 
 ///|
-let cs : Array[Char] = [(0xd800).unsafe_to_char(), (0xdfff).unsafe_to_char()]
+/// Note, since 'Cs' (Surrogate) category contains code points that are
+/// not valid characters and will not be visited by the regexp library,
+/// we discard them here.
+///
+/// They should never be used
+let cs : Array[Char] = []
 
 ///|
-const Co : String =
-  $|\u{e000}\u{f8ff}\u{f0000}\u{ffffd}\u{100000}\u{10fffd}
+const Co: String = $|\u{e000}\u{f8ff}\u{f0000}\u{ffffd}\u{100000}\u{10fffd}
