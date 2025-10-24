@@ -966,14 +966,17 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise RegexpError {
       }
 
       // Check for closing brace
-      guard self.input is ['}', .. rest]
+      guard self.input is ['}', .. rest] else {
+        raise RegexpError(err=InvalidEscape, source_fragment=num)
+      }
       self.input = rest // consume '}'
 
       // Validate Unicode range (0x0 to 0x10FFFF)
-      if codepoint < 0 || codepoint > 0x10FFFF {
+      // However, we reject surrogate codepoints (0xD800 to 0xDFFF)
+      guard codepoint.to_char() is Some(ch) else {
         raise RegexpError(err=InvalidEscape, source_fragment=num)
       }
-      codepoint.unsafe_to_char()
+      ch
     }
     _ => {
       // Parse exactly 4 hex digits for \uaaaa format
@@ -995,7 +998,12 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise RegexpError {
           _ => raise RegexpError(err=InvalidEscape, source_fragment=self.input)
         }
       }
-      codepoint.unsafe_to_char()
+      // Validate Unicode range (0x0 to 0x10FFFF)
+      // However, we reject surrogate codepoints (0xD800 to 0xDFFF)
+      guard codepoint.to_char() is Some(ch) else {
+        raise RegexpError(err=InvalidEscape, source_fragment=self.input)
+      }
+      ch
     }
   }
 }

@@ -180,12 +180,12 @@ pub fn vm(
     if clist.is_empty() {
       break
     }
-    let actual_char = if sp == input.length() {
-      (-1).unsafe_to_char()
+    let actual_char = input.get_char(sp)
+    let next_sp = if actual_char is Some(ch) && ch.to_int() > 0xFFFF {
+      sp + 2
     } else {
-      input.get_char(sp).unwrap()
+      sp + 1
     }
-    let next_sp = if actual_char.to_int() > 0xFFFF { sp + 2 } else { sp + 1 }
     for thread in clist {
       let { pc, captures, sp: thread_sp } = thread
       if thread_sp > sp {
@@ -202,7 +202,7 @@ pub fn vm(
       // should have been handled in the add_thread
       match instructions[pc] {
         Char(chars) =>
-          if char_in_ranges(actual_char, chars) {
+          if actual_char is Some(ch) && char_in_ranges(ch, chars) {
             add_thread(
               input,
               instructions,

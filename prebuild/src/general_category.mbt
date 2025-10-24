@@ -243,19 +243,12 @@ async fn handle_general_category() -> Unit {
         (
           #|
           #|///|
-          $|let \{cat.to_lower()}: Array[Char] = [
-        ),
-        stream=output_stream,
-      )
-      for ch in ranges {
-        @io.print(
-          "(0x\{ch.to_int().to_string(radix=16)}).unsafe_to_char(), ",
-          stream=output_stream,
-        )
-      }
-      @io.println(
-        (
-          #|]
+          #|/// Note, since 'Cs' (Surrogate) category contains code points that are
+          #|/// not valid characters and will not be visited by the regexp library,
+          #|/// we discard them here.
+          #|///
+          #|/// They should never be used
+          $|let \{cat.to_lower()}: Array[Char] = []
         ),
         stream=output_stream,
       )
