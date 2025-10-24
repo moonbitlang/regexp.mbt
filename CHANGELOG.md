@@ -5,6 +5,7 @@
 ### Changed
 
 - The internal structure is reorganized. (#8)
+- The escaped surrogates are no longer allowed. (#9)
 
 ## [0.3.2]
 
