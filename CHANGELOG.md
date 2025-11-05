@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.3.4]
+
+### Fixed
+
+- #8 made the RegexpError abstract to the users. (#10)
+
 ## [0.3.3]
 
 ### Changed
