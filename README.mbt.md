@@ -1,10 +1,3 @@
----
-moonbit:
-  deps:
-    moonbitlang/regexp:
-      path: .
----
-
 # 🔍 regexp.mbt
 
 > ⚠️ **API STABILITY NOTICE**\

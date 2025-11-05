@@ -1,5 +1,5 @@
 run target=("debug"): (build target)
-    wasmtime -S http=y --dir ../src/internal/unicode target/cli.wasm
+    wasmtime -S http=y --dir ../internal/unicode target/cli.wasm
     moon fmt -C ..
 
 build target=("debug"):
