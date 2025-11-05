@@ -6,6 +6,5 @@
   "license": "Apache-2.0",
   "keywords": ["regexp"],
   "description": "A regular expression engine for MoonBit based on VM execution designed for predictable time complexity",
-  "source": "src",
   "exclude": ["prebuild"]
 }
