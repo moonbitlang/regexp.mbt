@@ -6,6 +6,7 @@
 
 - The internal structure is reorganized. (#8)
 - The escaped surrogates are no longer allowed. (#9)
+- Updated syntax to v0.6.30+07d9d2445. (#9)
 
 ## [0.3.2]
 

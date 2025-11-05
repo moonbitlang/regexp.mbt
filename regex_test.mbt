@@ -159,7 +159,6 @@ test "unicode escape sequences" {
   |> inspect(
     content=(
       #|RegexpError(err=InvalidEscape, source_fragment="dfff}")
-
     ),
   )
   guard (try? @regexp.compile("\\u{")) is Err(error)

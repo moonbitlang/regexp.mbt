@@ -18,6 +18,7 @@ moonbit:
 ## ⚡ Quick Start
 
 ```moonbit
+///|
 test {
   // Compile once, use everywhere
   let regexp = @regexp.compile("a(bc|de)f")
@@ -30,10 +31,7 @@ test {
   )
 
   // Write a simple split with regexp
-  fn split(
-    regexp : @regexp.Regexp,
-    target : StringView
-  ) -> Array[StringView] {
+  fn split(regexp : @regexp.Regexp, target : StringView) -> Array[StringView] {
     let result = []
     loop target {
       "" => ()
@@ -97,6 +95,7 @@ test {
 Match characters by their Unicode general categories:
 
 ```moonbit
+///|
 test "unicode properties" {
   // Matching gc=L
   let regex = @regexp.compile("\\p{Letter}+")
@@ -128,6 +127,7 @@ test "unicode properties" {
 > complexity in worst cases!
 
 ```moonbit
+///|
 test "backreferences" {
   // Palindrome detection (simple)
   let palindrome = @regexp.compile("^(.)(.)\\2\\1")
@@ -153,6 +153,7 @@ test "backreferences" {
 ## 💡 Real Examples
 
 ```moonbit
+///|
 test "character classes" {
   // Email validation (simplified)
   let email = @regexp.compile(
@@ -192,7 +193,6 @@ test "character classes" {
     date_result.groups(),
     content=(
       #|{"year": "2024", "month": "03", "day": "15"}
-
     ),
   )
 }
@@ -201,11 +201,14 @@ test "character classes" {
 ## 🚨 Error Handling
 
 ```moonbit
+///|
 test {
   try {
-    let _ = @regexp.compile("a(b")  // Oops! Missing )
+    let _ = @regexp.compile("a(b")
+    // Oops! Missing )
   } catch {
-    RegexpError(err=MissingParenthesis, source_fragment=_) => println("Fix your regex! 🔧")
+    RegexpError(err=MissingParenthesis, source_fragment=_) =>
+      println("Fix your regex! 🔧")
     _ => ()
   }
 }

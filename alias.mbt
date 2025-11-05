@@ -13,16 +13,16 @@
 // limitations under the License.
 
 ///|
-pub typealias @parse.RegexpError
+pub using @parse {type RegexpError}
 
 ///|
-typealias @parse.ParseResult
+using @parse {type ParseResult}
 
 ///|
-typealias @vm.Instruction
+using @vm {type Instruction}
 
 ///|
-fnalias @parse.parse
+using @parse {parse}
 
 ///|
-fnalias @vm.vm
+using @vm {vm}
