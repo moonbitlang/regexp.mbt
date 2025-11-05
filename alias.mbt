@@ -13,9 +13,6 @@
 // limitations under the License.
 
 ///|
-pub using @parse {type RegexpError}
-
-///|
 using @parse {type ParseResult}
 
 ///|

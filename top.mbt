@@ -21,6 +21,32 @@ struct Regexp {
 }
 
 ///|
+/// Regular expression parsing error types
+///
+/// Defines various error conditions that may be encountered during parsing
+pub enum Err {
+  InternalError // Internal error
+  InvalidCharClass // Invalid character class
+  InvalidEscape // Invalid escape sequence
+  InvalidNamedCapture // Invalid named capture group
+  InvalidRepeatOp // Invalid repeat operator
+  InvalidRepeatSize // Invalid repeat count
+  MissingBracket // Missing right bracket ]
+  MissingParenthesis // Missing right parenthesis )
+  MissingRepeatArgument // Missing repeat argument
+  TrailingBackslash // Trailing backslash
+  UnexpectedParenthesis // Unexpected parenthesis
+} derive(Show)
+
+///|
+/// Parsing error exception type
+///
+/// Contains error information and related string view context
+pub suberror RegexpError {
+  RegexpError(err~ : Err, source_fragment~ : StringView)
+} derive(Show)
+
+///|
 /// Compiles a regex into a matcher.
 fn ParseResult::compile(self : Self) -> Regexp {
   {
@@ -55,13 +81,28 @@ pub fn compile(
   regexp : StringView,
   flags? : StringView = "",
 ) -> Regexp raise RegexpError {
-  regexp
-  |> parse(flags={
+  parse(regexp, flags={
     multiline: flags.contains("m"),
     singleline: flags.contains("s"),
     ignore_case: flags.contains("i"),
-  })
-  |> ParseResult::compile()
+  }).compile() catch {
+    @parse.RegexpError(err~, source_fragment~) => {
+      let err = match err {
+        @parse.Err::InternalError => Err::InternalError
+        @parse.Err::InvalidCharClass => Err::InvalidCharClass
+        @parse.Err::InvalidEscape => Err::InvalidEscape
+        @parse.Err::InvalidNamedCapture => Err::InvalidNamedCapture
+        @parse.Err::InvalidRepeatOp => Err::InvalidRepeatOp
+        @parse.Err::InvalidRepeatSize => Err::InvalidRepeatSize
+        @parse.Err::MissingBracket => Err::MissingBracket
+        @parse.Err::MissingParenthesis => Err::MissingParenthesis
+        @parse.Err::MissingRepeatArgument => Err::MissingRepeatArgument
+        @parse.Err::TrailingBackslash => Err::TrailingBackslash
+        @parse.Err::UnexpectedParenthesis => Err::UnexpectedParenthesis
+      }
+      raise RegexpError(err~, source_fragment~)
+    }
+  }
 }
 
 ///|
