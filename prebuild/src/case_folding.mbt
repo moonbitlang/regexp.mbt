@@ -27,7 +27,12 @@ async fn get_case_folding_mapping() -> Array[(Char, Char)] {
   defer input_stream.drop()
 
   // We only do simple case folding
-  let regexp = @regexp.compile("^([0-9A-F]+);\\s+[CS];\\s+([0-9A-F]+);")
+  let regexp = @regexp.compile("^([0-9A-F]+);\\s+[CS];\\s+([0-9A-F]+);") catch {
+    @regexp.RegexpError(err~, source_fragment~) =>
+      fail(
+        "Failed to compile regexp in case folding: \{err} at \{source_fragment}",
+      )
+  }
   let mappings = []
   while true {
     let next = @io.read_line(stream=input_stream)
