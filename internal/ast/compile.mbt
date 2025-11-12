@@ -16,7 +16,7 @@
 pub(all) enum Ast {
   Empty
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
-  CharClass(Array[Char], neg~ : Bool)
+  CharClass(ArrayView[Char], neg~ : Bool)
   Assertion(Predicate)
   Capture(Ast, index~ : Int)
   ZeroOrMore(Ast, greedy~ : Bool)

@@ -16,7 +16,7 @@
 pub(all) enum Instruction {
   Matched
   Save(Int)
-  Char(Array[Char])
+  Char(ArrayView[Char])
   Jump(Int)
   Split(Int, Int)
   /// Zero-width assertions
