@@ -98,7 +98,7 @@ test "is word char" {
 /// The chars array contains pairs of characters [start1, end1, start2, end2, ...] 
 /// representing ranges [start1-end1], [start2-end2], etc.
 /// Assumes the ranges are sorted and non-overlapping.
-pub fn char_in_ranges(ch : Char, chars : Array[Char]) -> Bool {
+pub fn char_in_ranges(ch : Char, chars : ArrayView[Char]) -> Bool {
   let mut left = 0
   let mut right = chars.length() / 2 - 1
   while left <= right {
@@ -123,7 +123,7 @@ pub fn char_in_ranges(ch : Char, chars : Array[Char]) -> Bool {
 /// Output: Simplified array with non-overlapping ranges in sorted order
 /// 
 /// Invariant: The input array must contain an even number of elements, representing pairs of start and end characters.
-pub fn simplify_char_ranges(chars : Array[Char]) -> Array[Char] {
+pub fn simplify_char_ranges(chars : ArrayView[Char]) -> ArrayView[Char] {
   if chars.length() == 0 {
     return []
   }
@@ -184,7 +184,9 @@ test "simplify char ranges" {
 /// Output: Array representing the complement ranges
 /// 
 /// Invariant: The input array must contain an even number of elements, representing pairs of start and end characters.
-pub fn compute_char_class_complement(chars : Array[Char]) -> Array[Char] {
+pub fn compute_char_class_complement(
+  chars : ArrayView[Char],
+) -> ArrayView[Char] {
   // First simplify the input ranges
   let simplified = simplify_char_ranges(chars)
   if simplified.length() == 0 {
@@ -224,12 +226,24 @@ pub fn compute_char_class_complement(chars : Array[Char]) -> Array[Char] {
 
 ///|
 test "compute complement of charclass" {
-  assert_eq(ranges_is_digit, compute_char_class_complement(ranges_is_not_digit))
-  assert_eq(ranges_is_not_digit, compute_char_class_complement(ranges_is_digit))
-  assert_eq(ranges_is_word, compute_char_class_complement(ranges_is_not_word))
-  assert_eq(ranges_is_not_word, compute_char_class_complement(ranges_is_word))
   assert_eq(
-    ranges_is_not_white_space_or_line_terminator,
+    ranges_is_digit[:],
+    compute_char_class_complement(ranges_is_not_digit),
+  )
+  assert_eq(
+    ranges_is_not_digit[:],
+    compute_char_class_complement(ranges_is_digit),
+  )
+  assert_eq(
+    ranges_is_word[:],
+    compute_char_class_complement(ranges_is_not_word),
+  )
+  assert_eq(
+    ranges_is_not_word[:],
+    compute_char_class_complement(ranges_is_word),
+  )
+  assert_eq(
+    ranges_is_not_white_space_or_line_terminator[:],
     compute_char_class_complement(ranges_is_white_space_or_line_terminator),
   )
   inspect(
@@ -239,7 +253,7 @@ test "compute complement of charclass" {
 }
 
 ///|
-pub fn case_insensitive_char_class(chars : Array[Char]) -> Array[Char] {
+pub fn case_insensitive_char_class(chars : ArrayView[Char]) -> ArrayView[Char] {
   // This function should compute the case-insensitive character class
   // based on the provided character ranges.
   // For simplicity, we will just return the input for now.
