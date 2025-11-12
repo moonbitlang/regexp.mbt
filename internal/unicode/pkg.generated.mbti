@@ -2,15 +2,15 @@
 package "moonbitlang/regexp/internal/unicode"
 
 // Values
-fn case_insensitive_char_class(Array[Char]) -> Array[Char]
+fn case_insensitive_char_class(ArrayView[Char]) -> ArrayView[Char]
 
-fn char_in_ranges(Char, Array[Char]) -> Bool
+fn char_in_ranges(Char, ArrayView[Char]) -> Bool
 
-fn compute_char_class_complement(Array[Char]) -> Array[Char]
+fn compute_char_class_complement(ArrayView[Char]) -> ArrayView[Char]
 
 let general_category_property_value_alises : Map[String, String]
 
-let general_category_ranges : Map[String, Array[Char]]
+let general_category_ranges : Map[String, ArrayView[Char]]
 
 fn is_word_char_at(StringView, Int) -> Bool
 
@@ -30,7 +30,7 @@ let ranges_is_white_space_or_line_terminator : Array[Char]
 
 let ranges_is_word : Array[Char]
 
-fn simplify_char_ranges(Array[Char]) -> Array[Char]
+fn simplify_char_ranges(ArrayView[Char]) -> ArrayView[Char]
 
 // Errors
 

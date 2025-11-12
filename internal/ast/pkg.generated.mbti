@@ -12,7 +12,7 @@ import(
 // Types and methods
 pub(all) enum Ast {
   Empty
-  CharClass(Array[Char], neg~ : Bool)
+  CharClass(ArrayView[Char], neg~ : Bool)
   Assertion(@vm.Predicate)
   Capture(Ast, index~ : Int)
   ZeroOrMore(Ast, greedy~ : Bool)
