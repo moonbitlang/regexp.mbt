@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The unicode data are now stored as `Map` again thanks to the compiler's
+  improvement (#11)
+
 ## [0.3.4]
 
 ### Fixed
