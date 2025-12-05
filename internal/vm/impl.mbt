@@ -119,8 +119,9 @@ fn add_thread(
       let assertion = match pred {
         BeginText => sp == 0
         EndText => sp == content.length()
-        BeginLine => sp == 0 || content[sp - 1] == '\n'
-        EndLine => sp == content.length() || content[sp] == '\n'
+        BeginLine => sp == 0 || content.code_unit_at(sp - 1) == (10 : UInt16)
+        EndLine =>
+          sp == content.length() || content.code_unit_at(sp) == (10 : UInt16)
         WordBoundary =>
           is_word_char_at(content, sp - 1) != is_word_char_at(content, sp)
         NoWordBoundary =>

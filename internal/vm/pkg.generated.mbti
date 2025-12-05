@@ -2,7 +2,7 @@
 package "moonbitlang/regexp/internal/vm"
 
 // Values
-fn vm(Array[Instruction], StringView, Int, allow_exponentiaion? : Bool) -> Array[Int]
+pub fn vm(Array[Instruction], StringView, Int, allow_exponentiaion? : Bool) -> Array[Int]
 
 // Errors
 
@@ -16,7 +16,7 @@ pub(all) enum Instruction {
   Assertion(Predicate)
   Backreference(Int)
 }
-impl ToJson for Instruction
+pub impl ToJson for Instruction
 
 pub(all) enum Predicate {
   BeginText
@@ -26,8 +26,8 @@ pub(all) enum Predicate {
   WordBoundary
   NoWordBoundary
 }
-impl Show for Predicate
-impl ToJson for Predicate
+pub impl Show for Predicate
+pub impl ToJson for Predicate
 
 // Type aliases
 

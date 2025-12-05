@@ -6,13 +6,13 @@ import(
 )
 
 // Values
-fn parse(StringView, flags? : Flags) -> ParseResult raise RegexpError
+pub fn parse(StringView, flags? : Flags) -> ParseResult raise RegexpError
 
 // Errors
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : StringView)
 }
-impl Show for RegexpError
+pub impl Show for RegexpError
 
 // Types and methods
 pub enum Err {
@@ -28,14 +28,14 @@ pub enum Err {
   TrailingBackslash
   UnexpectedParenthesis
 }
-impl Show for Err
+pub impl Show for Err
 
 pub(all) struct Flags {
   multiline : Bool
   singleline : Bool
   ignore_case : Bool
 }
-impl Default for Flags
+pub impl Default for Flags
 
 pub(all) struct ParseResult {
   ast : @ast.Ast
@@ -43,7 +43,7 @@ pub(all) struct ParseResult {
   capture_map : Map[String, Int]
   has_backreference : Bool
 }
-impl ToJson for ParseResult
+pub impl ToJson for ParseResult
 
 // Type aliases
 

@@ -2,35 +2,35 @@
 package "moonbitlang/regexp/internal/unicode"
 
 // Values
-fn case_insensitive_char_class(ArrayView[Char]) -> ArrayView[Char]
+pub fn case_insensitive_char_class(ArrayView[Char]) -> ArrayView[Char]
 
-fn char_in_ranges(Char, ArrayView[Char]) -> Bool
+pub fn char_in_ranges(Char, ArrayView[Char]) -> Bool
 
-fn compute_char_class_complement(ArrayView[Char]) -> ArrayView[Char]
+pub fn compute_char_class_complement(ArrayView[Char]) -> ArrayView[Char]
 
-let general_category_property_value_alises : Map[String, String]
+pub let general_category_property_value_alises : Map[String, String]
 
-let general_category_ranges : Map[String, ArrayView[Char]]
+pub let general_category_ranges : Map[String, ArrayView[Char]]
 
-fn is_word_char_at(StringView, Int) -> Bool
+pub fn is_word_char_at(StringView, Int) -> Bool
 
-let ranges_any : Array[Char]
+pub let ranges_any : Array[Char]
 
-let ranges_any_not_new_line : Array[Char]
+pub let ranges_any_not_new_line : Array[Char]
 
-let ranges_is_digit : Array[Char]
+pub let ranges_is_digit : Array[Char]
 
-let ranges_is_not_digit : Array[Char]
+pub let ranges_is_not_digit : Array[Char]
 
-let ranges_is_not_white_space_or_line_terminator : Array[Char]
+pub let ranges_is_not_white_space_or_line_terminator : Array[Char]
 
-let ranges_is_not_word : Array[Char]
+pub let ranges_is_not_word : Array[Char]
 
-let ranges_is_white_space_or_line_terminator : Array[Char]
+pub let ranges_is_white_space_or_line_terminator : Array[Char]
 
-let ranges_is_word : Array[Char]
+pub let ranges_is_word : Array[Char]
 
-fn simplify_char_ranges(ArrayView[Char]) -> ArrayView[Char]
+pub fn simplify_char_ranges(ArrayView[Char]) -> ArrayView[Char]
 
 // Errors
 
