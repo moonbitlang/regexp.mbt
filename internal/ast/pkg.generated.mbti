@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp/internal/ast"
 
-import(
-  "moonbitlang/regexp/internal/vm"
-)
+import {
+  "moonbitlang/regexp/internal/vm",
+}
 
 // Values
 

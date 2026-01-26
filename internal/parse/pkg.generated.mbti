@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp/internal/parse"
 
-import(
-  "moonbitlang/regexp/internal/ast"
-)
+import {
+  "moonbitlang/regexp/internal/ast",
+}
 
 // Values
 pub fn parse(StringView, flags? : Flags) -> ParseResult raise RegexpError

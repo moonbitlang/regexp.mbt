@@ -277,7 +277,7 @@ pub fn case_insensitive_char_class(chars : ArrayView[Char]) -> ArrayView[Char] {
       end = MAX_FOLD
     }
     // For each character in the range, add its case-insensitive equivalents
-    for c in start.to_int()..=end.to_int() {
+    for c in start.to_int()..<=end.to_int() {
       let char = c.unsafe_to_char()
       let mut ch0 = char
       result..push(char)..push(char)
