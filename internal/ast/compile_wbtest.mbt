@@ -183,7 +183,7 @@ test "alternate capture" {
     ),
     greedy=true,
   )
-  @json.inspect(regex.compile(), content=[
+  json_inspect(regex.compile(), content=[
     ["Split", 3, 1],
     ["Chars", ["'\\u{00}'", "'\\u{10ffff}'"]],
     ["Jump", 0],
@@ -212,7 +212,7 @@ test "backreference" {
     Backreference(1),
     Backreference(1),
   ])
-  @json.inspect(regex.compile(), content=[
+  json_inspect(regex.compile(), content=[
     ["Split", 3, 1],
     ["Chars", ["'\\u{00}'", "'\\u{10ffff}'"]],
     ["Jump", 0],

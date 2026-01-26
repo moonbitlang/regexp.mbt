@@ -14,7 +14,7 @@
 
 ///|
 test "parse complex regex with capture group and quantifier" {
-  @json.inspect(parse("a(b|c)*d"), content={
+  json_inspect(parse("a(b|c)*d"), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       [
@@ -38,7 +38,7 @@ test "parse complex regex with capture group and quantifier" {
 
 ///|
 test "parse multi-branch alternation expression" {
-  @json.inspect(parse("abc|def|ghi"), content={
+  json_inspect(parse("abc|def|ghi"), content={
     "ast": [
       "Alternate",
       [
@@ -68,7 +68,7 @@ test "parse multi-branch alternation expression" {
 
 ///|
 test "parse dot character (any character match)" {
-  @json.inspect(parse("a.c"), content={
+  json_inspect(parse("a.c"), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       [
@@ -85,7 +85,7 @@ test "parse dot character (any character match)" {
 
 ///|
 test "parse character class range syntax" {
-  @json.inspect(parse("[a-z]"), content={
+  json_inspect(parse("[a-z]"), content={
     "ast": ["CharClass neg=false", ["'a'", "'z'"]],
     "captures": 1,
     "capture_map": {},
@@ -95,7 +95,7 @@ test "parse character class range syntax" {
 
 ///|
 test "parse multiple character class ranges" {
-  @json.inspect(parse("[a-zA-Z]"), content={
+  json_inspect(parse("[a-zA-Z]"), content={
     "ast": ["CharClass neg=false", ["'a'", "'z'", "'A'", "'Z'"]],
     "captures": 1,
     "capture_map": {},
@@ -105,7 +105,7 @@ test "parse multiple character class ranges" {
 
 ///|
 test "parse mixed character class (ranges and individual characters)" {
-  @json.inspect(parse("[a-z0-9_]"), content={
+  json_inspect(parse("[a-z0-9_]"), content={
     "ast": ["CharClass neg=false", ["'a'", "'z'", "'0'", "'9'", "'_'", "'_'"]],
     "captures": 1,
     "capture_map": {},
@@ -115,7 +115,7 @@ test "parse mixed character class (ranges and individual characters)" {
 
 ///|
 test "parse literal hyphen in character class" {
-  @json.inspect(parse("[abc-]"), content={
+  json_inspect(parse("[abc-]"), content={
     "ast": [
       "CharClass neg=false",
       ["'a'", "'a'", "'b'", "'b'", "'c'", "'c'", "'-'", "'-'"],
@@ -128,7 +128,7 @@ test "parse literal hyphen in character class" {
 
 ///|
 test "parse character class range with escaped characters" {
-  @json.inspect(parse("[\\]-a]"), content={
+  json_inspect(parse("[\\]-a]"), content={
     "ast": ["CharClass neg=false", ["']'", "'a'"]],
     "captures": 1,
     "capture_map": {},
@@ -147,7 +147,7 @@ test "parse character class range with escaped characters" {
 
 ///|
 test "parse exact repeat quantifier {n}" {
-  @json.inspect(parse("a{3}"), content={
+  json_inspect(parse("a{3}"), content={
     "ast": [
       "Repeat {3, 3} greedy=true",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -160,7 +160,7 @@ test "parse exact repeat quantifier {n}" {
 
 ///|
 test "parse minimum repeat quantifier {n,}" {
-  @json.inspect(parse("b{2,}"), content={
+  json_inspect(parse("b{2,}"), content={
     "ast": ["Repeat {2,} greedy=true", ["CharClass neg=false", ["'b'", "'b'"]]],
     "captures": 1,
     "capture_map": {},
@@ -170,7 +170,7 @@ test "parse minimum repeat quantifier {n,}" {
 
 ///|
 test "parse range repeat quantifier {n,m}" {
-  @json.inspect(parse("c{2,4}"), content={
+  json_inspect(parse("c{2,4}"), content={
     "ast": [
       "Repeat {2, 4} greedy=true",
       ["CharClass neg=false", ["'c'", "'c'"]],
@@ -183,7 +183,7 @@ test "parse range repeat quantifier {n,m}" {
 
 ///|
 test "parse lazy minimum repeat quantifier {n,}?" {
-  @json.inspect(parse("d{2,}?"), content={
+  json_inspect(parse("d{2,}?"), content={
     "ast": ["Repeat {2,} greedy=false", ["CharClass neg=false", ["'d'", "'d'"]]],
     "captures": 1,
     "capture_map": {},
@@ -193,7 +193,7 @@ test "parse lazy minimum repeat quantifier {n,}?" {
 
 ///|
 test "parse complex repeat quantifier expression" {
-  @json.inspect(parse("a{2}b{1,3}c{2,}"), content={
+  json_inspect(parse("a{2}b{1,3}c{2,}"), content={
     "ast": [
       ["Repeat {2, 2} greedy=true", ["CharClass neg=false", ["'a'", "'a'"]]],
       ["Repeat {1, 3} greedy=true", ["CharClass neg=false", ["'b'", "'b'"]]],
@@ -207,7 +207,7 @@ test "parse complex repeat quantifier expression" {
 
 ///|
 test "parse repeat quantifier with groups" {
-  @json.inspect(parse("(ab){2}"), content={
+  json_inspect(parse("(ab){2}"), content={
     "ast": [
       "Repeat {2, 2} greedy=true",
       [
@@ -265,7 +265,7 @@ test "parse repeat quantifier error cases" {
 
 ///|
 test "parse non-capturing group" {
-  @json.inspect(parse("(?:abc)"), content={
+  json_inspect(parse("(?:abc)"), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       ["CharClass neg=false", ["'b'", "'b'"]],
@@ -279,7 +279,7 @@ test "parse non-capturing group" {
 
 ///|
 test "parse named capture group" {
-  @json.inspect(parse("(?<name>abc)"), content={
+  json_inspect(parse("(?<name>abc)"), content={
     "ast": [
       "Capture 1",
       [
@@ -296,7 +296,7 @@ test "parse named capture group" {
 
 ///|
 test "parse complex named capture group expression" {
-  @json.inspect(parse("(?<first>a+)(?<second>b+)"), content={
+  json_inspect(parse("(?<first>a+)(?<second>b+)"), content={
     "ast": [
       [
         "Capture 1",
@@ -315,7 +315,7 @@ test "parse complex named capture group expression" {
 
 ///|
 test "parse nested named capture groups" {
-  @json.inspect(parse("(?<outer>a(?<inner>bc)d)"), content={
+  json_inspect(parse("(?<outer>a(?<inner>bc)d)"), content={
     "ast": [
       "Capture 1",
       [
@@ -338,7 +338,7 @@ test "parse nested named capture groups" {
 
 ///|
 test "parse mixed named and regular capture groups" {
-  @json.inspect(parse("(a)(?<named>b)(c)"), content={
+  json_inspect(parse("(a)(?<named>b)(c)"), content={
     "ast": [
       ["Capture 1", ["CharClass neg=false", ["'a'", "'a'"]]],
       ["Capture 2", ["CharClass neg=false", ["'b'", "'b'"]]],
@@ -401,7 +401,7 @@ test "parse named capture group error cases" {
 ///|
 test "parse valid group name formats" {
   // Starts with a letter
-  @json.inspect(parse("(?<group>abc)"), content={
+  json_inspect(parse("(?<group>abc)"), content={
     "ast": [
       "Capture 1",
       [
@@ -416,7 +416,7 @@ test "parse valid group name formats" {
   })
 
   // Starts with an underscore
-  @json.inspect(parse("(?<_group>abc)"), content={
+  json_inspect(parse("(?<_group>abc)"), content={
     "ast": [
       "Capture 1",
       [
@@ -431,7 +431,7 @@ test "parse valid group name formats" {
   })
 
   // Contains digits
-  @json.inspect(parse("(?<group1>abc)"), content={
+  json_inspect(parse("(?<group1>abc)"), content={
     "ast": [
       "Capture 1",
       [
@@ -446,7 +446,7 @@ test "parse valid group name formats" {
   })
 
   // Contains multiple underscores
-  @json.inspect(parse("(?<my_group_1>abc)"), content={
+  json_inspect(parse("(?<my_group_1>abc)"), content={
     "ast": [
       "Capture 1",
       [
@@ -463,7 +463,7 @@ test "parse valid group name formats" {
 
 ///|
 test "parse line begin assertion ^" {
-  @json.inspect(parse("^abc", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^abc", flags={ ..Flags::default(), multiline: true }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -478,7 +478,7 @@ test "parse line begin assertion ^" {
 
 ///|
 test "parse line end assertion $" {
-  @json.inspect(parse("abc$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("abc$", flags={ ..Flags::default(), multiline: true }), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       ["CharClass neg=false", ["'b'", "'b'"]],
@@ -493,7 +493,7 @@ test "parse line end assertion $" {
 
 ///|
 test "parse line begin and end assertion ^...$" {
-  @json.inspect(parse("^abc$"), content={
+  json_inspect(parse("^abc$"), content={
     "ast": [
       "Assertion BeginText",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -509,7 +509,7 @@ test "parse line begin and end assertion ^...$" {
 
 ///|
 test "parse multiline assertions" {
-  @json.inspect(parse("^line", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^line", flags={ ..Flags::default(), multiline: true }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'l'", "'l'"]],
@@ -521,7 +521,7 @@ test "parse multiline assertions" {
     "capture_map": {},
     "has_backreference": false,
   })
-  @json.inspect(parse("line$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("line$", flags={ ..Flags::default(), multiline: true }), content={
     "ast": [
       ["CharClass neg=false", ["'l'", "'l'"]],
       ["CharClass neg=false", ["'i'", "'i'"]],
@@ -537,7 +537,7 @@ test "parse multiline assertions" {
 
 ///|
 test "parse assertion with quantifiers" {
-  @json.inspect(parse("^a+$"), content={
+  json_inspect(parse("^a+$"), content={
     "ast": [
       "Assertion BeginText",
       ["OneOrMore greedy=true", ["CharClass neg=false", ["'a'", "'a'"]]],
@@ -551,7 +551,7 @@ test "parse assertion with quantifiers" {
 
 ///|
 test "parse assertion with capture groups" {
-  @json.inspect(parse("^(abc)$"), content={
+  json_inspect(parse("^(abc)$"), content={
     "ast": [
       "Assertion BeginText",
       [
@@ -572,7 +572,7 @@ test "parse assertion with capture groups" {
 
 ///|
 test "parse escaped assertion characters" {
-  @json.inspect(parse("\\^abc\\$"), content={
+  json_inspect(parse("\\^abc\\$"), content={
     "ast": [
       ["CharClass neg=false", ["'^'", "'^'"]],
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -588,7 +588,7 @@ test "parse escaped assertion characters" {
 
 ///|
 test "parse assertion characters in character class" {
-  @json.inspect(parse("[^$]"), content={
+  json_inspect(parse("[^$]"), content={
     "ast": ["CharClass neg=true", ["'$'", "'$'"]],
     "captures": 1,
     "capture_map": {},
@@ -598,7 +598,7 @@ test "parse assertion characters in character class" {
 
 ///|
 test "parse complex assertion expression" {
-  @json.inspect(parse("^(hello|world)$"), content={
+  json_inspect(parse("^(hello|world)$"), content={
     "ast": [
       "Assertion BeginText",
       [
@@ -631,7 +631,7 @@ test "parse complex assertion expression" {
 
 ///|
 test "parse word boundary assertion \\b" {
-  @json.inspect(parse("\\bword\\b"), content={
+  json_inspect(parse("\\bword\\b"), content={
     "ast": [
       "Assertion WordBoundary",
       ["CharClass neg=false", ["'w'", "'w'"]],
@@ -648,7 +648,7 @@ test "parse word boundary assertion \\b" {
 
 ///|
 test "parse non-word boundary assertion \\B" {
-  @json.inspect(parse("\\Bword\\B"), content={
+  json_inspect(parse("\\Bword\\B"), content={
     "ast": [
       "Assertion NoWordBoundary",
       ["CharClass neg=false", ["'w'", "'w'"]],
@@ -665,7 +665,7 @@ test "parse non-word boundary assertion \\B" {
 
 ///|
 test "parse combined word boundary assertions" {
-  @json.inspect(parse("\\btest|\\btesting\\b"), content={
+  json_inspect(parse("\\btest|\\btesting\\b"), content={
     "ast": [
       "Alternate",
       [
@@ -695,7 +695,7 @@ test "parse combined word boundary assertions" {
 
 ///|
 test "parse word boundary with character class" {
-  @json.inspect(parse("\\b[a-z]+\\b"), content={
+  json_inspect(parse("\\b[a-z]+\\b"), content={
     "ast": [
       "Assertion WordBoundary",
       ["OneOrMore greedy=true", ["CharClass neg=false", ["'a'", "'z'"]]],
@@ -709,7 +709,7 @@ test "parse word boundary with character class" {
 
 ///|
 test "parse word boundary with quantifiers" {
-  @json.inspect(parse("\\b\\w{3,5}\\b"), content={
+  json_inspect(parse("\\b\\w{3,5}\\b"), content={
     "ast": [
       "Assertion WordBoundary",
       [
@@ -737,7 +737,7 @@ test "parse word boundary with quantifiers" {
 ///
 /// Expected to capture a whole word
 test "parse word boundary with capture groups" {
-  @json.inspect(parse("\\b(\\w+)\\b"), content={
+  json_inspect(parse("\\b(\\w+)\\b"), content={
     "ast": [
       "Assertion WordBoundary",
       [
@@ -761,7 +761,7 @@ test "parse word boundary with capture groups" {
 ///|
 test "parse complex word boundary expression" {
   // Simplified version, only tests basic word boundary functionality
-  @json.inspect(parse("\\bthe\\b"), content={
+  json_inspect(parse("\\bthe\\b"), content={
     "ast": [
       "Assertion WordBoundary",
       ["CharClass neg=false", ["'t'", "'t'"]],
@@ -777,7 +777,7 @@ test "parse complex word boundary expression" {
 
 ///|
 test "parse unicode general property" {
-  @json.inspect(parse("\\p{Ll}"), content={
+  json_inspect(parse("\\p{Ll}"), content={
     "ast": [
       "CharClass neg=false",
       [
@@ -932,7 +932,7 @@ test "parse unicode general property" {
   })
 
   // Test matching a composed class
-  @json.inspect(parse("\\p{L}"), content={
+  json_inspect(parse("\\p{L}"), content={
     "ast": [
       "CharClass neg=false",
       [
@@ -1102,7 +1102,7 @@ test "parse unicode general property" {
   })
 
   // Negated matching
-  @json.inspect(parse("\\P{L}"), content={
+  json_inspect(parse("\\P{L}"), content={
     "ast": [
       "CharClass neg=true",
       [
@@ -1274,7 +1274,7 @@ test "parse unicode general property" {
 
 ///|
 test "parse unmatched curly brace" {
-  @json.inspect(parse("a|b}"), content={
+  json_inspect(parse("a|b}"), content={
     "ast": [
       "Alternate",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -1292,7 +1292,7 @@ test "parse unmatched curly brace" {
 ///|
 test "parse backreference" {
   // Test with a valid backreference
-  @json.inspect(parse("(a)(b)\\1"), content={
+  json_inspect(parse("(a)(b)\\1"), content={
     "ast": [
       ["Capture 1", ["CharClass neg=false", ["'a'", "'a'"]]],
       ["Capture 2", ["CharClass neg=false", ["'b'", "'b'"]]],
@@ -1333,13 +1333,13 @@ test "parse backreference" {
 test "parse character class range with escaped end character" {
   // Test unicode escapes in ranges
   let regex = parse("[a-\\u007A]").ast // Should parse as range from 'a' to 'z' (U+007A)
-  @json.inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
+  json_inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
   let regex = parse("[a-\\u{7A}]").ast // Should parse as range from 'a' to 'z' (U+007A)
-  @json.inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
+  json_inspect(regex, content=["CharClass neg=false", ["'a'", "'z'"]])
 
   // Test with literal backslash in range - backslash (0x5C) < 'z' (0x7A)
   let regex = parse("[\\\\-z]").ast // Should parse as range from '\' to 'z'
-  @json.inspect(regex, content=["CharClass neg=false", ["'\\\\'", "'z'"]])
+  json_inspect(regex, content=["CharClass neg=false", ["'\\\\'", "'z'"]])
 
   // Test invalid range (end char < start char) - tab comes before 'z', so this should error
   let result = try? parse("[z-\\t]")
@@ -1359,11 +1359,11 @@ test "parse character class range with escaped end character" {
 
   // Test escaped characters on both sides of range - newline (0x0A) to carriage return (0x0D)
   let regex = parse("[\\n-\\r]").ast
-  @json.inspect(regex, content=["CharClass neg=false", ["'\\n'", "'\\r'"]])
+  json_inspect(regex, content=["CharClass neg=false", ["'\\n'", "'\\r'"]])
 
   // Test range with special escape : \s-\s should be treated as literal characters '-'
   let regex = parse("[\\s-\\s]").ast
-  @json.inspect(regex, content=[
+  json_inspect(regex, content=[
     "CharClass neg=false",
     [
       "'\\t'", "'\\r'", "' '", "' '", "' '", "' '", "' '", "' '", "' '",
