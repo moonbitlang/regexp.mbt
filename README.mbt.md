@@ -10,7 +10,7 @@
 
 ## ⚡ Quick Start
 
-```moonbit nocheck
+```moonbit check
 ///|
 test {
   // Compile once, use everywhere
@@ -87,7 +87,7 @@ test {
 
 Match characters by their Unicode general categories:
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "unicode properties" {
   // Matching gc=L
@@ -119,7 +119,7 @@ test "unicode properties" {
 > ⚠️ **Performance Warning**: Backreferences can cause exponential time
 > complexity in worst cases!
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "backreferences" {
   // Palindrome detection (simple)
@@ -145,7 +145,7 @@ test "backreferences" {
 
 ## 💡 Real Examples
 
-```moonbit nocheck
+```moonbit check
 ///|
 test "character classes" {
   // Email validation (simplified)
@@ -193,7 +193,7 @@ test "character classes" {
 
 ## 🚨 Error Handling
 
-```moonbit nocheck
+```moonbit check
 ///|
 test {
   try {

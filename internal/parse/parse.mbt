@@ -594,27 +594,27 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
         match ch {
           // If they are themselves character classes, expand them
           'd' => {
-            ranges_is_digit.each(chars.push(_)) // digit character class
+            ranges_is_digit.each(x => chars.push(x)) // digit character class
             continue
           }
           'D' => {
-            ranges_is_not_digit.each(chars.push(_)) // non-digit character class
+            ranges_is_not_digit.each(x => chars.push(x)) // non-digit character class
             continue
           }
           'w' => {
-            ranges_is_word.each(chars.push(_)) // word character class
+            ranges_is_word.each(x => chars.push(x)) // word character class
             continue
           }
           'W' => {
-            ranges_is_not_word.each(chars.push(_)) // non-word character class
+            ranges_is_not_word.each(x => chars.push(x)) // non-word character class
             continue
           }
           's' => {
-            ranges_is_white_space_or_line_terminator.each(chars.push(_)) // whitespace character class
+            ranges_is_white_space_or_line_terminator.each(x => chars.push(x)) // whitespace character class
             continue
           }
           'S' => {
-            ranges_is_not_white_space_or_line_terminator.each(chars.push(_)) // non-whitespace character class
+            ranges_is_not_white_space_or_line_terminator.each(x => chars.push(x)) // non-whitespace character class
             continue
           }
           'p' | 'P' as flag => {
@@ -623,9 +623,9 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
             guard self.parse_general_category(property_name, flag == 'P')
               is CharClass(class, neg~)
             if neg {
-              compute_char_class_complement(class).each(chars.push(_))
+              compute_char_class_complement(class).each(x => chars.push(x))
             } else {
-              class.each(chars.push(_))
+              class.each(x => chars.push(x))
             }
             continue
           }
