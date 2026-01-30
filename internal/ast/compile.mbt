@@ -192,7 +192,7 @@ pub impl ToJson for Ast with to_json(self) {
       } else {
         ["Repeat {\{min},} greedy=\{greedy}", inner]
       }
-    Concat(regexs) => [..regexs.map(_.to_json())]
+    Concat(regexs) => [..regexs.map(r => r.to_json())]
     Alternate(left, right) => ["Alternate", left, right]
     Backreference(i) => ["Backreference", i]
   }
