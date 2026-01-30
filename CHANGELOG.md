@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [0.3.5]
+
 ### Changed
 
 - The unicode data are now stored as `Map` again thanks to the compiler's
   improvement (#11)
+- Updated syntax to v0.7.2 (#15)
 
 ## [0.3.4]
 
