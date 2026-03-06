@@ -1,0 +1,42 @@
+name: "Check MoonBit project"
+description: "Verify MoonBit project by running checks and tests"
+inputs:
+  selected-backends:
+    description: "The backend to use for verification (e.g. wasm,wasm-gc,js) (default: all)."
+    required: false
+    default: "native"
+  project-directory:
+    description: "The directory of the MoonBit project (default: current directory)."
+    required: false
+    default: "."
+  verify-test:
+    description: "Whether to run tests (default: true)."
+    required: false
+    default: "true"
+  verify-lint:
+    description: "Whether to run linting, including checking format and interface files (default: true)."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check MoonBit project
+      shell: bash
+      run: |
+        echo "Running moon check..."
+        moon check --target ${{ inputs.selected-backends }} -C ${{ inputs.project-directory }}
+    - name: Test MoonBit project
+      if: ${{ inputs.verify-test == 'true' }}
+      shell: bash
+      run: |
+        echo "Running moon test..."
+        moon test --target ${{ inputs.selected-backends }} -C ${{ inputs.project-directory }}
+    - name: Lint MoonBit project
+      if: ${{ inputs.verify-lint == 'true' }}
+      shell: bash
+      run: |
+        echo "Running moon fmt..."
+        moon fmt -C ${{ inputs.project-directory }} && git diff --exit-code
+        echo "Running moon info..."
+        moon info -C ${{ inputs.project-directory }} && git diff --exit-code
