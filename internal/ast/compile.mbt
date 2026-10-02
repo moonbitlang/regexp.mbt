@@ -177,7 +177,7 @@ pub fn Ast::compile(self : Ast) -> Array[Instruction] {
 }
 
 ///|
-pub impl ToJson for Ast with to_json(self) {
+pub impl ToJson for Ast with fn to_json(self) {
   match self {
     Empty => "Empty"
     CharClass(chars, neg~) => ["CharClass neg=\{neg}", chars.map(c => repr(c))]

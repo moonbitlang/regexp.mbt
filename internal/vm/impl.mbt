@@ -25,7 +25,7 @@ pub(all) enum Instruction {
 }
 
 ///|
-pub impl ToJson for Instruction with to_json(self) {
+pub impl ToJson for Instruction with fn to_json(self) {
   match self {
     Matched => "Matched"
     Save(i) => ["Save", i]
@@ -86,7 +86,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures, },
         clist,
       )
     }
@@ -95,7 +95,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i, captures: thread.captures },
+        { ..thread, pc: i, captures: thread.captures, },
         clist,
       )
     Split(i1, i2) => {
@@ -103,14 +103,14 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i1, captures: thread.captures.copy() },
+        { ..thread, pc: i1, captures: thread.captures.copy(), },
         clist,
       )
       add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i2, captures: thread.captures },
+        { ..thread, pc: i2, captures: thread.captures, },
         clist,
       )
     }
@@ -132,7 +132,7 @@ fn add_thread(
           content,
           instructions,
           inst_gen,
-          { ..thread, pc: thread.pc + 1, captures: thread.captures },
+          { ..thread, pc: thread.pc + 1, captures: thread.captures, },
           clist,
         )
       }
@@ -144,7 +144,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures, },
         clist,
       )
     _ => clist.push(thread)
@@ -174,7 +174,7 @@ pub fn vm(
     input,
     instructions,
     inst_gen,
-    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1) },
+    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1), },
     clist,
   )
   for sp = 0; sp <= input.length(); {
@@ -188,7 +188,7 @@ pub fn vm(
       sp + 1
     }
     for thread in clist {
-      let { pc, captures, sp: thread_sp } = thread
+      let { pc, captures, sp: thread_sp, } = thread
       if thread_sp > sp {
         // this thread is in the future state
         nlist.push(thread)
@@ -212,7 +212,7 @@ pub fn vm(
               } else {
                 inst_gen
               },
-              { pc: pc + 1, captures, sp: next_sp },
+              { pc: pc + 1, captures, sp: next_sp, },
               nlist,
             )
           }
@@ -229,7 +229,7 @@ pub fn vm(
               input,
               instructions,
               Array::make(instructions.length(), -1),
-              { pc: pc + 1, captures, sp: next_sp },
+              { pc: pc + 1, captures, sp: next_sp, },
               nlist,
             )
           }

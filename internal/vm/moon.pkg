@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/regexp/internal/unicode",
+}
+
+import {
+  "moonbitlang/core/test",
+} for "test"
+
+import {
+  "moonbitlang/core/test",
+} for "wbtest"

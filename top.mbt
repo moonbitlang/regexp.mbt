@@ -222,7 +222,7 @@ pub fn Regexp::execute(self : Regexp, input : StringView) -> MatchResult {
   } else {
     (input, input.view(start_offset=input.length()))
   }
-  { input, captures, names: self.map, before, after }
+  { input, captures, names: self.map, before, after, }
 }
 
 ///|
@@ -323,7 +323,7 @@ pub fn Regexp::match_(self : Regexp, input : StringView) -> MatchResult? {
   guard captures is [0..<_ as start, 0..<_ as end, ..] else { return None }
   let before = input.view(end_offset=start)
   let after = input.view(start_offset=end)
-  Some({ input, captures, names: self.map, before, after })
+  Some({ input, captures, names: self.map, before, after, })
 }
 
 ///|
@@ -447,10 +447,12 @@ pub fn MatchResult::get(self : Self, index : Int) -> StringView? {
 pub fn MatchResult::groups(self : Self) -> Map[String, StringView] {
   self.names
   .iter()
-  .filter_map(p => if self.get(p.1) is Some(content) {
-    Some((p.0, content))
-  } else {
-    None
+  .filter_map(p => {
+    if self.get(p.1) is Some(content) {
+      Some((p.0, content))
+    } else {
+      None
+    }
   })
   |> Map::from_iter
 }
