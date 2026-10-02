@@ -463,7 +463,7 @@ test "parse valid group name formats" {
 
 ///|
 test "parse line begin assertion ^" {
-  json_inspect(parse("^abc", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^abc", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -478,7 +478,7 @@ test "parse line begin assertion ^" {
 
 ///|
 test "parse line end assertion $" {
-  json_inspect(parse("abc$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("abc$", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       ["CharClass neg=false", ["'b'", "'b'"]],
@@ -509,7 +509,7 @@ test "parse line begin and end assertion ^...$" {
 
 ///|
 test "parse multiline assertions" {
-  json_inspect(parse("^line", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^line", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'l'", "'l'"]],
@@ -521,7 +521,7 @@ test "parse multiline assertions" {
     "capture_map": {},
     "has_backreference": false,
   })
-  json_inspect(parse("line$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("line$", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       ["CharClass neg=false", ["'l'", "'l'"]],
       ["CharClass neg=false", ["'i'", "'i'"]],

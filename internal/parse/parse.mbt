@@ -887,7 +887,7 @@ fn Parser::parse_group_name(self : Parser) -> String raise RegexpError {
 ///
 /// Throws: Error_ when an invalid flag is encountered
 fn Parser::parse_flags(self : Parser) -> Flags raise RegexpError {
-  let mut flag = { ..self.flags }
+  let mut flag = { ..self.flags, }
   let mut positive = true
   loop self.input {
     [':', .. rest] => {
@@ -895,15 +895,15 @@ fn Parser::parse_flags(self : Parser) -> Flags raise RegexpError {
       return flag
     }
     ['m', .. rest] => {
-      flag = { ..flag, multiline: positive }
+      flag = { ..flag, multiline: positive, }
       continue rest
     }
     ['s', .. rest] => {
-      flag = { ..flag, singleline: positive }
+      flag = { ..flag, singleline: positive, }
       continue rest
     }
     ['i', .. rest] => {
-      flag = { ..flag, ignore_case: positive }
+      flag = { ..flag, ignore_case: positive, }
       continue rest
     }
     ['-', .. rest] if positive => {

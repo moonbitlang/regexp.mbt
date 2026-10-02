@@ -373,7 +373,7 @@ test "parse valid group name formats" {
 
 ///|
 test "parse line begin assertion ^" {
-  let regex = parse("^abc", flags={ ..Flags::default(), multiline: true })
+  let regex = parse("^abc", flags={ ..Flags::default(), multiline: true, })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // Test matching at the beginning of a line
@@ -394,7 +394,7 @@ test "parse line begin assertion ^" {
 
 ///|
 test "parse line end assertion $" {
-  let regex = parse("abc$", flags={ ..Flags::default(), multiline: true })
+  let regex = parse("abc$", flags={ ..Flags::default(), multiline: true, })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // Test matching at the end of a line
@@ -434,7 +434,7 @@ test "parse line begin and end assertion ^...$" {
 
 ///|
 test "parse multiline assertions" {
-  let regex = parse("^line", flags={ ..Flags::default(), multiline: true })
+  let regex = parse("^line", flags={ ..Flags::default(), multiline: true, })
   let { instructions, capture: capture_count, .. } = regex.compile()
 
   // Test matching the first line in multiline text
@@ -442,7 +442,7 @@ test "parse multiline assertions" {
   inspect(result, content="[0, 4]")
 
   // Test matching line end assertion in multiline text
-  let regex = parse("line$", flags={ ..Flags::default(), multiline: true })
+  let regex = parse("line$", flags={ ..Flags::default(), multiline: true, })
   let { instructions, capture: capture_count, .. } = regex.compile()
   let result = vm(instructions, "not line\nline2\nthis line", capture_count)
   inspect(result, content="[4, 8]") // Matches "line" on the first line
