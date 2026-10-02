@@ -175,7 +175,12 @@ pub fn simplify_char_ranges(chars : ArrayView[Char]) -> ArrayView[Char] {
 
 ///|
 test "simplify char ranges" {
-  inspect(simplify_char_ranges(['A', 'z', 'A', 'Z']), content="['A', 'z']")
+  debug_inspect(
+    simplify_char_ranges(['A', 'z', 'A', 'Z']),
+    content=(
+      #|<ArrayView: ['A', 'z']>
+    ),
+  )
 }
 
 ///|
@@ -246,9 +251,11 @@ test "compute complement of charclass" {
     ranges_is_not_white_space_or_line_terminator[:],
     compute_char_class_complement(ranges_is_white_space_or_line_terminator),
   )
-  inspect(
+  debug_inspect(
     compute_char_class_complement([]),
-    content="['\\u{00}', '\\u{10ffff}']",
+    content=(
+      #|<ArrayView: ['\u{00}', '\u{10ffff}']>
+    ),
   )
 }
 
@@ -266,21 +273,21 @@ pub fn case_insensitive_char_class(chars : ArrayView[Char]) -> ArrayView[Char] {
       end < MIN_FOLD ||
       start > MAX_FOLD {
       // If the range is outside the simple case folding range, just add it
-      result..push(start)..push(end)
+      result..push(start).push(end)
       continue
     }
     if start < MIN_FOLD {
-      result..push(start)..push((MIN_FOLD.to_int() - 1).unsafe_to_char())
+      result..push(start).push((MIN_FOLD.to_int() - 1).unsafe_to_char())
       start = MIN_FOLD
     } else if end > MAX_FOLD {
-      result..push((MAX_FOLD.to_int() + 1).unsafe_to_char())..push(end)
+      result..push((MAX_FOLD.to_int() + 1).unsafe_to_char()).push(end)
       end = MAX_FOLD
     }
     // For each character in the range, add its case-insensitive equivalents
     for c in start.to_int()..<=end.to_int() {
       let char = c.unsafe_to_char()
       let mut ch0 = char
-      result..push(char)..push(char)
+      result..push(char).push(char)
       // Add both lower and upper case versions of the character
       while case_folding.get(ch0) is Some(ch) && ch != char {
         result.push(ch)
@@ -294,25 +301,40 @@ pub fn case_insensitive_char_class(chars : ArrayView[Char]) -> ArrayView[Char] {
 
 ///|
 test "case insensitive char class" {
-  inspect(
+  debug_inspect(
     case_insensitive_char_class(['a', 'z']),
-    content="['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']",
+    content=(
+      #|<ArrayView: ['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']>
+    ),
   )
-  inspect(
+  debug_inspect(
     case_insensitive_char_class(['A', 'Z']),
-    content="['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']",
+    content=(
+      #|<ArrayView: ['A', 'Z', 'a', 'z', 'ſ', 'ſ', 'K', 'K']>
+    ),
   )
-  inspect(
+  debug_inspect(
     case_insensitive_char_class(['\u{0}', '\n']),
-    content="['\\u{00}', '\\n']",
+    content=(
+      #|<ArrayView: ['\u{00}', '\n']>
+    ),
   )
-  inspect(
+  debug_inspect(
     case_insensitive_char_class(['!', 'z']),
-    content="['!', 'z', 'ſ', 'ſ', 'K', 'K']",
+    content=(
+      #|<ArrayView: ['!', 'z', 'ſ', 'ſ', 'K', 'K']>
+    ),
   )
-  inspect(case_insensitive_char_class(['B', '🀄']), content="['A', '🀄']")
-  inspect(
+  debug_inspect(
+    case_insensitive_char_class(['B', '🀄']),
+    content=(
+      #|<ArrayView: ['A', '🀄']>
+    ),
+  )
+  debug_inspect(
     case_insensitive_char_class(['🀄', '🀡']),
-    content="['🀄', '🀡']",
+    content=(
+      #|<ArrayView: ['🀄', '🀡']>
+    ),
   )
 }

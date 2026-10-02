@@ -36,7 +36,36 @@ pub enum Err {
   MissingRepeatArgument // Missing repeat argument
   TrailingBackslash // Trailing backslash
   UnexpectedParenthesis // Unexpected parenthesis
-} derive(Show)
+} derive(Debug)
+
+///|
+/// `derive(Debug)` is for `debug_inspect`; `to_repr` was never a method of
+/// `Err`, so it is not promoted to one.
+#deprecated
+pub extend Err with Debug::{to_repr}
+
+///|
+/// Same text as the former `derive(Show)` output.
+pub impl Show for Err with fn output(self, logger) {
+  logger.write_string(
+    match self {
+      InternalError => "InternalError"
+      InvalidCharClass => "InvalidCharClass"
+      InvalidEscape => "InvalidEscape"
+      InvalidNamedCapture => "InvalidNamedCapture"
+      InvalidRepeatOp => "InvalidRepeatOp"
+      InvalidRepeatSize => "InvalidRepeatSize"
+      MissingBracket => "MissingBracket"
+      MissingParenthesis => "MissingParenthesis"
+      MissingRepeatArgument => "MissingRepeatArgument"
+      TrailingBackslash => "TrailingBackslash"
+      UnexpectedParenthesis => "UnexpectedParenthesis"
+    },
+  )
+}
+
+///|
+pub extend Err with Show::{to_string, output}
 
 ///|
 /// Parsing error exception type
@@ -44,7 +73,28 @@ pub enum Err {
 /// Contains error information and related string view context
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : StringView)
-} derive(Show)
+} derive(Debug)
+
+///|
+/// `derive(Debug)` is for `debug_inspect`; `to_repr` was never a method of
+/// `RegexpError`, so it is not promoted to one.
+#deprecated
+pub extend RegexpError with Debug::{to_repr}
+
+///|
+/// Same text as the former `derive(Show)` output, e.g.
+/// `RegexpError(err=InvalidEscape, source_fragment="}")`.
+pub impl Show for RegexpError with fn output(self, logger) {
+  let RegexpError(err~, source_fragment~) = self
+  logger.write_string("RegexpError(err=")
+  Show::output(err, logger)
+  logger.write_string(", source_fragment=")
+  logger.write_view(source_fragment.escape())
+  logger.write_string(")")
+}
+
+///|
+pub extend RegexpError with Show::{to_string, output}
 
 ///|
 /// Compiles a regex into a matcher.
@@ -73,11 +123,11 @@ fn ParseResult::compile(self : Self) -> Regexp {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("a(bc|de)f")
-///   inspect(
+///   let engine = @regexp.compile("a(bc|de)f")
+///   debug_inspect(
 ///     engine.execute("xxabcf").results(),
 ///     content=(
-///       #|[Some("abcf"), Some("bc")]
+///       #|[Some(<StringView: "abcf">), Some(<StringView: "bc">)]
 ///     ),
 ///   )
 /// }
@@ -125,8 +175,8 @@ pub fn compile(
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("(?<word>\\w+)")
-///   inspect(engine.group_by_name("word"), content="Some(1)")
+///   let engine = @regexp.compile("(?<word>\\w+)")
+///   debug_inspect(engine.group_by_name("word"), content="Some(1)")
 /// }
 /// ```
 pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int? {
@@ -147,7 +197,7 @@ pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int? {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("(a)(b|c)")
+///   let engine = @regexp.compile("(a)(b|c)")
 ///   inspect(engine.group_count(), content="3")
 /// }
 /// ```
@@ -169,8 +219,8 @@ pub fn Regexp::group_count(self : Regexp) -> Int {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("(?<first>a)(?<second>b)")
-///   inspect(
+///   let engine = @regexp.compile("(?<first>a)(?<second>b)")
+///   debug_inspect(
 ///     engine.group_names(),
 ///     content=(
 ///       #|["first", "second"]
@@ -198,13 +248,13 @@ pub fn Regexp::group_names(self : Regexp) -> Array[String] {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("a(bc|de)f")
+///   let engine = @regexp.compile("a(bc|de)f")
 ///   let result = engine.execute("xxabcf")
 ///   if result.matched() {
-///     inspect(
+///     debug_inspect(
 ///       result.get(0),
 ///       content=(
-///         #|Some("abcf")
+///         #|Some(<StringView: "abcf">)
 ///       ),
 ///     )
 ///   }
@@ -222,7 +272,7 @@ pub fn Regexp::execute(self : Regexp, input : StringView) -> MatchResult {
   } else {
     (input, input.view(start_offset=input.length()))
   }
-  { input, captures, names: self.map, before, after }
+  { input, captures, names: self.map, before, after, }
 }
 
 ///|
@@ -243,13 +293,13 @@ pub fn Regexp::execute(self : Regexp, input : StringView) -> MatchResult {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("a(bc|de)f")
+///   let engine = @regexp.compile("a(bc|de)f")
 ///   let result = engine.execute("abcfxx")
-///   guard result.matched()
+///   guard! result.matched()
 ///   inspect(result.before(), content="")
 ///   inspect(result.after(), content="xx")
 ///   let result = engine.execute("axxf")
-///   guard !result.matched()
+///   guard! !result.matched()
 ///   inspect(result.before(), content="axxf")
 ///   inspect(result.after(), content="")
 /// }
@@ -307,8 +357,8 @@ pub fn Regexp::execute_with_remainder(
 /// Example:
 /// ```moonbit check
 /// test {
-///   let engine = compile("a(bc|de)f")
-///   guard engine.match_("abcfxx") is Some(result)
+///   let engine = @regexp.compile("a(bc|de)f")
+///   guard! engine.match_("abcfxx") is Some(result)
 ///   inspect(result.after(), content="xx")
 ///   assert_true(engine.match_("axxf") is None)
 /// }
@@ -323,7 +373,7 @@ pub fn Regexp::match_(self : Regexp, input : StringView) -> MatchResult? {
   guard captures is [0..<_ as start, 0..<_ as end, ..] else { return None }
   let before = input.view(end_offset=start)
   let after = input.view(start_offset=end)
-  Some({ input, captures, names: self.map, before, after })
+  Some({ input, captures, names: self.map, before, after, })
 }
 
 ///|
@@ -361,12 +411,12 @@ struct MatchResult {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let result = compile("text").execute("text")
+///   let result = @regexp.compile("text").execute("text")
 ///   inspect(result.matched(), content="true")
 /// }
 /// ```
 pub fn MatchResult::matched(self : Self) -> Bool {
-  not(self.captures is [])
+  !(self.captures is [])
 }
 
 ///|
@@ -386,18 +436,18 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let result = compile(".(bc)").execute("abc")
-///   inspect(
+///   let result = @regexp.compile(".(bc)").execute("abc")
+///   debug_inspect(
 ///     result.get(0),
 ///     content=(
-///       #|Some("abc")
+///       #|Some(<StringView: "abc">)
 ///     ),
 ///   )
 ///   let first_group = result.get(1)
-///   inspect(
+///   debug_inspect(
 ///     first_group,
 ///     content=(
-///       #|Some("bc")
+///       #|Some(<StringView: "bc">)
 ///     ),
 ///   )
 /// }
@@ -433,12 +483,12 @@ pub fn MatchResult::get(self : Self, index : Int) -> StringView? {
 ///
 /// ```moonbit check
 /// test {
-///   let engine = compile("(?<word>\\w+)\\s+(?<num>\\d+)")
+///   let engine = @regexp.compile("(?<word>\\w+)\\s+(?<num>\\d+)")
 ///   let result = engine.execute("hello 123")
-///   inspect(
+///   debug_inspect(
 ///     result.groups(),
 ///     content=(
-///       #|{"word": "hello", "num": "123"}
+///       #|{ "word": <StringView: "hello">, "num": <StringView: "123"> }
 ///     ),
 ///   )
 /// }
@@ -447,10 +497,12 @@ pub fn MatchResult::get(self : Self, index : Int) -> StringView? {
 pub fn MatchResult::groups(self : Self) -> Map[String, StringView] {
   self.names
   .iter()
-  .filter_map(p => if self.get(p.1) is Some(content) {
-    Some((p.0, content))
-  } else {
-    None
+  .filter_map(p => {
+    if self.get(p.1) is Some(content) {
+      Some((p.0, content))
+    } else {
+      None
+    }
   })
   |> Map::from_iter
 }
@@ -470,11 +522,11 @@ pub fn MatchResult::groups(self : Self) -> Map[String, StringView] {
 /// Example:
 /// ```moonbit check
 /// test {
-///   let result = compile("(\\w)+").execute("abc")
-///   inspect(
+///   let result = @regexp.compile("(\\w)+").execute("abc")
+///   debug_inspect(
 ///     result.results(),
 ///     content=(
-///       #|[Some("abc"), Some("c")]
+///       #|[Some(<StringView: "abc">), Some(<StringView: "c">)]
 ///     ),
 ///   )
 /// }
@@ -500,7 +552,7 @@ pub fn MatchResult::results(self : Self) -> Array[StringView?] {
 /// 
 /// ```moonbit check
 /// test {
-///   let engine = compile("world")
+///   let engine = @regexp.compile("world")
 ///   let result = engine.execute("hello world")
 ///   inspect(result.before(), content="hello ")
 ///   let result = engine.execute("say hello")
@@ -518,7 +570,7 @@ pub fn MatchResult::before(self : Self) -> StringView {
 /// 
 /// ```moonbit check
 /// test {
-///   let engine = compile("hello")
+///   let engine = @regexp.compile("hello")
 ///   let result = engine.execute("hello world")
 ///   inspect(result.after(), content=" world")
 ///   let result = engine.execute("say yes")
@@ -549,26 +601,26 @@ test "rest method with capture groups" {
   let engine = compile("(\\w+)\\s+")
   let result = engine.execute("hello world test")
   inspect(result.matched(), content="true")
-  inspect(
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("hello ")
+      #|Some(<StringView: "hello ">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(1),
     content=(
-      #|Some("hello")
+      #|Some(<StringView: "hello">)
     ),
   )
   inspect(result.after(), content="world test")
   let engine2 = compile(".*")
   let result2 = engine2.execute("everything")
   inspect(result2.matched(), content="true")
-  inspect(
+  debug_inspect(
     result2.get(0),
     content=(
-      #|Some("everything")
+      #|Some(<StringView: "everything">)
     ),
   )
   inspect(result2.after(), content="")
@@ -579,18 +631,18 @@ test "rest method usage example" {
   let engine = compile("\\b\\w+\\b")
   let mut input : StringView = "word1 word2 word3"
   let result1 = engine.execute(input)
-  inspect(
+  debug_inspect(
     result1.get(0),
     content=(
-      #|Some("word1")
+      #|Some(<StringView: "word1">)
     ),
   )
   input = result1.after()
   let result2 = engine.execute(input)
-  inspect(
+  debug_inspect(
     result2.get(0),
     content=(
-      #|Some("word2")
+      #|Some(<StringView: "word2">)
     ),
   )
   inspect(result2.after(), content=" word3")
