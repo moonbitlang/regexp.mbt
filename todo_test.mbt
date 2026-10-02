@@ -15,30 +15,38 @@
 ///|
 test "to be discussed" {
   // This should be allowed in some flavors where the `{` is considered a literal character
-  guard (try? @regexp.compile("a{2")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidRepeatOp, source_fragment="")
-    ),
-  )
+  try @regexp.compile("a{2") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidRepeatOp, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
   // This should raise InvalidRepeatOp to align with golang
-  guard (try? @regexp.compile("a++")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="+")
-    ),
-  )
+  try @regexp.compile("a++") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "+">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
   // Behavior difference between Golang and JS
   // The current behavior aligns with Golang, where the last match is returned for each submatch
   // In JS, the submatch is matched only if the parent is matched
   let regex = @regexp.compile("((?<a>a)|(?<b>b))+")
   let result = regex.execute("ab")
-  inspect(
+  debug_inspect(
     result.groups(),
     content=(
-      #|{"a": "a", "b": "b"}
+      #|{ "a": <StringView: "a">, "b": <StringView: "b"> }
     ),
   )
 
@@ -47,18 +55,18 @@ test "to be discussed" {
   // reference https://github.com/golang/go/issues/46123
   let regex = @regexp.compile("(|a)+")
   let result = regex.execute("aaa")
-  inspect(
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("")
+      #|Some(<StringView: "">)
     ),
   )
   let regex = @regexp.compile("(|a)*")
   let result = regex.execute("aaa")
-  inspect(
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("")
+      #|Some(<StringView: "">)
     ),
   )
 }

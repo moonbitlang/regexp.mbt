@@ -27,7 +27,10 @@ pub(all) enum Ast {
   Concat(Array[Ast])
   Alternate(Ast, Ast)
   Backreference(Int)
-} derive(Show)
+} derive(Debug)
+
+///|
+pub extend Ast with Debug::{to_repr}
 
 ///|
 /// @returns next capture
@@ -61,7 +64,7 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
       instructions.push(Split(-1, -1))
       inner.compile_aux(instructions)
       let next_pos = instructions.length()
-      if not(greedy) {
+      if !greedy {
         instructions.push(Split(next_pos + 1, split_pos + 1))
         instructions[split_pos] = Split(next_pos + 1, split_pos + 1)
       } else {
@@ -75,7 +78,7 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
       let jmp_pos = instructions.length()
       inner.compile_aux(instructions)
       let next_pos = instructions.length()
-      if not(greedy) {
+      if !greedy {
         instructions.push(Split(next_pos + 1, jmp_pos))
       } else {
         instructions.push(Split(jmp_pos, next_pos + 1))
@@ -89,7 +92,7 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
       // for taking up position
       instructions.push(Split(-1, -1))
       inner.compile_aux(instructions)
-      if not(greedy) {
+      if !greedy {
         instructions[split_pos] = Split(instructions.length(), split_pos + 1)
       } else {
         instructions[split_pos] = Split(split_pos + 1, instructions.length())
@@ -98,18 +101,18 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
     Repeat(greedy~, min~, max~, inner) =>
       if max is Some(max) {
         // [ ..., inner * min, [ split, inner ] * (max - min), ... ]
-        for i in 0U..<min {
+        for _ in 0U..<min {
           inner.compile_aux(instructions)
         }
         let split_pos = []
-        for i in 0U..<(max - min) {
+        for _ in 0U..<(max - min) {
           // placeholder for split
           split_pos.push(instructions.length())
           instructions.push(Split(-1, -1))
           inner.compile_aux(instructions) |> ignore
         }
         let jmp_pos = instructions.length()
-        if not(greedy) {
+        if !greedy {
           for pos in split_pos {
             instructions[pos] = Split(jmp_pos, pos + 1)
           }
@@ -122,7 +125,7 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
         // [ ..., inner * min, split, inner, jmp, ... ]
         //                      ^ -- instructions.length() at the beginning
         //                                         ^ -- instructions.length() at the end
-        for i in 0U..<min {
+        for _ in 0U..<min {
           inner.compile_aux(instructions)
         }
         let split_pos = instructions.length()
@@ -130,7 +133,7 @@ fn Ast::compile_aux(regex : Ast, instructions : Array[Instruction]) -> Unit {
         instructions.push(Split(-1, -1))
         inner.compile_aux(instructions)
         instructions.push(Jump(split_pos))
-        if not(greedy) {
+        if !greedy {
           instructions[split_pos] = Split(instructions.length(), split_pos + 1)
         } else {
           instructions[split_pos] = Split(split_pos + 1, instructions.length())
@@ -177,7 +180,7 @@ pub fn Ast::compile(self : Ast) -> Array[Instruction] {
 }
 
 ///|
-pub impl ToJson for Ast with to_json(self) {
+pub impl ToJson for Ast with fn to_json(self) {
   match self {
     Empty => "Empty"
     CharClass(chars, neg~) => ["CharClass neg=\{neg}", chars.map(c => repr(c))]
@@ -197,3 +200,6 @@ pub impl ToJson for Ast with to_json(self) {
     Backreference(i) => ["Backreference", i]
   }
 }
+
+///|
+pub extend Ast with ToJson::{to_json}

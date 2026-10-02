@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/regexp/internal/parse",
+  "moonbitlang/regexp/internal/vm",
+}
+
+import {
+  "moonbitlang/regexp/internal/ast",
+} for "wbtest"

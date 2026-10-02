@@ -2,6 +2,7 @@
 package "moonbitlang/regexp/internal/parse"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/regexp/internal/ast",
 }
 
@@ -11,8 +12,8 @@ pub fn parse(StringView, flags? : Flags) -> ParseResult raise RegexpError
 // Errors
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : StringView)
-}
-pub impl Show for RegexpError
+} derive(@debug.Debug)
+pub fn RegexpError::to_repr(Self) -> @debug.Repr
 
 // Types and methods
 pub enum Err {
@@ -27,25 +28,24 @@ pub enum Err {
   MissingRepeatArgument
   TrailingBackslash
   UnexpectedParenthesis
-}
-pub impl Show for Err
+} derive(@debug.Debug)
+pub fn Err::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Flags {
   multiline : Bool
   singleline : Bool
   ignore_case : Bool
-}
-pub impl Default for Flags
+} derive(Default)
+pub fn Flags::default() -> Self
 
 pub(all) struct ParseResult {
   ast : @ast.Ast
   captures : Int
   capture_map : Map[String, Int]
   has_backreference : Bool
-}
-pub impl ToJson for ParseResult
+} derive(ToJson)
+pub fn ParseResult::to_json(Self) -> Json
 
 // Type aliases
 
 // Traits
-

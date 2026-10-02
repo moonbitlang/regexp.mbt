@@ -136,13 +136,17 @@ test "parse character class range with escaped characters" {
   })
 
   // Test invalid case: end character is less than start character
-  let regex = try? parse("[a-\\]]")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidCharClass, source_fragment="]"))
-    ),
-  )
+  try parse("[a-\\]]") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidCharClass, source_fragment=<StringView: "]">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
@@ -227,40 +231,59 @@ test "parse repeat quantifier with groups" {
 ///|
 test "parse repeat quantifier error cases" {
   // Test case where {m,n} has m > n
-  let regex = try? parse("a{5,2}")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidRepeatSize, source_fragment=""))
-    ),
-  )
+  try parse("a{5,2}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidRepeatSize, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test case with missing number
-  let regex = try? parse("a{}")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=MissingRepeatArgument, source_fragment="}"))
-    ),
-  )
+  try parse("a{}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=MissingRepeatArgument,
+          #|  source_fragment=<StringView: "}">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test case with missing right brace
-  let regex = try? parse("a{2")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=""))
-    ),
-  )
+  try parse("a{2") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidRepeatOp, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test case with invalid format
-  let regex = try? parse("a{2,3,4}")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidRepeatOp, source_fragment=",4}"))
-    ),
-  )
+  try parse("a{2,3,4}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidRepeatOp, source_fragment=<StringView: ",4}">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
@@ -353,49 +376,81 @@ test "parse mixed named and regular capture groups" {
 ///|
 test "parse named capture group error cases" {
   // Test empty group name
-  let regex = try? parse("(?<>abc)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=">abc)"))
-    ),
-  )
+  try parse("(?<>abc)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidNamedCapture,
+          #|  source_fragment=<StringView: ">abc)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test group name starting with a digit
-  let regex = try? parse("(?<1invalid>abc)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="1invalid>abc)"))
-    ),
-  )
+  try parse("(?<1invalid>abc)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidNamedCapture,
+          #|  source_fragment=<StringView: "1invalid>abc)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test group name with illegal characters
-  let regex = try? parse("(?<na-me>abc)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment="-me>abc)"))
-    ),
-  )
+  try parse("(?<na-me>abc)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidNamedCapture,
+          #|  source_fragment=<StringView: "-me>abc)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test missing right angle bracket
-  let regex = try? parse("(?<name abc)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidNamedCapture, source_fragment=" abc)"))
-    ),
-  )
+  try parse("(?<name abc)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidNamedCapture,
+          #|  source_fragment=<StringView: " abc)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test missing right parenthesis
-  let regex = try? parse("(?<name>abc")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=MissingParenthesis, source_fragment=""))
-    ),
-  )
+  try parse("(?<name>abc") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=MissingParenthesis, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
@@ -463,7 +518,7 @@ test "parse valid group name formats" {
 
 ///|
 test "parse line begin assertion ^" {
-  json_inspect(parse("^abc", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^abc", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'a'", "'a'"]],
@@ -478,7 +533,7 @@ test "parse line begin assertion ^" {
 
 ///|
 test "parse line end assertion $" {
-  json_inspect(parse("abc$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("abc$", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       ["CharClass neg=false", ["'a'", "'a'"]],
       ["CharClass neg=false", ["'b'", "'b'"]],
@@ -509,7 +564,7 @@ test "parse line begin and end assertion ^...$" {
 
 ///|
 test "parse multiline assertions" {
-  json_inspect(parse("^line", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("^line", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       "Assertion BeginLine",
       ["CharClass neg=false", ["'l'", "'l'"]],
@@ -521,7 +576,7 @@ test "parse multiline assertions" {
     "capture_map": {},
     "has_backreference": false,
   })
-  json_inspect(parse("line$", flags={ ..Flags::default(), multiline: true }), content={
+  json_inspect(parse("line$", flags={ ..Flags::default(), multiline: true, }), content={
     "ast": [
       ["CharClass neg=false", ["'l'", "'l'"]],
       ["CharClass neg=false", ["'i'", "'i'"]],
@@ -1304,29 +1359,44 @@ test "parse backreference" {
   })
 
   // Test with an invalid backreference (no such group)
-  let regex = try? parse("\\2")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\2"))
-    ),
-  )
-  let regex = try? parse("\\1(a)\\1")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1(a)\\1"))
-    ),
-  )
+  try parse("\\2") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "\\2">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try parse("\\1(a)\\1") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "\\1(a)\\1">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test with a backreference to a recursive backreference
-  let regex = try? parse("(\\1)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1)"))
-    ),
-  )
+  try parse("(\\1)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "\\1)">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
@@ -1342,20 +1412,33 @@ test "parse character class range with escaped end character" {
   json_inspect(regex, content=["CharClass neg=false", ["'\\\\'", "'z'"]])
 
   // Test invalid range (end char < start char) - tab comes before 'z', so this should error
-  let result = try? parse("[z-\\t]")
-  inspect(
-    result.map(ignore),
-    content="Err(RegexpError(err=InvalidCharClass, source_fragment=\"]\"))",
-  )
+  try parse("[z-\\t]") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidCharClass, source_fragment=<StringView: "]">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test invalid: character classes like \d cannot be used in ranges on right side
-  let result = try? parse("[a-\\d]")
-  inspect(
-    result.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidCharClass, source_fragment="-\\d]"))
-    ),
-  )
+  try parse("[a-\\d]") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidCharClass,
+          #|  source_fragment=<StringView: "-\\d]">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Test escaped characters on both sides of range - newline (0x0A) to carriage return (0x0D)
   let regex = parse("[\\n-\\r]").ast

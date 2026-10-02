@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp/internal/vm"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn vm(Array[Instruction], StringView, Int, allow_exponentiaion? : Bool) -> Array[Int]
 
@@ -16,6 +20,7 @@ pub(all) enum Instruction {
   Assertion(Predicate)
   Backreference(Int)
 }
+pub fn Instruction::to_json(Self) -> Json
 pub impl ToJson for Instruction
 
 pub(all) enum Predicate {
@@ -25,11 +30,13 @@ pub(all) enum Predicate {
   EndLine
   WordBoundary
   NoWordBoundary
-}
+} derive(ToJson, @debug.Debug)
+pub fn Predicate::output(Self, &Logger) -> Unit
+pub fn Predicate::to_json(Self) -> Json
+pub fn Predicate::to_repr(Self) -> @debug.Repr
+pub fn Predicate::to_string(Self) -> String
 pub impl Show for Predicate
-pub impl ToJson for Predicate
 
 // Type aliases
 
 // Traits
-

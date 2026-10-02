@@ -25,7 +25,7 @@ test {
     Matched,
   ]
   let captures = vm(instructions, "aab", 1)
-  inspect(captures, content="[0, 3]")
+  debug_inspect(captures, content="[0, 3]")
   inspect("aab".view(start_offset=0, end_offset=3), content="aab")
 }
 
@@ -47,7 +47,7 @@ test "lazy capture" {
     Matched,
   ]
   let captures = vm(instructions, "aaaa", 2)
-  inspect(captures, content="[0, 4, 0, 0]")
+  debug_inspect(captures, content="[0, 4, 0, 0]")
 }
 
 ///|
@@ -80,7 +80,7 @@ test "priority" (t : @test.Test) {
     Matched,
   ]
   let captures = vm(instructions, "aabbcc", 4)
-  inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
+  debug_inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
     t.writeln(
       "aabbcc".view(start_offset=captures[i], end_offset=captures[i + 1]),
@@ -108,7 +108,7 @@ test "alternate capture" {
     Matched,
   ]
   let captures = vm(instructions, "abbd", 2)
-  inspect(captures, content="[0, 4, 2, 3]")
+  debug_inspect(captures, content="[0, 4, 2, 3]")
 }
 
 ///|
@@ -123,21 +123,21 @@ test "assertions" {
     Matched,
   ]
   let capture = vm(instructions, "a", 1)
-  inspect(capture, content="[0, 1]")
+  debug_inspect(capture, content="[0, 1]")
   let capture = vm(instructions, "ab", 1)
-  inspect(capture, content="[]")
+  debug_inspect(capture, content="[]")
   // \b
   let instructions = [Save(0), Assertion(WordBoundary), Save(1), Matched]
   let capture = vm(instructions, "", 1)
-  inspect(capture, content="[]")
+  debug_inspect(capture, content="[]")
   let capture = vm(instructions, "a", 1)
-  inspect(capture, content="[0, 0]")
+  debug_inspect(capture, content="[0, 0]")
   // \B
   let instructions = [Save(0), Assertion(NoWordBoundary), Save(1), Matched]
   let capture = vm(instructions, "", 1)
-  inspect(capture, content="[0, 0]")
+  debug_inspect(capture, content="[0, 0]")
   let capture = vm(instructions, "a", 1)
-  inspect(capture, content="[]")
+  debug_inspect(capture, content="[]")
 }
 
 ///|
@@ -156,7 +156,7 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "aa", 3)
-  inspect(capture, content="[0, 2, 0, 1, 1, 2]")
+  debug_inspect(capture, content="[0, 2, 0, 1, 1, 2]")
 
   // (b*a)\1
   let instructions = [
@@ -172,7 +172,7 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "bbabba", 2)
-  inspect(capture, content="[0, 6, 0, 3]")
+  debug_inspect(capture, content="[0, 6, 0, 3]")
 
   // (a|b)\1
   let instructions = [
@@ -188,9 +188,9 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "aa", 2)
-  inspect(capture, content="[0, 2, 0, 1]")
+  debug_inspect(capture, content="[0, 2, 0, 1]")
   let capture = vm(instructions, "bb", 2)
-  inspect(capture, content="[0, 2, 0, 1]")
+  debug_inspect(capture, content="[0, 2, 0, 1]")
 
   // (aa|bb)\1cd
   let instructions = [
@@ -210,9 +210,9 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "aaaacd", 2)
-  inspect(capture, content="[0, 6, 0, 2]")
+  debug_inspect(capture, content="[0, 6, 0, 2]")
   let capture = vm(instructions, "bbbbcd", 2)
-  inspect(capture, content="[0, 6, 0, 2]")
+  debug_inspect(capture, content="[0, 6, 0, 2]")
 
   // (abc)(\1|ab)
   let instructions = [
@@ -233,9 +233,9 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "abcabc", 3)
-  inspect(capture, content="[0, 6, 0, 3, 3, 6]")
+  debug_inspect(capture, content="[0, 6, 0, 3, 3, 6]")
   let capture = vm(instructions, "abcab", 3)
-  inspect(capture, content="[0, 5, 0, 3, 3, 5]")
+  debug_inspect(capture, content="[0, 5, 0, 3, 3, 5]")
 
   // (abc)(ab|\1)d
   let instructions = [
@@ -257,7 +257,7 @@ test "backreference" {
     Matched,
   ]
   let capture = vm(instructions, "abcabcd", 3)
-  inspect(capture, content="[0, 7, 0, 3, 3, 6]")
+  debug_inspect(capture, content="[0, 7, 0, 3, 3, 6]")
   let capture = vm(instructions, "abcabd", 3)
-  inspect(capture, content="[0, 6, 0, 3, 3, 5]")
+  debug_inspect(capture, content="[0, 6, 0, 3, 3, 5]")
 }

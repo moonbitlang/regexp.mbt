@@ -1,13 +1,21 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moonbitlang/regexp"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn compile(StringView, flags? : StringView) -> Regexp raise RegexpError
 
 // Errors
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : StringView)
-}
+} derive(@debug.Debug)
+pub fn RegexpError::output(Self, &Logger) -> Unit
+#deprecated
+pub fn RegexpError::to_repr(Self) -> @debug.Repr
+pub fn RegexpError::to_string(Self) -> String
 pub impl Show for RegexpError
 
 // Types and methods
@@ -23,7 +31,11 @@ pub enum Err {
   MissingRepeatArgument
   TrailingBackslash
   UnexpectedParenthesis
-}
+} derive(@debug.Debug)
+pub fn Err::output(Self, &Logger) -> Unit
+#deprecated
+pub fn Err::to_repr(Self) -> @debug.Repr
+pub fn Err::to_string(Self) -> String
 pub impl Show for Err
 
 type MatchResult
@@ -46,4 +58,3 @@ pub fn Regexp::match_(Self, StringView) -> MatchResult?
 // Type aliases
 
 // Traits
-

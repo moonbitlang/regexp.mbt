@@ -25,7 +25,7 @@ pub(all) enum Instruction {
 }
 
 ///|
-pub impl ToJson for Instruction with to_json(self) {
+pub impl ToJson for Instruction with fn to_json(self) {
   match self {
     Matched => "Matched"
     Save(i) => ["Save", i]
@@ -38,6 +38,9 @@ pub impl ToJson for Instruction with to_json(self) {
 }
 
 ///|
+pub extend Instruction with ToJson::{to_json}
+
+///|
 pub(all) enum Predicate {
   BeginText
   EndText
@@ -45,7 +48,31 @@ pub(all) enum Predicate {
   EndLine
   WordBoundary
   NoWordBoundary
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
+
+///|
+pub extend Predicate with Debug::{to_repr}
+
+///|
+pub extend Predicate with ToJson::{to_json}
+
+///|
+/// Same text as the former `derive(Show)` output.
+pub impl Show for Predicate with fn output(self, logger) {
+  logger.write_string(
+    match self {
+      BeginText => "BeginText"
+      EndText => "EndText"
+      BeginLine => "BeginLine"
+      EndLine => "EndLine"
+      WordBoundary => "WordBoundary"
+      NoWordBoundary => "NoWordBoundary"
+    },
+  )
+}
+
+///|
+pub extend Predicate with Show::{to_string, output}
 
 ///|
 /// A thread represents a point in the execution of the VM.
@@ -86,7 +113,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures, },
         clist,
       )
     }
@@ -95,7 +122,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i, captures: thread.captures },
+        { ..thread, pc: i, captures: thread.captures, },
         clist,
       )
     Split(i1, i2) => {
@@ -103,14 +130,14 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i1, captures: thread.captures.copy() },
+        { ..thread, pc: i1, captures: thread.captures.copy(), },
         clist,
       )
       add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: i2, captures: thread.captures },
+        { ..thread, pc: i2, captures: thread.captures, },
         clist,
       )
     }
@@ -132,7 +159,7 @@ fn add_thread(
           content,
           instructions,
           inst_gen,
-          { ..thread, pc: thread.pc + 1, captures: thread.captures },
+          { ..thread, pc: thread.pc + 1, captures: thread.captures, },
           clist,
         )
       }
@@ -144,7 +171,7 @@ fn add_thread(
         content,
         instructions,
         inst_gen,
-        { ..thread, pc: thread.pc + 1, captures: thread.captures },
+        { ..thread, pc: thread.pc + 1, captures: thread.captures, },
         clist,
       )
     _ => clist.push(thread)
@@ -165,16 +192,16 @@ pub fn vm(
   captures : Int,
   allow_exponentiaion? : Bool = false,
 ) -> Array[Int] {
-  guard instructions is [.., Save(1), Matched]
+  guard! instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
-  let mut clist = Array::new(capacity=instructions.length())
-  let mut nlist = Array::new(capacity=instructions.length())
+  let mut clist = Array(capacity=instructions.length())
+  let mut nlist = Array(capacity=instructions.length())
   let mut matched : Array[Int] = []
   add_thread(
     input,
     instructions,
     inst_gen,
-    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1) },
+    { sp: 0, pc: 0, captures: Array::make(captures * 2, -1), },
     clist,
   )
   for sp = 0; sp <= input.length(); {
@@ -188,13 +215,13 @@ pub fn vm(
       sp + 1
     }
     for thread in clist {
-      let { pc, captures, sp: thread_sp } = thread
+      let { pc, captures, sp: thread_sp, } = thread
       if thread_sp > sp {
         // this thread is in the future state
         nlist.push(thread)
         continue
       }
-      guard thread_sp == sp
+      guard! thread_sp == sp
       if instructions[pc] is Matched {
         matched = captures
         // drop everything that has lower priority
@@ -212,7 +239,7 @@ pub fn vm(
               } else {
                 inst_gen
               },
-              { pc: pc + 1, captures, sp: next_sp },
+              { pc: pc + 1, captures, sp: next_sp, },
               nlist,
             )
           }
@@ -220,7 +247,7 @@ pub fn vm(
           let start = captures[i * 2]
           let end = captures[i * 2 + 1]
           let len = end - start
-          guard len != 0
+          guard! len != 0
           let next_sp = sp + len
           if next_sp <= input.length() &&
             input.view(start_offset=start, end_offset=end) ==
@@ -229,7 +256,7 @@ pub fn vm(
               input,
               instructions,
               Array::make(instructions.length(), -1),
-              { pc: pc + 1, captures, sp: next_sp },
+              { pc: pc + 1, captures, sp: next_sp, },
               nlist,
             )
           }
