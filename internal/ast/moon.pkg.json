@@ -1,6 +1,0 @@
-{
-  "import": [
-    "moonbitlang/regexp/internal/vm",
-    "moonbitlang/regexp/internal/unicode"
-  ]
-}

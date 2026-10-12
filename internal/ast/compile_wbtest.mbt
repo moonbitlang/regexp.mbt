@@ -26,7 +26,7 @@ test "literal" {
   let regex = literal("abc")
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
 }
 
 ///|
@@ -38,7 +38,7 @@ test "char_class" {
   )
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   // ([a])
   let regex = Ast::ZeroOrMore(
     Ast::CharClass(['a', 'a'], neg=false),
@@ -46,12 +46,12 @@ test "char_class" {
   )
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 1]")
+  debug_inspect(result, content="[0, 1]")
   // ([^ac])
   let regex = Ast::ZeroOrMore(Ast::CharClass(['a', 'c'], neg=true), greedy=true)
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
 }
 
 ///|
@@ -59,7 +59,7 @@ test "capture" {
   let regex = Ast::Capture(literal("abc"), index=1)
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 2)
-  inspect(result, content="[0, 3, 0, 3]")
+  debug_inspect(result, content="[0, 3, 0, 3]")
   inspect(
     "abc".view(start_offset=result[1 * 2], end_offset=result[1 * 2 + 1]),
     content="abc",
@@ -71,15 +71,15 @@ test "zero_or_more" {
   let regex = Ast::ZeroOrMore(literal("abc"), greedy=true)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcab", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
   let regex = Ast::ZeroOrMore(literal("abc"), greedy=false)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcab", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
 }
 
 ///|
@@ -87,15 +87,15 @@ test "one_or_more" {
   let regex = Ast::OneOrMore(literal("abc"), greedy=true)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcab", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
   let regex = Ast::OneOrMore(literal("abc"), greedy=false)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcab", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
 }
 
 ///|
@@ -103,15 +103,15 @@ test "zero_or_one" {
   let regex = Ast::ZeroOrOne(literal("abc"), greedy=true)
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
   let regex = Ast::ZeroOrOne(literal("abc"), greedy=false)
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
 }
 
 ///|
@@ -120,20 +120,20 @@ test "repeat" {
   let regex = Ast::Repeat(min=2, max=Some(4), literal("abc"), greedy=true)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcabcabc", 1)
-  inspect(result, content="[0, 12]")
+  debug_inspect(result, content="[0, 12]")
   let result = vm(instructions, "abcabc", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
   // non-greedy
   let regex = Ast::Repeat(min=2, max=Some(4), literal("abc"), greedy=false)
   let instructions = regex.compile()
   let result = vm(instructions, "abcabcabcabc", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "abcabc", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "ab", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
 }
 
 ///|
@@ -141,9 +141,9 @@ test "concat" {
   let regex = Ast::Concat([literal("abc"), literal("def")])
   let instructions = regex.compile()
   let result = vm(instructions, "abcdef", 1)
-  inspect(result, content="[0, 6]")
+  debug_inspect(result, content="[0, 6]")
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
 }
 
 ///|
@@ -151,11 +151,11 @@ test "alternate" {
   let regex = Ast::Alternate(literal("abc"), literal("def"))
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   let result = vm(instructions, "def", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   let result = vm(instructions, "xyz", 1)
-  inspect(result, content="[]")
+  debug_inspect(result, content="[]")
 }
 
 ///|
@@ -163,15 +163,15 @@ test "empty" {
   let regex = Ast::Alternate(literal("abc"), Ast::Empty)
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 3]")
+  debug_inspect(result, content="[0, 3]")
   let result = vm(instructions, "xyz", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
 
   /// Reversed
   let regex = Ast::Alternate(Ast::Empty, literal("abc"))
   let instructions = regex.compile()
   let result = vm(instructions, "abc", 1)
-  inspect(result, content="[0, 0]")
+  debug_inspect(result, content="[0, 0]")
 }
 
 ///|

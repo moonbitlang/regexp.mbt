@@ -15,33 +15,42 @@
 test {
   // Compile once, use everywhere
   let regexp = @regexp.compile("a(bc|de)f")
-  guard regexp.match_("xxabcf") is Some(result)
-  inspect(
+  guard! regexp.match_("xxabcf") is Some(result)
+  debug_inspect(
     result.results(),
     content=(
-      #|[Some("abcf"), Some("bc")]
+      #|[Some(<StringView: "abcf">), Some(<StringView: "bc">)]
     ),
   )
 
   // Write a simple split with regexp
   fn split(regexp : @regexp.Regexp, target : StringView) -> Array[StringView] {
     let result = []
-    loop target {
-      "" => ()
-      str => {
-        let res = regexp.execute(str)
-        result.push(res.before())
-        continue res.after()
+    for target = target {
+      match target {
+        "" => break
+        str => {
+          let res = regexp.execute(str)
+          result.push(res.before())
+          continue res.after()
+        }
       }
     }
     result
   }
 
   let re = @regexp.compile("_+")
-  inspect(
+  debug_inspect(
     split(re, "1_2__3__4__5_____6"),
     content=(
-      #|["1", "2", "3", "4", "5", "6"]
+      #|[
+      #|  <StringView: "1">,
+      #|  <StringView: "2">,
+      #|  <StringView: "3">,
+      #|  <StringView: "4">,
+      #|  <StringView: "5">,
+      #|  <StringView: "6">,
+      #|]
     ),
   )
 }
@@ -92,19 +101,19 @@ Match characters by their Unicode general categories:
 test "unicode properties" {
   // Matching gc=L
   let regex = @regexp.compile("\\p{Letter}+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello 世界").results(),
     content=(
-      #|[Some("Hello")]
+      #|[Some(<StringView: "Hello">)]
     ),
   )
 
   // Matching gc=N
   let regex = @regexp.compile("\\p{Number}+")
-  inspect(
+  debug_inspect(
     regex.execute("123 and 456").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
 }
@@ -124,20 +133,28 @@ test "unicode properties" {
 test "backreferences" {
   // Palindrome detection (simple)
   let palindrome = @regexp.compile("^(.)(.)\\2\\1")
-  inspect(
+  debug_inspect(
     palindrome.execute("abba").results(),
     content=(
-      #|[Some("abba"), Some("a"), Some("b")]
+      #|[
+      #|  Some(<StringView: "abba">),
+      #|  Some(<StringView: "a">),
+      #|  Some(<StringView: "b">),
+      #|]
     ),
   )
 
   // HTML tag matching
   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
   let result = html_regex.execute("<div class='test'>content</div>")
-  inspect(
+  debug_inspect(
     result.results(),
     content=(
-      #|[Some("<div class='test'>content</div>"), Some("div"), Some("content")]
+      #|[
+      #|  Some(<StringView: "<div class='test'>content</div>">),
+      #|  Some(<StringView: "div">),
+      #|  Some(<StringView: "content">),
+      #|]
     ),
   )
 }
@@ -155,10 +172,10 @@ test "character classes" {
     ),
   )
   let email_result = email.execute("user@example.com").results()
-  inspect(
+  debug_inspect(
     email_result,
     content=(
-      #|[Some("user@example.com")]
+      #|[Some(<StringView: "user@example.com">)]
     ),
   )
   // Extract numbers
@@ -168,10 +185,10 @@ test "character classes" {
     ),
   )
   let result = numbers.execute("Price: $42.99").results()
-  inspect(
+  debug_inspect(
     result,
     content=(
-      #|[Some("42.99")]
+      #|[Some(<StringView: "42.99">)]
     ),
   )
 
@@ -182,10 +199,14 @@ test "character classes" {
     ),
   )
   let date_result = parser.execute("2024-03-15")
-  inspect(
+  debug_inspect(
     date_result.groups(),
     content=(
-      #|{"year": "2024", "month": "03", "day": "15"}
+      #|{
+      #|  "year": <StringView: "2024">,
+      #|  "month": <StringView: "03">,
+      #|  "day": <StringView: "15">,
+      #|}
     ),
   )
 }

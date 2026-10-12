@@ -71,19 +71,22 @@
 priv struct Parser {
   mut input : StringView
   mut flags : Flags
-  mut captures : Int
-  current_capture_scope : Set[Int]
-  capture_map : Map[String, Int]
+  mut captures : Int32
+  current_capture_scope : Set[Int32]
+  capture_map : Map[String, Int32]
   mut has_backreference : Bool
 }
 
 ///|
 pub(all) struct ParseResult {
   ast : Ast
-  captures : Int
-  capture_map : Map[String, Int]
+  captures : Int32
+  capture_map : Map[String, Int32]
   has_backreference : Bool
 } derive(ToJson)
+
+///|
+pub extend ParseResult with ToJson::{to_json}
 
 ///|
 pub(all) struct Flags {
@@ -91,6 +94,9 @@ pub(all) struct Flags {
   singleline : Bool
   ignore_case : Bool
 } derive(Default)
+
+///|
+pub extend Flags with Default::{default}
 
 ///|
 /// Regular expression parsing error types
@@ -108,7 +114,10 @@ pub enum Err {
   MissingRepeatArgument // Missing repeat argument
   TrailingBackslash // Trailing backslash
   UnexpectedParenthesis // Unexpected parenthesis
-} derive(Show)
+} derive(Debug)
+
+///|
+pub extend Err with Debug::{to_repr}
 
 ///|
 /// Parsing error exception type
@@ -116,7 +125,10 @@ pub enum Err {
 /// Contains error information and related string view context
 pub suberror RegexpError {
   RegexpError(err~ : Err, source_fragment~ : StringView)
-} derive(Show)
+} derive(Debug)
+
+///|
+pub extend RegexpError with Debug::{to_repr}
 
 ///|
 /// Create a regular expression parser
@@ -131,7 +143,7 @@ fn Parser::new(input : StringView, flags : Flags) -> Parser {
     flags,
     captures: 1,
     capture_map: {},
-    current_capture_scope: @set.Set::new(),
+    current_capture_scope: @set.Set([]),
     has_backreference: false,
   }
 }
@@ -149,7 +161,7 @@ fn Parser::new(input : StringView, flags : Flags) -> Parser {
 /// Throws: Error_ when parsing fails
 pub fn parse(
   regex : StringView,
-  flags? : Flags = Flags::default(),
+  flags~ : Flags = Flags::default(),
 ) -> ParseResult raise RegexpError {
   let parser = Parser::new(regex, flags)
   let result = parser.parse_expression()
@@ -473,16 +485,16 @@ fn Parser::parse_factor(self : Parser) -> Ast raise RegexpError {
           CharClass([unicode_char, unicode_char], neg=false)
         }
         '0' =>
-          if rest is ['0'..='9', ..] {
+          if rest is ['0'..<='9', ..] {
             raise RegexpError(err=InvalidEscape, source_fragment=escape)
           } else {
             self.input = rest
             CharClass(['\u{0}', '\u{0}'], neg=false) // Null character
           }
-        '1'..='9' as ch => {
+        '1'..<='9' as ch => {
           let mut input = self.input
           let mut capture = ch.to_int() - '0'.to_int()
-          while input is ['0'..='9' as next_ch, .. next_rest] {
+          while input is ['0'..<='9' as next_ch, .. next_rest] {
             capture = capture * 10 + (next_ch.to_int() - '0'.to_int())
             input = next_rest // consume the digit
           }
@@ -620,7 +632,7 @@ fn Parser::parse_char_class(self : Parser) -> Ast raise RegexpError {
           'p' | 'P' as flag => {
             // Unicode property \p{property_name}
             let property_name = self.parse_unicode_property()
-            guard self.parse_general_category(property_name, flag == 'P')
+            guard! self.parse_general_category(property_name, flag == 'P')
               is CharClass(class, neg~)
             if neg {
               compute_char_class_complement(class).each(x => chars.push(x))
@@ -765,7 +777,7 @@ fn Parser::is_special_char(c : Char) -> Bool {
 /// - max: Maximum number of repetitions (None means unlimited)
 ///
 /// Throws: Error_ when the repeat quantifier format is incorrect
-fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise RegexpError {
+fn Parser::parse_repeat(self : Parser) -> (UInt32, UInt32?) raise RegexpError {
 
   // Parse the first number (minimum repetitions)
   let min = self.parse_number()
@@ -817,7 +829,7 @@ fn Parser::parse_repeat(self : Parser) -> (UInt, UInt?) raise RegexpError {
 /// Returns: The parsed integer value
 ///
 /// Throws: Error_ when no valid number is found
-fn Parser::parse_number(self : Parser) -> UInt raise RegexpError {
+fn Parser::parse_number(self : Parser) -> UInt32 raise RegexpError {
   let mut result = 0U
   let mut has_digits = false
   while self.input is [ch, .. rest] && ch >= '0' && ch <= '9' {
@@ -825,7 +837,7 @@ fn Parser::parse_number(self : Parser) -> UInt raise RegexpError {
     result = result * 10U + (ch.to_int() - '0'.to_int()).reinterpret_as_uint()
     self.input = rest
   }
-  if not(has_digits) {
+  if !has_digits {
     raise RegexpError(err=MissingRepeatArgument, source_fragment=self.input)
   }
   result
@@ -852,14 +864,14 @@ fn Parser::parse_group_name(self : Parser) -> String raise RegexpError {
   while self.input is [ch, .. rest] && ch != '>' {
     if first {
       // The first character must be a letter or an underscore
-      if ch is ('a'..='z' | 'A'..='Z' | '_') {
+      if ch is ('a'..<='z' | 'A'..<='Z' | '_') {
         name += ch.to_string()
         self.input = rest
         first = false
       } else {
         raise RegexpError(err=InvalidNamedCapture, source_fragment=self.input)
       }
-    } else if ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | '_') {
+    } else if ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | '_') {
       // Subsequent characters can be letters, numbers, or underscores
       name += ch.to_string()
       self.input = rest
@@ -887,32 +899,34 @@ fn Parser::parse_group_name(self : Parser) -> String raise RegexpError {
 ///
 /// Throws: Error_ when an invalid flag is encountered
 fn Parser::parse_flags(self : Parser) -> Flags raise RegexpError {
-  let mut flag = { ..self.flags }
+  let mut flag = { ..self.flags, }
   let mut positive = true
-  loop self.input {
-    [':', .. rest] => {
-      self.input = rest // consume
-      return flag
+  for input = self.input {
+    match input {
+      [':', .. rest] => {
+        self.input = rest // consume
+        break flag
+      }
+      ['m', .. rest] => {
+        flag = { ..flag, multiline: positive, }
+        continue rest
+      }
+      ['s', .. rest] => {
+        flag = { ..flag, singleline: positive, }
+        continue rest
+      }
+      ['i', .. rest] => {
+        flag = { ..flag, ignore_case: positive, }
+        continue rest
+      }
+      ['-', .. rest] if positive => {
+        positive = false // Switch to negation mode
+        continue rest
+      }
+      [_, ..] | [] =>
+        // Unknown flag character or unexpected end
+        raise RegexpError(err=InvalidRepeatOp, source_fragment=self.input)
     }
-    ['m', .. rest] => {
-      flag = { ..flag, multiline: positive }
-      continue rest
-    }
-    ['s', .. rest] => {
-      flag = { ..flag, singleline: positive }
-      continue rest
-    }
-    ['i', .. rest] => {
-      flag = { ..flag, ignore_case: positive }
-      continue rest
-    }
-    ['-', .. rest] if positive => {
-      positive = false // Switch to negation mode
-      continue rest
-    }
-    [_, ..] | [] =>
-      // Unknown flag character or unexpected end
-      raise RegexpError(err=InvalidRepeatOp, source_fragment=self.input)
   }
 }
 
@@ -942,15 +956,15 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise RegexpError {
       // Parse hex digits until '}'
       while self.input is [ch, .. rest] && ch != '}' {
         match ch {
-          '0'..='9' as ch => {
+          '0'..<='9' as ch => {
             codepoint = (codepoint << 4) | (ch.to_int() - '0'.to_int())
             self.input = rest
           }
-          'a'..='f' as ch => {
+          'a'..<='f' as ch => {
             codepoint = (codepoint << 4) | (ch.to_int() - 'a'.to_int() + 10)
             self.input = rest
           }
-          'A'..='F' as ch => {
+          'A'..<='F' as ch => {
             codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
             self.input = rest
           }
@@ -981,17 +995,17 @@ fn Parser::parse_unicode_escape(self : Parser) -> Char raise RegexpError {
     _ => {
       // Parse exactly 4 hex digits for \uaaaa format
       let mut codepoint = 0
-      for i in 0..<4 {
+      for _ in 0..<4 {
         match self.input {
-          ['0'..='9' as ch, .. rest] => {
+          ['0'..<='9' as ch, .. rest] => {
             codepoint = (codepoint << 4) | (ch.to_int() - '0'.to_int())
             self.input = rest
           }
-          ['a'..='f' as ch, .. rest] => {
+          ['a'..<='f' as ch, .. rest] => {
             codepoint = (codepoint << 4) | (ch.to_int() - 'a'.to_int() + 10)
             self.input = rest
           }
-          ['A'..='F' as ch, .. rest] => {
+          ['A'..<='F' as ch, .. rest] => {
             codepoint = (codepoint << 4) | (ch.to_int() - 'A'.to_int() + 10)
             self.input = rest
           }
@@ -1040,6 +1054,6 @@ fn Parser::parse_general_category(
   }
 
   // Get the character ranges for the normalized property name
-  guard @unicode.general_category_ranges.get(normalized_name) is Some(ranges)
+  guard! @unicode.general_category_ranges.get(normalized_name) is Some(ranges)
   CharClass(ranges, neg~)
 }

@@ -39,4 +39,3 @@ pub fn simplify_char_ranges(ArrayView[Char]) -> ArrayView[Char]
 // Type aliases
 
 // Traits
-

@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.3.6]
+
+### Changed
+
+- Updated to moon 0.1.20261012: `Int32`/`UInt32` spelling, manifests migrated
+  to `moon.mod`/`moon.pkg`, deprecated APIs replaced. Tests and README examples
+  use `debug_inspect`; the printed text of `RegexpError` is unchanged.
+- CI now fails on warnings (`moon check --deny-warn`).
+
 ## [0.3.5]
 
 ### Changed

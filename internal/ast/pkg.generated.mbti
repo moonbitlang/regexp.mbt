@@ -2,6 +2,7 @@
 package "moonbitlang/regexp/internal/ast"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/regexp/internal/vm",
 }
 
@@ -22,12 +23,12 @@ pub(all) enum Ast {
   Concat(Array[Ast])
   Alternate(Ast, Ast)
   Backreference(Int)
-}
+} derive(@debug.Debug)
 pub fn Ast::compile(Self) -> Array[@vm.Instruction]
-pub impl Show for Ast
+pub fn Ast::to_json(Self) -> Json
+pub fn Ast::to_repr(Self) -> @debug.Repr
 pub impl ToJson for Ast
 
 // Type aliases
 
 // Traits
-

@@ -15,17 +15,17 @@
 ///|
 test "simple regex test" {
   let regex = @regexp.compile("abc")
-  inspect(
+  debug_inspect(
     regex.execute("abc").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
-  inspect(regex.execute("ab").results(), content="[]")
-  inspect(
+  debug_inspect(regex.execute("ab").results(), content="[]")
+  debug_inspect(
     regex.execute("abcd").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
 }
@@ -34,149 +34,187 @@ test "simple regex test" {
 test "unicode escape sequences" {
   // Test basic \u{aaaa} format
   let regex = @regexp.compile("\\u{41}")
-  inspect(
+  debug_inspect(
     regex.execute("A").results(),
     content=(
-      #|[Some("A")]
+      #|[Some(<StringView: "A">)]
     ),
   )
   inspect(regex.execute("B").matched(), content="false")
 
   // Test \uaaaa format (exactly 4 digits)
   let regex = @regexp.compile("\\u0041")
-  inspect(
+  debug_inspect(
     regex.execute("A").results(),
     content=(
-      #|[Some("A")]
+      #|[Some(<StringView: "A">)]
     ),
   )
 
   // Test Unicode characters beyond ASCII
   let regex = @regexp.compile("\\u{4e16}\\u{754c}")
-  inspect(
+  debug_inspect(
     regex.execute("世界").results(),
     content=(
-      #|[Some("世界")]
+      #|[Some(<StringView: "世界">)]
     ),
   )
   let regex = @regexp.compile("\\u4e16\\u754C")
-  inspect(
+  debug_inspect(
     regex.execute("世界").results(),
     content=(
-      #|[Some("世界")]
+      #|[Some(<StringView: "世界">)]
     ),
   )
 
   // Test large Unicode escape
   let regex = @regexp.compile("\\u{10348}")
-  inspect(
+  debug_inspect(
     regex.execute("𐍈").results(),
     content=(
-      #|[Some("𐍈")]
+      #|[Some(<StringView: "𐍈">)]
     ),
   )
 
   // Test in character classes
   let regex = @regexp.compile("[\\u{41}-\\u{43}]")
-  inspect(
+  debug_inspect(
     regex.execute("B").results(),
     content=(
-      #|[Some("B")]
+      #|[Some(<StringView: "B">)]
     ),
   )
   inspect(regex.execute("D").matched(), content="false")
 
   // Test with \uaaaa format in character classes
   let regex = @regexp.compile("[\\u0041\\u0042]")
-  inspect(
+  debug_inspect(
     regex.execute("A").results(),
     content=(
-      #|[Some("A")]
+      #|[Some(<StringView: "A">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("B").results(),
     content=(
-      #|[Some("B")]
+      #|[Some(<StringView: "B">)]
     ),
   )
   inspect(regex.execute("C").matched(), content="false")
 
   // Test combining with other patterns
   let regex = @regexp.compile("\\u{48}ello \\u{4E16}\\u754C")
-  inspect(
+  debug_inspect(
     regex.execute("Hello 世界").results(),
     content=(
-      #|[Some("Hello 世界")]
+      #|[Some(<StringView: "Hello 世界">)]
     ),
   )
 
   // Test error cases
-  guard (try? @regexp.compile("\\u{}")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="}")
-    ),
-  )
-  guard (try? @regexp.compile("\\u{1234567}")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="1234567}")
-    ),
-  )
-  guard (try? @regexp.compile("\\u{GGGG}")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="GGGG}")
-    ),
-  )
-  guard (try? @regexp.compile("\\u123")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="")
-    ),
-  )
-  guard (try? @regexp.compile("\\uGGGG")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="GGGG")
-    ),
-  )
-  guard (try? @regexp.compile("\\u{110000}")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="110000}")
-    ),
-  )
-  guard (try? @regexp.compile("\\u{dfff}")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="dfff}")
-    ),
-  )
-  guard (try? @regexp.compile("\\u{")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=InvalidEscape, source_fragment="")
-    ),
-  )
+  try @regexp.compile("\\u{}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "}">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u{1234567}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "1234567}">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u{GGGG}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "GGGG}">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u123") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\uGGGG") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "GGGG">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u{110000}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "110000}">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u{dfff}") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "dfff}">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\u{") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
 test "simple regex test matching leftmost" {
   let regex = @regexp.compile("a(bc|de)f")
-  inspect(
+  debug_inspect(
     regex.execute("xxabcf").results(),
     content=(
-      #|[Some("abcf"), Some("bc")]
+      #|[Some(<StringView: "abcf">), Some(<StringView: "bc">)]
     ),
   )
 }
@@ -184,10 +222,10 @@ test "simple regex test matching leftmost" {
 ///|
 test "simple regex test with repeat" {
   let regex = @regexp.compile("a(bc|de){2,}f")
-  inspect(
+  debug_inspect(
     regex.execute("xxabcdebcf").results(),
     content=(
-      #|[Some("abcdebcf"), Some("bc")]
+      #|[Some(<StringView: "abcdebcf">), Some(<StringView: "bc">)]
     ),
   )
 }
@@ -201,10 +239,10 @@ test "character classes" {
     ),
   )
   let email_result = email.execute("user@example.com").results()
-  inspect(
+  debug_inspect(
     email_result,
     content=(
-      #|[Some("user@example.com")]
+      #|[Some(<StringView: "user@example.com">)]
     ),
   )
   // Extract numbers
@@ -214,10 +252,10 @@ test "character classes" {
     ),
   )
   let result = numbers.execute("Price: $42.99").results()
-  inspect(
+  debug_inspect(
     result,
     content=(
-      #|[Some("42.99")]
+      #|[Some(<StringView: "42.99">)]
     ),
   )
 
@@ -228,10 +266,14 @@ test "character classes" {
     ),
   )
   let date_result = parser.execute("2024-03-15")
-  inspect(
+  debug_inspect(
     date_result.groups(),
     content=(
-      #|{"year": "2024", "month": "03", "day": "15"}
+      #|{
+      #|  "year": <StringView: "2024">,
+      #|  "month": <StringView: "03">,
+      #|  "day": <StringView: "15">,
+      #|}
     ),
   )
 }
@@ -239,36 +281,36 @@ test "character classes" {
 ///|
 test "regexp with flags" {
   // singleline flag
-  let regexp = compile(".")
+  let regexp = @regexp.compile(".")
   inspect(regexp.execute("\n").matched(), content="false")
-  let regexp = compile(".", flags="s")
+  let regexp = @regexp.compile(".", flags="s")
   inspect(regexp.execute("\n").matched(), content="true")
-  let regexp = compile("(?s:.)")
+  let regexp = @regexp.compile("(?s:.)")
   inspect(regexp.execute("\n").matched(), content="true")
 
   // multiline flag
-  let regexp = compile("$")
+  let regexp = @regexp.compile("$")
   inspect(regexp.execute("\n").matched(), content="true")
   inspect(regexp.execute("\n").results().length(), content="1")
-  inspect(
+  debug_inspect(
     regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[1]",
   )
-  let regexp = compile("$", flags="m")
+  let regexp = @regexp.compile("$", flags="m")
   inspect(regexp.execute("\n").matched(), content="true")
-  inspect(
+  debug_inspect(
     regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[0]",
   )
-  let regexp = compile("(?m:$)")
+  let regexp = @regexp.compile("(?m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
-  inspect(
+  debug_inspect(
     regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[0]",
   )
-  let regexp = compile("(?m-m:$)")
+  let regexp = @regexp.compile("(?m-m:$)")
   inspect(regexp.execute("\n").matched(), content="true")
-  inspect(
+  debug_inspect(
     regexp.execute("\n").results().map(r => r.unwrap().start_offset()),
     content="[1]",
   )
@@ -276,56 +318,78 @@ test "regexp with flags" {
 
 ///|
 test "invalid regex test" {
-  guard (try? @regexp.compile("a(b")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=MissingParenthesis, source_fragment="")
-    ),
-  )
-  guard (try? @regexp.compile("a(b|c")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=MissingParenthesis, source_fragment="")
-    ),
-  )
-  guard (try? @regexp.compile("a|b)")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
-    ),
-  )
-  guard (try? @regexp.compile("a|b|c)")) is Err(error)
-  error
-  |> inspect(
-    content=(
-      #|RegexpError(err=UnexpectedParenthesis, source_fragment=")")
-    ),
-  )
+  try @regexp.compile("a(b") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=MissingParenthesis, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("a(b|c") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=MissingParenthesis, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("a|b)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=UnexpectedParenthesis,
+          #|  source_fragment=<StringView: ")">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("a|b|c)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=UnexpectedParenthesis,
+          #|  source_fragment=<StringView: ")">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
 test "quantifiers and repetition" {
   // Test * quantifier (zero or more)
   let regex = @regexp.compile("ab*c")
-  inspect(
+  debug_inspect(
     regex.execute("ac").results(),
     content=(
-      #|[Some("ac")]
+      #|[Some(<StringView: "ac">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abc").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abbbbc").results(),
     content=(
-      #|[Some("abbbbc")]
+      #|[Some(<StringView: "abbbbc">)]
     ),
   )
   inspect(regex.execute("bc").matched(), content="false")
@@ -333,31 +397,31 @@ test "quantifiers and repetition" {
   // Test + quantifier (one or more)
   let regex = @regexp.compile("ab+c")
   inspect(regex.execute("ac").matched(), content="false")
-  inspect(
+  debug_inspect(
     regex.execute("abc").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abbbbc").results(),
     content=(
-      #|[Some("abbbbc")]
+      #|[Some(<StringView: "abbbbc">)]
     ),
   )
 
   // Test ? quantifier (zero or one)
   let regex = @regexp.compile("ab?c")
-  inspect(
+  debug_inspect(
     regex.execute("ac").results(),
     content=(
-      #|[Some("ac")]
+      #|[Some(<StringView: "ac">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abc").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
   inspect(regex.execute("abbc").matched(), content="false")
@@ -365,60 +429,60 @@ test "quantifiers and repetition" {
   // Test specific count {n}
   let regex = @regexp.compile("a{3}")
   inspect(regex.execute("aa").matched(), content="false")
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aaa")]
+      #|[Some(<StringView: "aaa">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaa").results(),
     content=(
-      #|[Some("aaa")]
+      #|[Some(<StringView: "aaa">)]
     ),
   )
 
   // Test range {n,m}
   let regex = @regexp.compile("a{2,4}")
   inspect(regex.execute("a").matched(), content="false")
-  inspect(
+  debug_inspect(
     regex.execute("aa").results(),
     content=(
-      #|[Some("aa")]
+      #|[Some(<StringView: "aa">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aaa")]
+      #|[Some(<StringView: "aaa">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaa").results(),
     content=(
-      #|[Some("aaaa")]
+      #|[Some(<StringView: "aaaa">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaaa").results(),
     content=(
-      #|[Some("aaaa")]
+      #|[Some(<StringView: "aaaa">)]
     ),
   )
 
   // Test minimum count {n,}
   let regex = @regexp.compile("a{3,}")
   inspect(regex.execute("aa").matched(), content="false")
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aaa")]
+      #|[Some(<StringView: "aaa">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaaa").results(),
     content=(
-      #|[Some("aaaaa")]
+      #|[Some(<StringView: "aaaaa">)]
     ),
   )
 }
@@ -427,138 +491,138 @@ test "quantifiers and repetition" {
 test "character classes and sets" {
   // Test digit class \d
   let regex = @regexp.compile("\\d+")
-  inspect(
+  debug_inspect(
     regex.execute("123").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abc123def").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
   inspect(regex.execute("abc").matched(), content="false")
 
   // Test word class \w
   let regex = @regexp.compile("\\w+")
-  inspect(
+  debug_inspect(
     regex.execute("hello123").results(),
     content=(
-      #|[Some("hello123")]
+      #|[Some(<StringView: "hello123">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("hello-world").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
 
   // Test whitespace class \s
   let regex = @regexp.compile("\\s+")
-  inspect(
+  debug_inspect(
     regex.execute("  \t\n").results(),
     content=(
-      #|[Some("  \t\n")]
+      #|[Some(<StringView: "  \t\n">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("a b").results(),
     content=(
-      #|[Some(" ")]
+      #|[Some(<StringView: " ">)]
     ),
   )
 
   // Test negated classes
   let regex = @regexp.compile("\\D+")
-  inspect(
+  debug_inspect(
     regex.execute("abc123").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
   let regex = @regexp.compile("\\W+")
-  inspect(
+  debug_inspect(
     regex.execute("hello-world!").results(),
     content=(
-      #|[Some("-")]
+      #|[Some(<StringView: "-">)]
     ),
   )
   let regex = @regexp.compile("\\S+")
-  inspect(
+  debug_inspect(
     regex.execute("hello world").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
 
   // Test custom character sets
   let regex = @regexp.compile("[abc]")
-  inspect(
+  debug_inspect(
     regex.execute("apple").results(),
     content=(
-      #|[Some("a")]
+      #|[Some(<StringView: "a">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("banana").results(),
     content=(
-      #|[Some("b")]
+      #|[Some(<StringView: "b">)]
     ),
   )
   inspect(regex.execute("xyz").matched(), content="false")
 
   // Test character ranges
   let regex = @regexp.compile("[a-z]+")
-  inspect(
+  debug_inspect(
     regex.execute("hello123").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("Hello").results(),
     content=(
-      #|[Some("ello")]
+      #|[Some(<StringView: "ello">)]
     ),
   )
   let regex = @regexp.compile("[0-9]+")
-  inspect(
+  debug_inspect(
     regex.execute("abc123def").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
 
   // Test negated character sets
   let regex = @regexp.compile("[^abc]+")
-  inspect(
+  debug_inspect(
     regex.execute("abcdef").results(),
     content=(
-      #|[Some("def")]
+      #|[Some(<StringView: "def">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("xyz").results(),
     content=(
-      #|[Some("xyz")]
+      #|[Some(<StringView: "xyz">)]
     ),
   )
 
   // Test mixed character sets
   let regex = @regexp.compile("[a-zA-Z0-9_]+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello_World123").results(),
     content=(
-      #|[Some("Hello_World123")]
+      #|[Some(<StringView: "Hello_World123">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("test-case").results(),
     content=(
-      #|[Some("test")]
+      #|[Some(<StringView: "test">)]
     ),
   )
 }
@@ -567,30 +631,30 @@ test "character classes and sets" {
 test "anchors and boundaries" {
   // Test start anchor ^
   let regex = @regexp.compile("^hello")
-  inspect(
+  debug_inspect(
     regex.execute("hello world").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
   inspect(regex.execute("say hello").matched(), content="false")
 
   // Test end anchor $
   let regex = @regexp.compile("world$")
-  inspect(
+  debug_inspect(
     regex.execute("hello world").results(),
     content=(
-      #|[Some("world")]
+      #|[Some(<StringView: "world">)]
     ),
   )
   inspect(regex.execute("world peace").matched(), content="false")
 
   // Test both anchors
   let regex = @regexp.compile("^hello$")
-  inspect(
+  debug_inspect(
     regex.execute("hello").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
   inspect(regex.execute("hello world").matched(), content="false")
@@ -598,16 +662,16 @@ test "anchors and boundaries" {
 
   // Test word boundaries \b
   let regex = @regexp.compile("\\bword\\b")
-  inspect(
+  debug_inspect(
     regex.execute("a word here").results(),
     content=(
-      #|[Some("word")]
+      #|[Some(<StringView: "word">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("word").results(),
     content=(
-      #|[Some("word")]
+      #|[Some(<StringView: "word">)]
     ),
   )
   inspect(regex.execute("sword").matched(), content="false")
@@ -615,10 +679,10 @@ test "anchors and boundaries" {
 
   // Test non-word boundaries \B
   let regex = @regexp.compile("\\Bor\\B")
-  inspect(
+  debug_inspect(
     regex.execute("words").results(),
     content=(
-      #|[Some("or")]
+      #|[Some(<StringView: "or">)]
     ),
   )
   inspect(regex.execute("or").matched(), content="false")
@@ -629,16 +693,16 @@ test "anchors and boundaries" {
 test "alternation and grouping" {
   // Test simple alternation
   let regex = @regexp.compile("cat|dog")
-  inspect(
+  debug_inspect(
     regex.execute("I have a cat").results(),
     content=(
-      #|[Some("cat")]
+      #|[Some(<StringView: "cat">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("I have a dog").results(),
     content=(
-      #|[Some("dog")]
+      #|[Some(<StringView: "dog">)]
     ),
   )
   inspect(regex.execute("I have a bird").matched(), content="false")
@@ -646,50 +710,55 @@ test "alternation and grouping" {
   // Test alternation with groups
   let regex = @regexp.compile("(cat|dog) food")
   let result = regex.execute("cat food").results()
-  inspect(
+  debug_inspect(
     result,
     content=(
-      #|[Some("cat food"), Some("cat")]
+      #|[Some(<StringView: "cat food">), Some(<StringView: "cat">)]
     ),
   )
 
   // Test nested groups
   let regex = @regexp.compile("((a|b)(c|d))")
   let result = regex.execute("ac").results()
-  inspect(
+  debug_inspect(
     result,
     content=(
-      #|[Some("ac"), Some("ac"), Some("a"), Some("c")]
+      #|[
+      #|  Some(<StringView: "ac">),
+      #|  Some(<StringView: "ac">),
+      #|  Some(<StringView: "a">),
+      #|  Some(<StringView: "c">),
+      #|]
     ),
   )
 
   // Test non-capturing groups
   let regex = @regexp.compile("(?:cat|dog) food")
-  inspect(
+  debug_inspect(
     regex.execute("cat food").results(),
     content=(
-      #|[Some("cat food")]
+      #|[Some(<StringView: "cat food">)]
     ),
   )
 
   // Test multiple alternations
   let regex = @regexp.compile("red|green|blue")
-  inspect(
+  debug_inspect(
     regex.execute("red car").results(),
     content=(
-      #|[Some("red")]
+      #|[Some(<StringView: "red">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("green light").results(),
     content=(
-      #|[Some("green")]
+      #|[Some(<StringView: "green">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("blue sky").results(),
     content=(
-      #|[Some("blue")]
+      #|[Some(<StringView: "blue">)]
     ),
   )
 }
@@ -699,78 +768,78 @@ test "advanced capture groups" {
   // Test multiple groups
   let regex = @regexp.compile("([a-z]+) ([0-9]+)")
   let result = regex.execute("hello 123")
-  inspect(
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("hello 123")
+      #|Some(<StringView: "hello 123">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(1),
     content=(
-      #|Some("hello")
+      #|Some(<StringView: "hello">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(2),
     content=(
-      #|Some("123")
+      #|Some(<StringView: "123">)
     ),
   )
-  inspect(result.get(3), content="None")
+  debug_inspect(result.get(3), content="None")
 
   // Test nested groups
   let regex = @regexp.compile("((\\w+)-(\\w+))")
   let result = regex.execute("first-second")
-  inspect(
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("first-second")
+      #|Some(<StringView: "first-second">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(1),
     content=(
-      #|Some("first-second")
+      #|Some(<StringView: "first-second">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(2),
     content=(
-      #|Some("first")
+      #|Some(<StringView: "first">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(3),
     content=(
-      #|Some("second")
+      #|Some(<StringView: "second">)
     ),
   )
 
   // Test optional groups
   let regex = @regexp.compile("(\\w+)(-\\w+)?")
   let result1 = regex.execute("hello-world")
-  inspect(
+  debug_inspect(
     result1.get(1),
     content=(
-      #|Some("hello")
+      #|Some(<StringView: "hello">)
     ),
   )
-  inspect(
+  debug_inspect(
     result1.get(2),
     content=(
-      #|Some("-world")
+      #|Some(<StringView: "-world">)
     ),
   )
   let result2 = regex.execute("hello")
-  inspect(
+  debug_inspect(
     result2.get(1),
     content=(
-      #|Some("hello")
+      #|Some(<StringView: "hello">)
     ),
   )
   // Optional group that didn't match should still be accessible but empty
-  inspect(result2.get(2), content="None")
+  debug_inspect(result2.get(2), content="None")
 }
 
 ///|
@@ -778,10 +847,10 @@ test "complex named capture groups" {
   // Test multiple named groups
   let regex = @regexp.compile("(?<first>\\w+)\\s+(?<last>\\w+)")
   let result = regex.execute("John Doe")
-  inspect(
+  debug_inspect(
     result.groups(),
     content=(
-      #|{"first": "John", "last": "Doe"}
+      #|{ "first": <StringView: "John">, "last": <StringView: "Doe"> }
     ),
   )
 
@@ -795,26 +864,30 @@ test "complex named capture groups" {
     "(?<protocol>https?)://(?<domain>[^/]+)(?<path>/.*)?",
   )
   let result = url_regex.execute("https://example.com/path/to/page")
-  inspect(
+  debug_inspect(
     result.groups(),
     content=(
-      #|{"protocol": "https", "domain": "example.com", "path": "/path/to/page"}
+      #|{
+      #|  "protocol": <StringView: "https">,
+      #|  "domain": <StringView: "example.com">,
+      #|  "path": <StringView: "/path/to/page">,
+      #|}
     ),
   )
 
   // Test mixed named and unnamed groups
   let regex = @regexp.compile("(\\w+)@(?<domain>\\w+\\.\\w+)")
   let result = regex.execute("user@example.com")
-  inspect(
+  debug_inspect(
     result.get(1),
     content=(
-      #|Some("user")
+      #|Some(<StringView: "user">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.groups(),
     content=(
-      #|{"domain": "example.com"}
+      #|{ "domain": <StringView: "example.com"> }
     ),
   )
 }
@@ -823,99 +896,99 @@ test "complex named capture groups" {
 test "escape sequences and special characters" {
   // Test literal special characters
   let regex = @regexp.compile("\\.")
-  inspect(
+  debug_inspect(
     regex.execute("3.14").results(),
     content=(
-      #|[Some(".")]
+      #|[Some(<StringView: ".">)]
     ),
   )
   inspect(regex.execute("314").matched(), content="false")
   let regex = @regexp.compile("\\*")
-  inspect(
+  debug_inspect(
     regex.execute("2*3").results(),
     content=(
-      #|[Some("*")]
+      #|[Some(<StringView: "*">)]
     ),
   )
   let regex = @regexp.compile("\\+")
-  inspect(
+  debug_inspect(
     regex.execute("1+1").results(),
     content=(
-      #|[Some("+")]
+      #|[Some(<StringView: "+">)]
     ),
   )
   let regex = @regexp.compile("\\?")
-  inspect(
+  debug_inspect(
     regex.execute("what?").results(),
     content=(
-      #|[Some("?")]
+      #|[Some(<StringView: "?">)]
     ),
   )
 
   // Test escaped brackets
   let regex = @regexp.compile("\\[\\]")
-  inspect(
+  debug_inspect(
     regex.execute("array[]").results(),
     content=(
-      #|[Some("[]")]
+      #|[Some(<StringView: "[]">)]
     ),
   )
   let regex = @regexp.compile("\\(\\)")
-  inspect(
+  debug_inspect(
     regex.execute("func()").results(),
     content=(
-      #|[Some("()")]
+      #|[Some(<StringView: "()">)]
     ),
   )
 
   // Test escaped backslash
   let regex = @regexp.compile("\\\\")
-  inspect(
+  debug_inspect(
     regex.execute("path\\file").results(),
     content=(
-      #|[Some("\\")]
+      #|[Some(<StringView: "\\">)]
     ),
   )
 
   // Test tab, newline, etc.
   let regex = @regexp.compile("\\t")
-  inspect(
+  debug_inspect(
     regex.execute("a\tb").results(),
     content=(
-      #|[Some("\t")]
+      #|[Some(<StringView: "\t">)]
     ),
   )
   let regex = @regexp.compile("\\n")
-  inspect(
+  debug_inspect(
     regex.execute("line1\nline2").results(),
     content=(
-      #|[Some("\n")]
+      #|[Some(<StringView: "\n">)]
     ),
   )
   let regex = @regexp.compile("\\r")
-  inspect(
+  debug_inspect(
     regex.execute("line1\rline2").results(),
     content=(
-      #|[Some("\r")]
+      #|[Some(<StringView: "\r">)]
     ),
   )
   let regex = @regexp.compile("[\\t\\n\\r]")
-  inspect(
+  debug_inspect(
     regex.execute("a\tb").results(),
     content=(
-      #|[Some("\t")]
+      #|[Some(<StringView: "\t">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("line1\nline2").results(),
     content=(
-      #|[Some("\n")]
+      #|[Some(<StringView: "\n">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("line1\rline2").results(),
     content=(
-      #|[Some("\r")]
+      #|[Some(<StringView: "\r">)]
     ),
   )
 }
@@ -924,46 +997,46 @@ test "escape sequences and special characters" {
 test "greedy vs non-greedy matching" {
   // Test greedy quantifiers
   let regex = @regexp.compile("<.*>")
-  inspect(
+  debug_inspect(
     regex.execute("<div><span></span></div>").results(),
     content=(
-      #|[Some("<div><span></span></div>")]
+      #|[Some(<StringView: "<div><span></span></div>">)]
     ),
   )
 
   // Test non-greedy quantifiers
   let regex = @regexp.compile("<.*?>")
-  inspect(
+  debug_inspect(
     regex.execute("<div><span></span></div>").results(),
     content=(
-      #|[Some("<div>")]
+      #|[Some(<StringView: "<div>">)]
     ),
   )
 
   // Test non-greedy +
   let regex = @regexp.compile("a.+?b")
-  inspect(
+  debug_inspect(
     regex.execute("axxxbyyybzzz").results(),
     content=(
-      #|[Some("axxxb")]
+      #|[Some(<StringView: "axxxb">)]
     ),
   )
 
   // Test non-greedy *
   let regex = @regexp.compile("a.*?b")
-  inspect(
+  debug_inspect(
     regex.execute("axxxbyyybzzz").results(),
     content=(
-      #|[Some("axxxb")]
+      #|[Some(<StringView: "axxxb">)]
     ),
   )
 
   // Test non-greedy ?
   let regex = @regexp.compile("a??b")
-  inspect(
+  debug_inspect(
     regex.execute("b").results(),
     content=(
-      #|[Some("b")]
+      #|[Some(<StringView: "b">)]
     ),
   )
 }
@@ -1019,50 +1092,50 @@ test "greedy vs non-greedy matching" {
 test "case sensitivity and flags" {
   // Test case insensitive flag
   let regex = @regexp.compile("hello", flags="i")
-  inspect(
+  debug_inspect(
     regex.execute("HELLO").results(),
     content=(
-      #|[Some("HELLO")]
+      #|[Some(<StringView: "HELLO">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("Hello").results(),
     content=(
-      #|[Some("Hello")]
+      #|[Some(<StringView: "Hello">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("hElLo").results(),
     content=(
-      #|[Some("hElLo")]
+      #|[Some(<StringView: "hElLo">)]
     ),
   )
 
   // Test inline case insensitive
   let regex = @regexp.compile("(?i:hello)")
-  inspect(
+  debug_inspect(
     regex.execute("HELLO world").results(),
     content=(
-      #|[Some("HELLO")]
+      #|[Some(<StringView: "HELLO">)]
     ),
   )
 
   // Test case sensitive (default)
   let regex = @regexp.compile("hello")
-  inspect(
+  debug_inspect(
     regex.execute("hello").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
   inspect(regex.execute("HELLO").matched(), content="false")
 
   // Test mixed case sensitivity
   let regex = @regexp.compile("(?i:hello) world")
-  inspect(
+  debug_inspect(
     regex.execute("HELLO world").results(),
     content=(
-      #|[Some("HELLO world")]
+      #|[Some(<StringView: "HELLO world">)]
     ),
   )
   inspect(regex.execute("HELLO WORLD").matched(), content="false")
@@ -1074,40 +1147,40 @@ test "case sensitivity and flags" {
 test "unicode and international characters" {
   // Test basic unicode
   let regex = @regexp.compile("café")
-  inspect(
+  debug_inspect(
     regex.execute("I love café").results(),
     content=(
-      #|[Some("café")]
+      #|[Some(<StringView: "café">)]
     ),
   )
 
   // Test unicode word boundaries
   let regex = @regexp.compile("\\w+")
-  inspect(
+  debug_inspect(
     regex.execute("hello 世界").results(),
     content=(
-      #|[Some("hello")]
+      #|[Some(<StringView: "hello">)]
     ),
   )
 
   // Test unicode character classes
   let regex = @regexp.compile("[\\u4e00-\\u9fff]+")
   assert_true(regex.execute("Hello 世界 World").matched())
-  inspect(
+  debug_inspect(
     regex.execute("Hello 世界 World").results(),
     content=(
-      #|[Some("世界")]
+      #|[Some(<StringView: "世界">)]
     ),
   )
 
   // Test emoji (if supported)
   let regex = @regexp.compile("😀")
   let result = regex.execute("Happy 😀 face")
-  guard result.matched()
-  inspect(
+  guard! result.matched()
+  debug_inspect(
     result.get(0),
     content=(
-      #|Some("😀")
+      #|Some(<StringView: "😀">)
     ),
   )
 }
@@ -1118,53 +1191,53 @@ test "complex real-world patterns" {
   let email_regex = @regexp.compile(
     "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
   )
-  inspect(
+  debug_inspect(
     email_regex.execute("user@example.com").results(),
     content=(
-      #|[Some("user@example.com")]
+      #|[Some(<StringView: "user@example.com">)]
     ),
   )
-  inspect(
+  debug_inspect(
     email_regex.execute("test.email+tag@domain.co.uk").results(),
     content=(
-      #|[Some("test.email+tag@domain.co.uk")]
+      #|[Some(<StringView: "test.email+tag@domain.co.uk">)]
     ),
   )
   inspect(email_regex.execute("invalid.email").matched(), content="false")
 
   // Phone number patterns
   let phone_regex = @regexp.compile("\\(?\\d{3}\\)?[ -.]?\\d{3}[-.]?\\d{4}")
-  inspect(
+  debug_inspect(
     phone_regex.execute("(123)456-7890").results(),
     content=(
-      #|[Some("(123)456-7890")]
+      #|[Some(<StringView: "(123)456-7890">)]
     ),
   )
-  inspect(
+  debug_inspect(
     phone_regex.execute("123.456.7890").results(),
     content=(
-      #|[Some("123.456.7890")]
+      #|[Some(<StringView: "123.456.7890">)]
     ),
   )
-  inspect(
+  debug_inspect(
     phone_regex.execute("1234567890").results(),
     content=(
-      #|[Some("1234567890")]
+      #|[Some(<StringView: "1234567890">)]
     ),
   )
 
   // URL matching
   let url_regex = @regexp.compile("https?://[^\\s]+")
-  inspect(
+  debug_inspect(
     url_regex.execute("Visit https://example.com for more").results(),
     content=(
-      #|[Some("https://example.com")]
+      #|[Some(<StringView: "https://example.com">)]
     ),
   )
-  inspect(
+  debug_inspect(
     url_regex.execute("Go to http://test.org/path?query=1").results(),
     content=(
-      #|[Some("http://test.org/path?query=1")]
+      #|[Some(<StringView: "http://test.org/path?query=1">)]
     ),
   )
 
@@ -1172,10 +1245,10 @@ test "complex real-world patterns" {
   let ip_regex = @regexp.compile(
     "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
   )
-  inspect(
+  debug_inspect(
     ip_regex.execute("Server IP: 192.168.1.1").results(),
     content=(
-      #|[Some("192.168.1.1")]
+      #|[Some(<StringView: "192.168.1.1">)]
     ),
   )
 
@@ -1183,32 +1256,32 @@ test "complex real-world patterns" {
   let cc_regex = @regexp.compile(
     "\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}",
   )
-  inspect(
+  debug_inspect(
     cc_regex.execute("1234 5678 9012 3456").results(),
     content=(
-      #|[Some("1234 5678 9012 3456")]
+      #|[Some(<StringView: "1234 5678 9012 3456">)]
     ),
   )
-  inspect(
+  debug_inspect(
     cc_regex.execute("1234-5678-9012-3456").results(),
     content=(
-      #|[Some("1234-5678-9012-3456")]
+      #|[Some(<StringView: "1234-5678-9012-3456">)]
     ),
   )
 
   // HTML tag matching
   let html_regex = @regexp.compile("<([a-zA-Z]+)[^>]*>(.*?)</\\1>")
   let result = html_regex.execute("<div class='test'>content</div>")
-  inspect(
+  debug_inspect(
     result.get(1),
     content=(
-      #|Some("div")
+      #|Some(<StringView: "div">)
     ),
   )
-  inspect(
+  debug_inspect(
     result.get(2),
     content=(
-      #|Some("content")
+      #|Some(<StringView: "content">)
     ),
   )
 }
@@ -1217,50 +1290,55 @@ test "complex real-world patterns" {
 test "edge cases and boundary conditions" {
   // Empty string matching
   let regex = @regexp.compile("")
-  inspect(
+  debug_inspect(
     regex.execute("").results(),
     content=(
-      #|[Some("")]
+      #|[Some(<StringView: "">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("abc").results(),
     content=(
-      #|[Some("")]
+      #|[Some(<StringView: "">)]
     ),
   )
 
   // Very long strings
   let long_string = "a".repeat(1000) + "b"
   let regex = @regexp.compile("a+b")
-  inspect(
+  debug_inspect(
     regex.execute(long_string).results(),
     content=(
-      #|[Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab")]
+      #|[
+      #|  Some(
+      #|    <StringView:
+      #|      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab">,
+      #|  ),
+      #|]
     ),
   )
 
   // Pattern at string boundaries
   let regex = @regexp.compile("^a|b$")
-  inspect(
+  debug_inspect(
     regex.execute("a").results(),
     content=(
-      #|[Some("a")]
+      #|[Some(<StringView: "a">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("b").results(),
     content=(
-      #|[Some("b")]
+      #|[Some(<StringView: "b">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("ab").results(),
     content=(
-      #|[Some("a")]
+      #|[Some(<StringView: "a">)]
     ),
   )
-  inspect(regex.execute("ba").results(), content="[]")
+  debug_inspect(regex.execute("ba").results(), content="[]")
 
   // Zero-width assertions
   let regex = @regexp.compile("\\b")
@@ -1268,24 +1346,29 @@ test "edge cases and boundary conditions" {
   inspect(result.matched(), content="true")
   // Word boundaries are zero-width, so match should be empty string
   if result.matched() {
-    inspect(result.get(0), content="Some(\"\")")
+    debug_inspect(
+      result.get(0),
+      content=(
+        #|Some(<StringView: "">)
+      ),
+    )
   }
 
   // Overlapping matches (should get first/leftmost)
   let regex = @regexp.compile("aa")
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aa")]
+      #|[Some(<StringView: "aa">)]
     ),
   )
 
   // Pattern with all quantifiers
   let regex = @regexp.compile("a*b+c?d{2}e{2,4}f{3,}")
-  inspect(
+  debug_inspect(
     regex.execute("bbcddeeefffff").results(),
     content=(
-      #|[Some("bbcddeeefffff")]
+      #|[Some(<StringView: "bbcddeeefffff">)]
     ),
   )
 }
@@ -1293,76 +1376,88 @@ test "edge cases and boundary conditions" {
 ///|
 test "backreference" {
   let regex = @regexp.compile("((?:a|b)*)\\1\\1")
-  inspect(
+  debug_inspect(
     regex.execute("aaabbb").results(),
     content=(
-      #|[Some("aaa"), Some("a")]
+      #|[Some(<StringView: "aaa">), Some(<StringView: "a">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aaa"), Some("a")]
+      #|[Some(<StringView: "aaa">), Some(<StringView: "a">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaa").results(),
     content=(
-      #|[Some("aaa"), Some("a")]
+      #|[Some(<StringView: "aaa">), Some(<StringView: "a">)]
     ),
   )
-  inspect(
+  debug_inspect(
     regex.execute("aaaaaa").results(),
     content=(
-      #|[Some("aaaaaa"), Some("aa")]
+      #|[Some(<StringView: "aaaaaa">), Some(<StringView: "aa">)]
     ),
   )
 
   // Example that needs exponential backtracking
   let regex = @regexp.compile("(?:((?:a|b)*)\\1\\1)+")
-  inspect(
+  debug_inspect(
     regex.execute("aaabbb").results(),
     content=(
-      #|[Some("aaabbb"), Some("b")]
+      #|[Some(<StringView: "aaabbb">), Some(<StringView: "b">)]
     ),
   )
 
   // Palindrome detection
   let palindrome = @regexp.compile("^(.)(.)\\2\\1")
-  inspect(
+  debug_inspect(
     palindrome.execute("abba").results(),
     content=(
-      #|[Some("abba"), Some("a"), Some("b")]
+      #|[
+      #|  Some(<StringView: "abba">),
+      #|  Some(<StringView: "a">),
+      #|  Some(<StringView: "b">),
+      #|]
     ),
   )
 }
 
 ///|
 test "invalid backreferences" {
-  let regex = try? @regexp.compile("\\1000")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\1000"))
-    ),
-  )
-  let regex = try? @regexp.compile("\\01")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\01"))
-    ),
-  )
+  try @regexp.compile("\\1000") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "\\1000">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\01") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "\\01">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
 test "named backreferences with \\k<name>" {
   // Basic named backreference test
   let regex = @regexp.compile("(?<word>\\w+) \\k<word>")
-  inspect(
+  debug_inspect(
     regex.execute("hello hello").results(),
     content=(
-      #|[Some("hello hello"), Some("hello")]
+      #|[Some(<StringView: "hello hello">), Some(<StringView: "hello">)]
     ),
   )
   inspect(regex.execute("hello world").matched(), content="false")
@@ -1371,119 +1466,152 @@ test "named backreferences with \\k<name>" {
   let regex = @regexp.compile(
     "(?<first>\\w+) (?<second>\\w+) \\k<first> \\k<second>",
   )
-  inspect(
+  debug_inspect(
     regex.execute("cat dog cat dog").results(),
     content=(
-      #|[Some("cat dog cat dog"), Some("cat"), Some("dog")]
+      #|[
+      #|  Some(<StringView: "cat dog cat dog">),
+      #|  Some(<StringView: "cat">),
+      #|  Some(<StringView: "dog">),
+      #|]
     ),
   )
 
   // Named backreference with repetition
   let regex = @regexp.compile("(?<char>.)\\k<char>{2}")
-  inspect(
+  debug_inspect(
     regex.execute("aaa").results(),
     content=(
-      #|[Some("aaa"), Some("a")]
+      #|[Some(<StringView: "aaa">), Some(<StringView: "a">)]
     ),
   )
   inspect(regex.execute("abb").matched(), content="false")
 
   // Using \k<name> with alternation
   let regex = @regexp.compile("(?<tag>\\w+)\\s*\\|\\s*\\k<tag>")
-  inspect(
+  debug_inspect(
     regex.execute("div | div").results(),
     content=(
-      #|[Some("div | div"), Some("div")]
+      #|[Some(<StringView: "div | div">), Some(<StringView: "div">)]
     ),
   )
 
   // HTML-like tag matching
   let regex = @regexp.compile("<(?<tag>[a-z]+)>.*?</\\k<tag>>")
-  inspect(
+  debug_inspect(
     regex.execute("<div>content</div>").results(),
     content=(
-      #|[Some("<div>content</div>"), Some("div")]
+      #|[Some(<StringView: "<div>content</div>">), Some(<StringView: "div">)]
     ),
   )
   inspect(regex.execute("<div>content</span>").matched(), content="false")
 
   // Case-insensitive named backreference
   let regex = @regexp.compile("(?i:(?<word>[a-z]+) \\k<word>)")
-  inspect(regex.execute("Hello HELLO").results(), content="[]")
+  debug_inspect(regex.execute("Hello HELLO").results(), content="[]")
 }
 
 ///|
 test "named backreference errors" {
   // Undefined name
-  let regex = try? @regexp.compile("\\k<undefined>")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<undefined>"))
-    ),
-  )
+  try @regexp.compile("\\k<undefined>") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "\\k<undefined>">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Recursive reference - reference to a capture group that is currently being defined
-  let regex = try? @regexp.compile("(?<recur>.\\k<recur>)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<recur>)"))
-    ),
-  )
+  try @regexp.compile("(?<recur>.\\k<recur>)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "\\k<recur>)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Reference to a named group that doesn't exist yet
-  let regex = try? @regexp.compile("\\k<name> (?<name>\\w+)")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment="\\k<name> (?<name>\\w+)"))
-    ),
-  )
+  try @regexp.compile("\\k<name> (?<name>\\w+)") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(
+          #|  err=InvalidEscape,
+          #|  source_fragment=<StringView: "\\k<name> (?<name>\\w+)">,
+          #|)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 
   // Invalid syntax for named backreference
-  let regex = try? @regexp.compile("\\k<name")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment=""))
-    ),
-  )
-  let regex = try? @regexp.compile("\\k name>")
-  inspect(
-    regex.map(ignore),
-    content=(
-      #|Err(RegexpError(err=InvalidEscape, source_fragment=" name>"))
-    ),
-  )
+  try @regexp.compile("\\k<name") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: "">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
+  try @regexp.compile("\\k name>") catch {
+    e =>
+      debug_inspect(
+        e,
+        content=(
+          #|RegexpError(err=InvalidEscape, source_fragment=<StringView: " name>">)
+        ),
+      )
+  } noraise {
+    _ => fail("expected an error")
+  }
 }
 
 ///|
 test "unicode general category properties" {
   // Test Unicode property \p{L} (letter)
   let regex = @regexp.compile("\\p{Letter}+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello 世界").results(),
     content=(
-      #|[Some("Hello")]
+      #|[Some(<StringView: "Hello">)]
     ),
   )
 
   // Test Unicode property \p{N} (number)
   let regex = @regexp.compile("\\p{Number}+")
-  inspect(
+  debug_inspect(
     regex.execute("123 and 456").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
 
   // Test Unicode property \p{Z} (separator)
   let regex = @regexp.compile("\\p{Z}+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello 世界 ").results(),
     content=(
-      #|[Some(" ")]
+      #|[Some(<StringView: " ">)]
     ),
   )
 }
@@ -1492,69 +1620,69 @@ test "unicode general category properties" {
 test "char classes" {
   // negated case insensitive
   let regex = @regexp.compile("(?i:[^a-z]+)")
-  inspect(
+  debug_inspect(
     regex.execute("1234").results(),
     content=(
-      #|[Some("1234")]
+      #|[Some(<StringView: "1234">)]
     ),
   )
-  inspect(regex.execute("a").results(), content="[]")
-  inspect(regex.execute("A").results(), content="[]")
-  inspect(regex.execute("K").results(), content="[]")
+  debug_inspect(regex.execute("a").results(), content="[]")
+  debug_inspect(regex.execute("A").results(), content="[]")
+  debug_inspect(regex.execute("K").results(), content="[]")
 
   // digits
   let regex = @regexp.compile("[\\d]+")
-  inspect(
+  debug_inspect(
     regex.execute("123abc").results(),
     content=(
-      #|[Some("123")]
+      #|[Some(<StringView: "123">)]
     ),
   )
   // non-digits
   let regex = @regexp.compile("[\\D]+")
-  inspect(
+  debug_inspect(
     regex.execute("abc123").results(),
     content=(
-      #|[Some("abc")]
+      #|[Some(<StringView: "abc">)]
     ),
   )
 
   // words
   let regex = @regexp.compile("[\\w]+")
-  inspect(
+  debug_inspect(
     regex.execute("hello_world123 ").results(),
     content=(
-      #|[Some("hello_world123")]
+      #|[Some(<StringView: "hello_world123">)]
     ),
   )
   let regex = @regexp.compile("[\\W]+")
-  inspect(
+  debug_inspect(
     regex.execute("中文abc").results(),
     content=(
-      #|[Some("中文")]
+      #|[Some(<StringView: "中文">)]
     ),
   )
 
   // unicode properties
   let regex = @regexp.compile("[\\p{L}\\p{N}]+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello世界123\n").results(),
     content=(
-      #|[Some("Hello世界123")]
+      #|[Some(<StringView: "Hello世界123">)]
     ),
   )
   let regex = @regexp.compile("[^\\p{L}\\p{N}]+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello世界123\n").results(),
     content=(
-      #|[Some("\n")]
+      #|[Some(<StringView: "\n">)]
     ),
   )
   let regex = @regexp.compile("[\\P{L}]+")
-  inspect(
+  debug_inspect(
     regex.execute("Hello世界123\n").results(),
     content=(
-      #|[Some("123\n")]
+      #|[Some(<StringView: "123\n">)]
     ),
   )
 }
