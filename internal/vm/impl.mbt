@@ -15,13 +15,13 @@
 ///|
 pub(all) enum Instruction {
   Matched
-  Save(Int)
+  Save(Int32)
   Char(ArrayView[Char])
-  Jump(Int)
-  Split(Int, Int)
+  Jump(Int32)
+  Split(Int32, Int32)
   /// Zero-width assertions
   Assertion(Predicate)
-  Backreference(Int)
+  Backreference(Int32)
 }
 
 ///|
@@ -78,9 +78,9 @@ pub extend Predicate with Show::{to_string, output}
 /// A thread represents a point in the execution of the VM.
 /// It contains the program counter (pc) and an array of captures.
 priv struct Thread {
-  pc : Int
-  sp : Int
-  captures : Array[Int]
+  pc : Int32
+  sp : Int32
+  captures : Array[Int32]
 }
 
 ///|
@@ -97,7 +97,7 @@ priv struct Thread {
 fn add_thread(
   content : StringView,
   instructions : Array[Instruction],
-  inst_gen : Array[Int],
+  inst_gen : Array[Int32],
   thread : Thread,
   clist : Array[Thread],
 ) -> Unit {
@@ -189,14 +189,14 @@ fn add_thread(
 pub fn vm(
   instructions : Array[Instruction],
   input : StringView,
-  captures : Int,
-  allow_exponentiaion? : Bool = false,
-) -> Array[Int] {
+  captures : Int32,
+  allow_exponentiaion~ : Bool = false,
+) -> Array[Int32] {
   guard! instructions is [.., Save(1), Matched]
   let inst_gen = Array::make(instructions.length(), -1)
   let mut clist = Array(capacity=instructions.length())
   let mut nlist = Array(capacity=instructions.length())
-  let mut matched : Array[Int] = []
+  let mut matched : Array[Int32] = []
   add_thread(
     input,
     instructions,

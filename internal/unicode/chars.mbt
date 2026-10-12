@@ -71,7 +71,7 @@ test "ordered range" {
 
 ///|
 /// TODO: consider unicode mode
-pub fn is_word_char_at(input : StringView, sp : Int) -> Bool {
+pub fn is_word_char_at(input : StringView, sp : Int32) -> Bool {
   if sp == -1 || sp == input.length() {
     return false
   }
@@ -82,7 +82,7 @@ pub fn is_word_char_at(input : StringView, sp : Int) -> Bool {
 ///|
 fn is_word_char(c : Char) -> Bool {
   // Check if the character is a word character (alphanumeric or underscore)
-  return c is ('a'..='z' | 'A'..='Z' | '0'..='9' | '_')
+  return c is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | '_')
 }
 
 ///|

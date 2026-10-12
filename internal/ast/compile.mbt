@@ -18,15 +18,15 @@ pub(all) enum Ast {
   /// Anything that can be interpreted as range (inclusive) pair list, e.g. `.` (0..=0x10FFFF)
   CharClass(ArrayView[Char], neg~ : Bool)
   Assertion(Predicate)
-  Capture(Ast, index~ : Int)
+  Capture(Ast, index~ : Int32)
   ZeroOrMore(Ast, greedy~ : Bool)
   OneOrMore(Ast, greedy~ : Bool)
   ZeroOrOne(Ast, greedy~ : Bool)
   /// Matches a specific number of repetitions.
-  Repeat(Ast, greedy~ : Bool, min~ : UInt, max~ : UInt?)
+  Repeat(Ast, greedy~ : Bool, min~ : UInt32, max~ : UInt32?)
   Concat(Array[Ast])
   Alternate(Ast, Ast)
-  Backreference(Int)
+  Backreference(Int32)
 } derive(Debug)
 
 ///|

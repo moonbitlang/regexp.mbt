@@ -15,8 +15,8 @@
 ///|
 struct Regexp {
   instructions : Array[Instruction]
-  map : Map[String, Int]
-  capture : Int
+  map : Map[String, Int32]
+  capture : Int32
   allow_exponentiaion : Bool
 }
 
@@ -134,7 +134,7 @@ fn ParseResult::compile(self : Self) -> Regexp {
 /// ```
 pub fn compile(
   regexp : StringView,
-  flags? : StringView = "",
+  flags~ : StringView = "",
 ) -> Regexp raise RegexpError {
   parse(regexp, flags={
     multiline: flags.contains("m"),
@@ -179,7 +179,7 @@ pub fn compile(
 ///   debug_inspect(engine.group_by_name("word"), content="Some(1)")
 /// }
 /// ```
-pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int? {
+pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int32? {
   self.map.get(name)
 }
 
@@ -201,7 +201,7 @@ pub fn Regexp::group_by_name(self : Regexp, name : String) -> Int? {
 ///   inspect(engine.group_count(), content="3")
 /// }
 /// ```
-pub fn Regexp::group_count(self : Regexp) -> Int {
+pub fn Regexp::group_count(self : Regexp) -> Int32 {
   self.capture
 }
 
@@ -391,8 +391,8 @@ pub fn Regexp::match_(self : Regexp, input : StringView) -> MatchResult? {
 /// - And so on...
 struct MatchResult {
   input : StringView
-  captures : Array[Int]
-  names : Map[String, Int]
+  captures : Array[Int32]
+  names : Map[String, Int32]
   before : StringView
   after : StringView
 }
@@ -452,7 +452,7 @@ pub fn MatchResult::matched(self : Self) -> Bool {
 ///   )
 /// }
 /// ```
-pub fn MatchResult::get(self : Self, index : Int) -> StringView? {
+pub fn MatchResult::get(self : Self, index : Int32) -> StringView? {
   if self.captures.is_empty() ||
     index < 0 ||
     index >= self.captures.length() / 2 {

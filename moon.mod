@@ -1,6 +1,6 @@
 name = "moonbitlang/regexp"
 
-version = "0.3.5"
+version = "0.3.6"
 
 readme = "README.md"
 
