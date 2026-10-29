@@ -36,3 +36,24 @@ jobs:
         run: |
           moon fmt && git diff --exit-code
           moon info && git diff --exit-code
+
+  unicode-generator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Fetch pinned Unicode data
+        run: bash prebuild/download.sh
+      - name: Check generator and regenerate tables
+        run: |
+          moon -C prebuild update
+          moon -C prebuild check --target native --deny-warn
+          moon -C prebuild run --target native src -- "$GITHUB_WORKSPACE/prebuild/data" "$GITHUB_WORKSPACE/internal/unicode"
+          moon -C prebuild info
+          moon -C prebuild fmt
+          git diff --exit-code

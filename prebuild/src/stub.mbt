@@ -13,32 +13,38 @@
 // limitations under the License.
 
 ///|
-/// Run the program.
-pub fn run() -> Result[Unit, Unit] {
-  let mut result = Ok(())
-  @promise.spawn(async fn() {
-    top() catch {
-      error => {
-        result = Err(())
-        @io.println_sync("Error \{error}", stream=@io.stderr)
-      }
-    }
-  })
-  |> ignore
-  @io.event_loop.run()
-  result
+async fn main {
+  let args = @env.args()
+  guard args is [_, input, output] else {
+    fail(
+      "usage: moon run --target native src -- <unicode-data-directory> <output-directory>",
+    )
+  }
+  handle_case_folding(input, output)
+  handle_property_value_aliases(input, output)
+  handle_general_category(input, output)
 }
 
 ///|
-const UNICODE_ADDRESS = "www.unicode.org"
+async fn read_unicode_lines(directory : String, name : String) -> Array[String] {
+  let data = @fs.read_file("\{directory}/\{name}").text()
+  [
+    for line in data.split("\n") if !line.is_empty() => line.to_owned()
+  ]
+}
 
 ///|
-const UNICODE_DATABASE_PATH = "/Public/16.0.0/ucd"
+fn write_line(output : StringBuilder, text : String) -> Unit {
+  output.write_string(text)
+  output.write_char('\n')
+}
 
 ///|
-/// User should change this function to do what they want
-async fn top() -> Unit {
-  @promise.spawn(handle_case_folding).await()
-  @promise.spawn(handle_property_value_aliases).await()
-  @promise.spawn(handle_general_category).await()
+fn char_literal(ch : Char) -> String {
+  "'\\u{\{ch.to_int().to_string(radix=16)}}'"
+}
+
+///|
+fn extend_range(range : Array[Char], end : Char) -> Unit {
+  range[range.length() - 1] = end
 }

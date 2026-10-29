@@ -15,14 +15,14 @@ pub(all) enum Ast {
   Empty
   CharClass(ArrayView[Char], neg~ : Bool)
   Assertion(@vm.Predicate)
-  Capture(Ast, index~ : Int)
+  Capture(Ast, index~ : Int32)
   ZeroOrMore(Ast, greedy~ : Bool)
   OneOrMore(Ast, greedy~ : Bool)
   ZeroOrOne(Ast, greedy~ : Bool)
-  Repeat(Ast, greedy~ : Bool, min~ : UInt, max~ : UInt?)
+  Repeat(Ast, greedy~ : Bool, min~ : UInt32, max~ : UInt32?)
   Concat(Array[Ast])
   Alternate(Ast, Ast)
-  Backreference(Int)
+  Backreference(Int32)
 } derive(@debug.Debug)
 pub fn Ast::compile(Self) -> Array[@vm.Instruction]
 pub fn Ast::to_json(Self) -> Json

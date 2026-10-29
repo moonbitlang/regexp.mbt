@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/regexp",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/async",
+  "moonbitlang/core/string",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

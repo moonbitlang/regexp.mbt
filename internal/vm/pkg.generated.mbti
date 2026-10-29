@@ -6,19 +6,19 @@ import {
 }
 
 // Values
-pub fn vm(Array[Instruction], StringView, Int, allow_exponentiaion? : Bool) -> Array[Int]
+pub fn vm(Array[Instruction], StringView, Int32, allow_exponentiaion? : Bool) -> Array[Int32]
 
 // Errors
 
 // Types and methods
 pub(all) enum Instruction {
   Matched
-  Save(Int)
+  Save(Int32)
   Char(ArrayView[Char])
-  Jump(Int)
-  Split(Int, Int)
+  Jump(Int32)
+  Split(Int32, Int32)
   Assertion(Predicate)
-  Backreference(Int)
+  Backreference(Int32)
 }
 pub fn Instruction::to_json(Self) -> Json
 pub impl ToJson for Instruction

@@ -12,7 +12,7 @@ pub let general_category_property_value_alises : Map[String, String]
 
 pub let general_category_ranges : Map[String, ArrayView[Char]]
 
-pub fn is_word_char_at(StringView, Int) -> Bool
+pub fn is_word_char_at(StringView, Int32) -> Bool
 
 pub let ranges_any : Array[Char]
 

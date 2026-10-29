@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Migrate the Unicode 16.0.0 table generator to native MoonBit with pinned,
+  checksum-verified inputs and CI regeneration checks. Generated tables and
+  regexp behavior are unchanged.
+- Replace the deprecated module `exclude` setting with `.moonignore`.
+
 ## [0.3.6]
 
 ### Changed
