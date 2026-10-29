@@ -2,10 +2,12 @@ download:
     bash download.sh
 
 run target=("debug"): download
+    moon update
     moon run --target native --{{ target }} src -- data ../internal/unicode
     moon -C .. fmt
 
 build target=("debug"):
+    moon update
     moon build --target native --{{ target }}
 
 clean:

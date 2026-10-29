@@ -8,6 +8,7 @@ From this directory:
 
 ```sh
 bash download.sh
+moon update
 moon check --target native --deny-warn
 moon run --target native src -- data ../internal/unicode
 moon -C .. fmt

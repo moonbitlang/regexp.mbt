@@ -51,6 +51,7 @@ jobs:
         run: bash prebuild/download.sh
       - name: Check generator and regenerate tables
         run: |
+          moon -C prebuild update
           moon -C prebuild check --target native --deny-warn
           moon -C prebuild run --target native src -- "$GITHUB_WORKSPACE/prebuild/data" "$GITHUB_WORKSPACE/internal/unicode"
           moon -C prebuild info
