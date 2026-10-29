@@ -16,18 +16,10 @@
 const Unassigned = "Cn"
 
 ///|
-async fn get_general_category_code_points() -> Map[String, Array[Char]] {
-  // Get the Unicode data from Unicode.org for general categories
-  let request = @http.request(
-    UNICODE_ADDRESS,
-    path=UNICODE_DATABASE_PATH + "/UnicodeData.txt",
-  )
-  let data = @http.fetch(request)
-  defer data.drop()
-  guard data.consume() is Ok(body)
-  defer body.drop()
-  guard body.stream() is Ok(input_stream)
-  defer input_stream.drop()
+async fn get_general_category_code_points(
+  input : String,
+) -> Map[String, Array[Char]] {
+  let lines = read_unicode_lines(input, "UnicodeData.txt")
 
   // Map to store the character ranges for each category
   let category_ranges : Map[String, Array[Char]] = {
@@ -51,35 +43,30 @@ async fn get_general_category_code_points() -> Map[String, Array[Char]] {
   )
   let mut prev_category = ""
   let mut prev_code_point = (-1).unsafe_to_char()
-  while true {
-    let line = @io.read_line(stream=input_stream) catch {
-      @streams.Closed => break
-      e => raise e
-    }
+  for line in lines {
     let result = regexp.execute(line)
     guard result.matched() else {
       fail("Error: Invalid line format in UnicodeData.txt: \{line}")
     }
     let groups = result.groups()
-    let charcode = @strconv.parse_int(
-      groups.get("charcode").unwrap().to_string(),
+    let charcode = @string.parse_int(
+      groups.get("charcode").unwrap().to_owned(),
       base=16,
     ).unsafe_to_char()
-    let category = groups.get("category").unwrap().to_string()
+    let category = groups.get("category").unwrap().to_owned()
     // Check for unknown category
     if charcode.to_int() - prev_code_point.to_int() != 1 &&
-      not(groups.get("indicator").unwrap().has_suffix("Last>")) {
+      !groups.get("indicator").unwrap().has_suffix("Last>") {
       category_ranges
       .get(Unassigned)
       .unwrap()
       ..push((prev_code_point.to_int() + 1).unsafe_to_char())
-      ..push((charcode.to_int() - 1).unsafe_to_char())
+      .push((charcode.to_int() - 1).unsafe_to_char())
       if prev_category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
-        category_ranges
-        .get("C")
-        .unwrap()
-        ..unsafe_pop_back()
-        ..push((charcode.to_int() - 1).unsafe_to_char())
+        extend_range(
+          category_ranges.get("C").unwrap(),
+          (charcode.to_int() - 1).unsafe_to_char(),
+        )
       }
       prev_category = Unassigned
     }
@@ -93,67 +80,66 @@ async fn get_general_category_code_points() -> Map[String, Array[Char]] {
       range
     }
     if category == prev_category {
-      range.unsafe_pop_back()
-      range.push(charcode)
+      extend_range(range, charcode)
     } else {
-      range..push(charcode)..push(charcode)
+      range..push(charcode).push(charcode)
     }
 
     // Handle special case
     if category is ("Lu" | "Ll" | "Lt") {
       if prev_category is ("Lu" | "Ll" | "Lt") {
-        category_ranges.get("LC").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("LC").unwrap(), charcode)
       } else {
-        category_ranges.get("LC").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("LC").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Lu" | "Ll" | "Lt" | "Lm" | "Lo") {
       if prev_category is ("Lu" | "Ll" | "Lt" | "Lm" | "Lo") {
-        category_ranges.get("L").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("L").unwrap(), charcode)
       } else {
-        category_ranges.get("L").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("L").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Mn" | "Mc" | "Me") {
       if prev_category is ("Mn" | "Mc" | "Me") {
-        category_ranges.get("M").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("M").unwrap(), charcode)
       } else {
-        category_ranges.get("M").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("M").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Nd" | "Nl" | "No") {
       if prev_category is ("Nd" | "Nl" | "No") {
-        category_ranges.get("N").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("N").unwrap(), charcode)
       } else {
-        category_ranges.get("N").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("N").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Pc" | "Pd" | "Ps" | "Pe" | "Pi" | "Pf" | "Po") {
       if prev_category is ("Pc" | "Pd" | "Ps" | "Pe" | "Pi" | "Pf" | "Po") {
-        category_ranges.get("P").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("P").unwrap(), charcode)
       } else {
-        category_ranges.get("P").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("P").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Sm" | "Sc" | "Sk" | "So") {
       if prev_category is ("Sm" | "Sc" | "Sk" | "So") {
-        category_ranges.get("S").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("S").unwrap(), charcode)
       } else {
-        category_ranges.get("S").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("S").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Zs" | "Zl" | "Zp") {
       if prev_category is ("Zs" | "Zl" | "Zp") {
-        category_ranges.get("Z").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("Z").unwrap(), charcode)
       } else {
-        category_ranges.get("Z").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("Z").unwrap()..push(charcode).push(charcode)
       }
     }
     if category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
       if prev_category is ("Cc" | "Cf" | "Cs" | "Co" | "Cn") {
-        category_ranges.get("C").unwrap()..unsafe_pop_back()..push(charcode)
+        extend_range(category_ranges.get("C").unwrap(), charcode)
       } else {
-        category_ranges.get("C").unwrap()..push(charcode)..push(charcode)
+        category_ranges.get("C").unwrap()..push(charcode).push(charcode)
       }
     }
 
@@ -165,54 +151,36 @@ async fn get_general_category_code_points() -> Map[String, Array[Char]] {
 }
 
 ///|
-async fn handle_general_category() -> Unit {
-  let category_ranges = @promise.spawn(get_general_category_code_points).await()
+async fn handle_general_category(input : String, directory : String) -> Unit {
+  let category_ranges = get_general_category_code_points(input)
 
-  // Prepare file. Assume preopen is where the file needs to be written
-  guard @preopens.get_directories() is [(preopen, _), ..] else {
-    fail("Error: No preopen directories found")
-  }
-  let file = preopen
-    .open_at(
-      @fs.PathFlags::default(),
-      "general_category.mbt",
-      @fs.OpenFlags::default().set(CREATE).set(TRUNCATE),
-      @fs.DescriptorFlags::default().set(WRITE),
-    )
-    .unwrap_or_error()
-  defer file.drop()
-  let output_stream = file.write_via_stream(0).unwrap_or_error()
-  defer output_stream.drop()
+  let output = StringBuilder()
 
   // Start writing template
-  @io.println(
+  write_line(
+    output,
     (
       #|// generated by prebuild : just -d ./prebuild -f ./prebuild/justfile run
       #|
       #|///|
       #|pub let general_category_ranges : Map[String, ArrayView[Char]] = {
     ),
-    stream=output_stream,
   )
 
   // Write the category ranges
   for category_entry in category_ranges.to_array() {
     let (cat, ranges) = category_entry
-    @io.print(
+    output.write_string(
       (
         $|  "\{cat}": [
       ),
-      stream=output_stream,
     )
     if cat != "Cs" {
       for ch in ranges {
-        @io.print(
-          "'\\u{\{ch.to_int().to_string(radix=16)}}', ",
-          stream=output_stream,
-        )
+        output.write_string("'\\u{\{ch.to_int().to_string(radix=16)}}', ")
       }
     } else {
-      @io.print(
+      output.write_string(
         (
           #|
           #|// Note, since 'Cs' (Surrogate) category contains code points that are
@@ -222,21 +190,24 @@ async fn handle_general_category() -> Unit {
           #|// They should never be used
           #|
         ),
-        stream=output_stream,
       )
     }
-    @io.println(
+    write_line(
+      output,
       (
         #|],
       ),
-      stream=output_stream,
     )
   }
-  @io.println(
+  write_line(
+    output,
     (
       #|}
     ),
-    stream=output_stream,
   )
-  output_stream.blocking_flush().unwrap()
+  @fs.write_file(
+    "\{directory}/general_category.mbt",
+    output.to_string(),
+    create_mode=CreateOrTruncate,
+  )
 }
