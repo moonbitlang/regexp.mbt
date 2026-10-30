@@ -61,7 +61,7 @@ test "capture" {
   let result = vm(instructions, "abc", 2)
   debug_inspect(result, content="[0, 3, 0, 3]")
   inspect(
-    "abc".view(start_offset=result[1 * 2], end_offset=result[1 * 2 + 1]),
+    "abc".clamped_view(start=result[1 * 2], end=result[1 * 2 + 1]),
     content="abc",
   )
 }

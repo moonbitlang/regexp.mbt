@@ -26,7 +26,7 @@ test {
   ]
   let captures = vm(instructions, "aab", 1)
   debug_inspect(captures, content="[0, 3]")
-  inspect("aab".view(start_offset=0, end_offset=3), content="aab")
+  inspect("aab".clamped_view(start=0, end=3), content="aab")
 }
 
 ///|
@@ -82,9 +82,7 @@ test "priority" (t : @test.Test) {
   let captures = vm(instructions, "aabbcc", 4)
   debug_inspect(captures, content="[0, 6, 0, 3, 3, 5, 5, 6]")
   for i = 0; i < captures.length(); i = i + 2 {
-    t.writeln(
-      "aabbcc".view(start_offset=captures[i], end_offset=captures[i + 1]),
-    )
+    t.writeln("aabbcc".clamped_view(start=captures[i], end=captures[i + 1]))
   }
   t.snapshot(filename="priority.txt")
 }
