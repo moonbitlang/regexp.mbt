@@ -250,8 +250,8 @@ pub fn vm(
           guard! len != 0
           let next_sp = sp + len
           if next_sp <= input.length() &&
-            input.view(start_offset=start, end_offset=end) ==
-            input.view(start_offset=sp, end_offset=next_sp) {
+            input.clamped_view(start~, end~) ==
+            input.clamped_view(start=sp, end=next_sp) {
             add_thread(
               input,
               instructions,
